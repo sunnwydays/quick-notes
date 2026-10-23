@@ -112,7 +112,7 @@ input {
 
 /* Phones: home and login sit at the bottom of the display so everything is in thumb reach,
    except the sync row, which stays at the top of the home screen.
-   The notes list reads from the top, with Back and the title pinned to the bottom of the
+   The notes list reads from the top, with the title (and Add and Back on its right) pinned to the bottom of the
    screen (above the Undo banner when it shows) while the notes scroll behind it.
    In the editor the Save/Discard bar moves below the text box, just above the keyboard. */
 @media (max-width: 600px) {

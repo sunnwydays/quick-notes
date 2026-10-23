@@ -349,6 +349,8 @@ function openEditor(cat, text = BULLET) {
   saveDraft();
 }
 
+$('add-btn').addEventListener('click', () => openEditor(current.cat));
+
 function saveDraft() {
   if (!current || current.view !== 'edit') return;
   localStorage.setItem(DRAFT_KEY, JSON.stringify({ cat: current.cat, text: textarea.value }));
