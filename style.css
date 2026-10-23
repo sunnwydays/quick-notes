@@ -22,6 +22,8 @@ button.primary { background: #000; color: #fff; font-weight: 700; }
 
 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .grid button { min-height: 110px; font-size: 24px; font-weight: 700; overflow-wrap: anywhere; }
+/* Long press opens a category's notes, so don't select its label or show a callout. */
+.grid button { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 
 /* Divider between projects and built-in categories; spans both grid columns. */
 .grid hr { grid-column: 1 / -1; width: 100%; margin: 8px 0; border: 0; border-top: 4px solid #000; }

@@ -233,10 +233,40 @@ function renderHome() {
   fillCategories($('categories'), (cat) => {
     const btn = document.createElement('button');
     btn.textContent = label(cat);
-    btn.addEventListener('click', () => (readNext ? go({ view: 'entries', cat }) : openEditor(cat)));
+    onLongPress(btn, () => go({ view: 'entries', cat }));
+    btn.addEventListener('click', () => {
+      if (btn.held) return; // the click that ends a long press
+      readNext ? go({ view: 'entries', cat }) : openEditor(cat);
+    });
     return btn;
   });
   showStatus();
+}
+
+// Holding a category opens its notes, the same as tapping Read and then it.
+// Android also fires contextmenu on a long press, which counts too, so the
+// press still works if the browser cancels the touch before the timer runs.
+const LONG_PRESS_MS = 300;
+
+function onLongPress(btn, action) {
+  let timer = null;
+  const fire = () => {
+    clearTimeout(timer);
+    if (btn.held) return;
+    btn.held = true;
+    action();
+  };
+  btn.addEventListener('pointerdown', () => {
+    btn.held = false;
+    timer = setTimeout(fire, LONG_PRESS_MS);
+  });
+  for (const type of ['pointerup', 'pointerleave', 'pointercancel']) {
+    btn.addEventListener(type, () => clearTimeout(timer));
+  }
+  btn.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    fire();
+  });
 }
 
 $('add-project-btn').addEventListener('click', () => {
