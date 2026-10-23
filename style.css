@@ -24,7 +24,7 @@ button.primary { background: #000; color: #fff; font-weight: 700; }
 .grid button { min-height: 110px; font-size: 24px; font-weight: 700; overflow-wrap: anywhere; }
 
 /* Divider between projects and built-in categories; spans both grid columns. */
-.grid hr, .list hr { grid-column: 1 / -1; width: 100%; margin: 8px 0; border: 0; border-top: 4px solid #000; }
+.grid hr { grid-column: 1 / -1; width: 100%; margin: 8px 0; border: 0; border-top: 4px solid #000; }
 
 .row { display: flex; gap: 12px; margin-top: 12px; }
 .row button { flex: 1; }
@@ -46,9 +46,6 @@ button.primary { background: #000; color: #fff; font-weight: 700; }
   resize: none;
   outline: none;
 }
-
-.list { display: flex; flex-direction: column; gap: 12px; }
-.list button { text-align: left; font-weight: 700; }
 
 .entry { border-bottom: 2px solid #000; padding: 12px 0; }
 .entry-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }

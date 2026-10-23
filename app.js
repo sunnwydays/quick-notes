@@ -104,6 +104,7 @@ function newId() {
 // Android back button returns to the previous screen instead of closing the app.
 
 let current = null; // null = home, or {view, cat}
+let readNext = false; // Read was tapped: the next category tap opens its notes
 
 function show(id) {
   for (const s of document.querySelectorAll('body > section')) s.hidden = s.id !== id;
@@ -111,15 +112,13 @@ function show(id) {
 
 function render(state) {
   current = state;
+  if (state) readNext = false;
   if (!state) {
     renderHome();
     show('home');
   } else if (state.view === 'edit') {
     $('editor-title').textContent = state.cat;
     show('editor');
-  } else if (state.view === 'read') {
-    renderReadList();
-    show('read');
   } else if (state.view === 'entries') {
     renderEntries(state.cat);
     show('entries');
@@ -133,7 +132,6 @@ function render(state) {
 // and login screens alone so nothing jumps while typing.
 function refreshView() {
   if (!current) renderHome();
-  else if (current.view === 'read') renderReadList();
   else if (current.view === 'entries') renderEntries(current.cat);
 }
 
@@ -154,10 +152,11 @@ for (const btn of document.querySelectorAll('.back')) {
 // ---------- home ----------
 
 function renderHome() {
+  $('read-btn').classList.toggle('primary', readNext);
   fillCategories($('categories'), (cat) => {
     const btn = document.createElement('button');
     btn.textContent = cat;
-    btn.addEventListener('click', () => openEditor(cat));
+    btn.addEventListener('click', () => (readNext ? go({ view: 'entries', cat }) : openEditor(cat)));
     return btn;
   });
   showStatus();
@@ -178,7 +177,11 @@ $('add-project-btn').addEventListener('click', () => {
   sync();
 });
 
-$('read-btn').addEventListener('click', () => go({ view: 'read' }));
+// Tapping Read again cancels it.
+$('read-btn').addEventListener('click', () => {
+  readNext = !readNext;
+  $('read-btn').classList.toggle('primary', readNext);
+});
 $('export-btn').addEventListener('click', downloadExport);
 
 // ---------- editor ----------
@@ -277,15 +280,6 @@ function formatFull(iso) {
   const d = new Date(iso);
   const p = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
-}
-
-function renderReadList() {
-  fillCategories($('read-list'), (cat) => {
-    const btn = document.createElement('button');
-    btn.textContent = `${cat} (${entriesFor(cat).length})`;
-    btn.addEventListener('click', () => go({ view: 'entries', cat }));
-    return btn;
-  });
 }
 
 function renderEntries(cat) {

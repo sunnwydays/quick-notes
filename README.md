@@ -16,13 +16,13 @@ Live: https://quick-notes-liart.vercel.app
 
 What you type is saved as you go. If the app is closed mid-note, it reopens on that note next time.
 
-**Projects:** tap **+ project** to add one. Projects get their own buttons above the built-in categories, with a line between the two groups. To remove one, go to **Read**, open the project, and tap **Remove project**. That deletes its notes too.
+**Projects:** tap **+ project** to add one. Projects get their own buttons above the built-in categories, with a line between the two groups. To remove one, tap **Read**, then the project, and tap **Remove project**. That deletes its notes too.
 
-**Read:** tap **Read**, then a category. Notes show newest first, each with its time and a Delete button.
+**Read:** tap **Read** (it turns black), then a category. Instead of the editor, that category's notes open, newest first, each with its time and a Delete button. Read only applies to the next tap; tap it again to cancel.
 
 **Back up**
 - **Export** on the home screen downloads every note as a `.txt` file.
-- **Copy all** on the Read screen copies the same text to the clipboard.
+- **Copy all** on a category's notes screen copies the same text to the clipboard.
 
 **Sync between devices:** tap **Log in** at the bottom of the home screen, enter your email, then the code from the email. Do this once on each device and it stays logged in. Notes, deletes and projects then sync between devices. Logging in is optional: without it, notes stay on that device only. The line next to the button shows "Synced 3:42 PM", or "Offline" with how many changes are waiting.
 
@@ -34,8 +34,8 @@ Plain HTML, CSS and JS. There's no framework and no build step.
 
 | File | What it does |
 | --- | --- |
-| `index.html` | The five screens (home, editor, read, entries, login) as `<section>`s. Only one is shown at a time. |
-| `app.js` | All the logic: storage, switching screens, the editor, read view, export, login and sync. |
+| `index.html` | The four screens (home, editor, entries, login) as `<section>`s. Only one is shown at a time. |
+| `app.js` | All the logic: storage, switching screens, the editor, reading notes, export, login and sync. |
 | `schema.sql` | The Supabase tables, row-level security and triggers that sync uses. |
 | `style.css` | E-ink friendly: black on white, thick borders, large tap targets, no animations. |
 | `sw.js` | Service worker: a background script that caches the app files so the app opens offline. |
