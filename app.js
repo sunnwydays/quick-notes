@@ -30,6 +30,18 @@ function orderedCategories() {
   ];
 }
 
+// One button per category, with a divider line between projects and the built-ins.
+function fillCategories(box, makeButton) {
+  box.replaceChildren();
+  const cats = orderedCategories();
+  cats.forEach((cat, i) => {
+    if (i > 0 && BUILT_IN.includes(cat) && !BUILT_IN.includes(cats[i - 1])) {
+      box.append(document.createElement('hr'));
+    }
+    box.append(makeButton(cat));
+  });
+}
+
 function entriesFor(cat) {
   return data.entries
     .filter((e) => e.category === cat)
@@ -85,14 +97,12 @@ for (const btn of document.querySelectorAll('.back')) {
 // ---------- home ----------
 
 function renderHome() {
-  const box = $('categories');
-  box.replaceChildren();
-  for (const cat of orderedCategories()) {
+  fillCategories($('categories'), (cat) => {
     const btn = document.createElement('button');
     btn.textContent = cat;
     btn.addEventListener('click', () => openEditor(cat));
-    box.append(btn);
-  }
+    return btn;
+  });
 }
 
 $('add-project-btn').addEventListener('click', () => {
@@ -203,14 +213,12 @@ function formatFull(iso) {
 }
 
 function renderReadList() {
-  const box = $('read-list');
-  box.replaceChildren();
-  for (const cat of orderedCategories()) {
+  fillCategories($('read-list'), (cat) => {
     const btn = document.createElement('button');
     btn.textContent = `${cat} (${entriesFor(cat).length})`;
     btn.addEventListener('click', () => go({ view: 'entries', cat }));
-    box.append(btn);
-  }
+    return btn;
+  });
 }
 
 function renderEntries(cat) {

@@ -23,6 +23,9 @@ button.primary { background: #000; color: #fff; font-weight: 700; }
 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .grid button { min-height: 110px; font-size: 24px; font-weight: 700; overflow-wrap: anywhere; }
 
+/* Divider between projects and built-in categories; spans both grid columns. */
+.grid hr, .list hr { grid-column: 1 / -1; width: 100%; margin: 8px 0; border: 0; border-top: 4px solid #000; }
+
 .row { display: flex; gap: 12px; margin-top: 12px; }
 .row button { flex: 1; }
 
