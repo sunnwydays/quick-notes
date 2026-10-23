@@ -507,6 +507,24 @@ document.addEventListener('dblclick', (e) => {
   history.back();
 });
 
+// Holding blank space on the notes screen goes back too. Holding a note, the
+// title or a button is left alone, so text can still be selected as usual.
+const NOT_BLANK = 'button, .entry, h1, .empty, #undo-bar';
+let blankTimer = null;
+
+document.addEventListener('pointerdown', (e) => {
+  clearTimeout(blankTimer);
+  if (!current || current.view !== 'entries' || e.target.closest(NOT_BLANK)) return;
+  blankTimer = setTimeout(() => {
+    if (!current || current.view !== 'entries') return;
+    holdUntilRelease();
+    history.back();
+  }, LONG_PRESS_MS);
+});
+for (const type of ['pointerup', 'pointercancel']) {
+  document.addEventListener(type, () => clearTimeout(blankTimer));
+}
+
 $('times-btn').addEventListener('click', () => {
   showTimes = !showTimes;
   localStorage.setItem(TIMES_KEY, JSON.stringify(showTimes));
