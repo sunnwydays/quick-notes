@@ -2,8 +2,10 @@
 // It keeps a copy of the app files so the app opens with no internet.
 // Strategy: answer from the cache right away, then fetch a fresh copy in the
 // background, so a new deploy shows up on the next open.
+// Only the app's own files are handled. Sync requests to Supabase go straight
+// to the network, so the app never sees stale notes from the cache.
 
-const CACHE = 'quick-notes-v1';
+const CACHE = 'quick-notes-v2';
 const FILES = [
   './',
   'index.html',
@@ -29,7 +31,7 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
-  if (e.request.method !== 'GET') return;
+  if (e.request.method !== 'GET' || new URL(e.request.url).origin !== self.location.origin) return;
   e.respondWith(
     caches.open(CACHE).then(async (cache) => {
       const cached = await cache.match(e.request, { ignoreSearch: true });
