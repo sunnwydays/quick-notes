@@ -87,6 +87,19 @@ function persist() {
   localStorage.setItem(STORE_KEY, JSON.stringify(data));
 }
 
+// Every open tab or window of the app shares this storage but keeps its own
+// copy in memory. Re-read it before saving after a network wait, so one copy
+// never saves its stale data over rows another copy just downloaded.
+function reload() {
+  data = load();
+}
+
+window.addEventListener('storage', (e) => {
+  if (e.key !== STORE_KEY) return;
+  reload();
+  refreshView();
+});
+
 // Record a local change so the next sync uploads it.
 function touch(item, fields) {
   Object.assign(item, fields, { updatedAt: new Date().toISOString(), dirty: true });
@@ -403,7 +416,11 @@ function renderEntries(cat) {
     del.className = 'delete';
     del.setAttribute('aria-label', 'Delete');
     del.innerHTML = TRASH_ICON;
+    // Look the note up again: `data` may have been reloaded since this list was drawn.
+    const { id } = entry;
     del.addEventListener('click', () => {
+      const entry = data.entries.find((e) => e.id === id);
+      if (!entry) return;
       touch(entry, { deletedAt: new Date().toISOString() });
       persist();
       showUndo('Note deleted.', () => restoreEntry(entry));
@@ -490,7 +507,10 @@ const SUPABASE_URL = 'https://zcsfiovwomnkdhnfkoqk.supabase.co';
 // Public by design: row-level security limits each account to its own rows.
 const SUPABASE_KEY = 'sb_publishable_cg6T49bzij-iV46Wha2AaA_cVnfbHMx';
 const AUTH_KEY = 'quicknotes-auth';
-const SYNC_KEY = 'quicknotes-sync';
+// Bumped so every device downloads everything once more, recovering rows an
+// earlier version lost when two tabs were open.
+const SYNC_KEY = 'quicknotes-sync-v2';
+localStorage.removeItem('quicknotes-sync');
 const PAGE = 1000;
 
 let auth = readJSON(AUTH_KEY); // {access_token, refresh_token, expires_at, user: {id, email}}
@@ -607,13 +627,16 @@ async function pushChanges() {
     const t = TABLES[kind];
     const sent = data[kind]
       .filter((x) => x.dirty)
-      .map((x) => ({ x, updatedAt: x.updatedAt, deletedAt: x.deletedAt }));
+      .map((x) => ({ key: t.key(x), row: t.toRow(x), updatedAt: x.updatedAt, deletedAt: x.deletedAt }));
     for (let i = 0; i < sent.length; i += PAGE) {
       const chunk = sent.slice(i, i + PAGE);
-      await rest('POST', `${t.table}?on_conflict=${t.conflict}`, chunk.map((s) => t.toRow(s.x)));
+      await rest('POST', `${t.table}?on_conflict=${t.conflict}`, chunk.map((s) => s.row));
       // Only clear rows that weren't changed again while the upload was running.
+      reload();
+      const byKey = new Map(data[kind].map((x) => [t.key(x), x]));
       for (const s of chunk) {
-        if (s.x.updatedAt === s.updatedAt && s.x.deletedAt === s.deletedAt) s.x.dirty = false;
+        const x = byKey.get(s.key);
+        if (x && x.updatedAt === s.updatedAt && x.deletedAt === s.deletedAt) x.dirty = false;
       }
       persist();
     }
@@ -622,10 +645,10 @@ async function pushChanges() {
 
 async function pullChanges() {
   const cursors = readJSON(SYNC_KEY) || {};
-  let changed = false;
+  const fetched = {};
   for (const kind of ['categories', 'entries']) {
     const t = TABLES[kind];
-    const byKey = new Map(data[kind].map((x) => [t.key(x), x]));
+    fetched[kind] = [];
     // Re-read the last minute as well, in case a slow write landed with an
     // earlier timestamp. Merging the same row twice is harmless.
     let since = cursors[kind] ? new Date(Date.parse(cursors[kind]) - 60000).toISOString() : EPOCH;
@@ -634,23 +657,31 @@ async function pullChanges() {
         'GET',
         `${t.table}?select=*&synced_at=gt.${encodeURIComponent(since)}&order=synced_at.asc&limit=${PAGE}`
       );
-      for (const row of rows) {
-        const remote = t.fromRow(row);
-        const local = byKey.get(t.key(remote));
-        if (!local) {
-          const added = { ...remote, dirty: false };
-          data[kind].push(added);
-          byKey.set(t.key(added), added);
-          changed = true;
-        } else if (t.merge(local, remote)) {
-          changed = true;
-        }
-      }
+      fetched[kind].push(...rows.map(t.fromRow));
       if (rows.length) {
         since = rows[rows.length - 1].synced_at;
         cursors[kind] = since;
       }
       if (rows.length < PAGE) break;
+    }
+  }
+  // Merge and save the rows and the cursor together, with no network wait in
+  // between, so the cursor can never move past rows that weren't saved.
+  reload();
+  let changed = false;
+  for (const kind of ['categories', 'entries']) {
+    const t = TABLES[kind];
+    const byKey = new Map(data[kind].map((x) => [t.key(x), x]));
+    for (const remote of fetched[kind]) {
+      const local = byKey.get(t.key(remote));
+      if (!local) {
+        const added = { ...remote, dirty: false };
+        data[kind].push(added);
+        byKey.set(t.key(added), added);
+        changed = true;
+      } else if (t.merge(local, remote)) {
+        changed = true;
+      }
     }
   }
   if (applyRenames(data)) changed = true;
