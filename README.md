@@ -64,7 +64,7 @@ The note in progress is kept separately under `quicknotes-draft` as `{ cat, text
 
 **Keyboard on tap:** the category button's click handler shows the editor and calls `textarea.focus()` in the same tick. Android only raises the keyboard when focus comes directly from a real tap, so this can't be moved into a timeout or an async callback.
 
-**Bullets on Enter:** Enter is caught on `keydown` for physical keyboards. Gboard usually doesn't report Enter on `keydown` (it sends key code 229), so `beforeinput` (`insertLineBreak`) catches it there. Both insert `\n- `. On save, empty `- ` lines are removed.
+**Bullets on Enter:** Enter is caught on `keydown` for physical keyboards. Gboard usually doesn't report Enter on `keydown` (it sends key code 229), so `beforeinput` (`insertLineBreak`) catches it there. Both insert `\n- `. On save, empty `- ` lines are removed. With **Split each line into its own note** ticked (it resets to unticked after every save), each remaining line is saved as a separate note, a millisecond apart so they list in the order typed.
 
 **Offline and updates:** `sw.js` answers each request from its cache right away, then fetches a fresh copy in the background. So after a deploy, the new version appears the *second* time you open the app. It only handles the app's own files; requests to Supabase always go to the network.
 

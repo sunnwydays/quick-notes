@@ -193,6 +193,9 @@ $('export-btn').addEventListener('click', downloadExport);
 
 // ---------- editor ----------
 
+// Hand focus back so the keyboard stays up.
+$('split').addEventListener('change', () => textarea.focus());
+
 // Called straight from the category button's click handler. Focusing inside a
 // real tap is what lets Android raise the keyboard.
 function openEditor(cat, text = BULLET) {
@@ -221,20 +224,28 @@ function cleanText(text) {
 function commitEditor() {
   const text = cleanText(textarea.value);
   if (text) {
-    const now = new Date().toISOString();
-    data.entries.push({
-      id: newId(),
-      category: current.cat,
-      text,
-      createdAt: now,
-      updatedAt: now,
-      deletedAt: null,
-      dirty: true,
+    const notes = $('split').checked ? text.split('\n').filter((line) => line.trim()) : [text];
+    // Split notes are a millisecond apart, first line newest, so the list
+    // (newest first) shows them in the order they were typed.
+    const base = Date.now();
+    notes.forEach((note, i) => {
+      const now = new Date(base - i).toISOString();
+      data.entries.push({
+        id: newId(),
+        category: current.cat,
+        text: note.trim(),
+        createdAt: now,
+        updatedAt: now,
+        deletedAt: null,
+        dirty: true,
+      });
     });
     persist();
   }
   localStorage.removeItem(DRAFT_KEY);
   textarea.value = '';
+  // Split is a one-note choice: every new note starts unchecked.
+  $('split').checked = false;
   textarea.blur();
   return Boolean(text);
 }
