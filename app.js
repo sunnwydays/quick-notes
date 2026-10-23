@@ -150,11 +150,42 @@ function go(state) {
 window.addEventListener('popstate', (e) => {
   if (current && current.view === 'edit' && commitEditor()) sync();
   render(e.state);
+  // Discard leaves the editor through history.back(), so its Undo can only be
+  // shown once the home screen has rendered.
+  if (pendingUndo) {
+    showUndo(...pendingUndo);
+    pendingUndo = null;
+  }
 });
 
 for (const btn of document.querySelectorAll('.back')) {
   btn.addEventListener('click', () => history.back());
 }
+
+// ---------- undo ----------
+// Deleting a note or discarding a draft happens straight away, with an Undo
+// banner instead of a confirm dialog. Only the latest action can be undone, and
+// the banner goes away when the screen changes.
+
+let undoAction = null;
+let pendingUndo = null; // [message, action] to show after the next popstate
+
+function showUndo(message, action) {
+  undoAction = action;
+  $('undo-msg').textContent = message;
+  $('undo-bar').hidden = false;
+}
+
+function hideUndo() {
+  undoAction = null;
+  $('undo-bar').hidden = true;
+}
+
+$('undo-btn').addEventListener('click', () => {
+  const action = undoAction;
+  hideUndo();
+  action();
+});
 
 // ---------- home ----------
 
@@ -280,8 +311,17 @@ textarea.addEventListener('input', (e) => {
 
 // Saving happens in the popstate handler, so Save and the back button behave the same.
 $('save-btn').addEventListener('click', () => history.back());
+// Undo reopens the editor with the draft, from the Undo tap so the keyboard comes up.
 $('discard-btn').addEventListener('click', () => {
-  if (cleanText(textarea.value) && !confirm('Discard this note?')) return;
+  const { cat } = current;
+  const text = textarea.value;
+  const split = $('split').checked;
+  if (cleanText(text)) {
+    pendingUndo = ['Note discarded.', () => {
+      openEditor(cat, text);
+      $('split').checked = split;
+    }];
+  }
   textarea.value = '';
   history.back();
 });
@@ -291,7 +331,6 @@ $('discard-btn').addEventListener('click', () => {
 
 const TIMES_KEY = 'quicknotes-show-times';
 let showTimes = readJSON(TIMES_KEY) === true;
-let undoEntry = null; // the last deleted note, until Undo or leaving the screen
 
 const TRASH_ICON =
   '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
@@ -340,8 +379,7 @@ function renderEntries(cat) {
     del.addEventListener('click', () => {
       touch(entry, { deletedAt: new Date().toISOString() });
       persist();
-      undoEntry = entry;
-      $('undo-bar').hidden = false;
+      showUndo('Note deleted.', () => restoreEntry(entry));
       renderEntries(cat);
       sync();
     });
@@ -355,18 +393,12 @@ function renderEntries(cat) {
 
 // The server treats a delete as final, so Undo brings the note back as a copy
 // with a new id. It keeps the original createdAt, so it sorts where it was.
-$('undo-btn').addEventListener('click', () => {
+function restoreEntry(entry) {
   const now = new Date().toISOString();
-  data.entries.push({ ...undoEntry, id: newId(), updatedAt: now, deletedAt: null, dirty: true });
+  data.entries.push({ ...entry, id: newId(), updatedAt: now, deletedAt: null, dirty: true });
   persist();
-  hideUndo();
   renderEntries(current.cat);
   sync();
-});
-
-function hideUndo() {
-  undoEntry = null;
-  $('undo-bar').hidden = true;
 }
 
 $('times-btn').addEventListener('click', () => {
