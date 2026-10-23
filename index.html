@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <!-- resizes-content: when the keyboard opens, the page shrinks to fit above it -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content">
+  <meta name="theme-color" content="#ffffff">
+  <title>Quick Notes</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <section id="home">
+    <div id="categories" class="grid"></div>
+    <div class="row">
+      <button id="read-btn">Read</button>
+      <button id="add-project-btn">+ project</button>
+      <button id="export-btn">Export</button>
+    </div>
+  </section>
+
+  <section id="editor" hidden>
+    <div class="bar">
+      <h1 id="editor-title"></h1>
+      <button id="discard-btn">Discard</button>
+      <button id="save-btn" class="primary">Save</button>
+    </div>
+    <textarea id="text" autocapitalize="sentences"></textarea>
+  </section>
+
+  <section id="read" hidden>
+    <div class="bar">
+      <button class="back">Back</button>
+      <h1>Read</h1>
+      <button id="copy-btn">Copy all</button>
+    </div>
+    <div id="read-list" class="list"></div>
+  </section>
+
+  <section id="entries" hidden>
+    <div class="bar">
+      <button class="back">Back</button>
+      <h1 id="entries-title"></h1>
+    </div>
+    <div id="entries-list"></div>
+    <button id="remove-project-btn" hidden>Remove project</button>
+  </section>
+
+  <script src="app.js"></script>
+</body>
+</html>
