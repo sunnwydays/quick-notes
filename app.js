@@ -250,8 +250,15 @@ $('export-btn').addEventListener('click', downloadExport);
 
 // ---------- editor ----------
 
+// Split is remembered per device, across all projects.
+const SPLIT_KEY = 'quicknotes-split';
+$('split').checked = readJSON(SPLIT_KEY) === true;
+
 // Hand focus back so the keyboard stays up.
-$('split').addEventListener('change', () => textarea.focus());
+$('split').addEventListener('change', () => {
+  localStorage.setItem(SPLIT_KEY, JSON.stringify($('split').checked));
+  textarea.focus();
+});
 
 // Called straight from the category button's click handler. Focusing inside a
 // real tap is what lets Android raise the keyboard.
@@ -301,8 +308,6 @@ function commitEditor() {
   }
   localStorage.removeItem(DRAFT_KEY);
   textarea.value = '';
-  // Split is a one-note choice: every new note starts unchecked.
-  $('split').checked = false;
   textarea.blur();
   return Boolean(text);
 }
@@ -341,12 +346,8 @@ $('save-btn').addEventListener('click', () => history.back());
 $('discard-btn').addEventListener('click', () => {
   const { cat } = current;
   const text = textarea.value;
-  const split = $('split').checked;
   if (cleanText(text)) {
-    pendingUndo = ['Note discarded.', () => {
-      openEditor(cat, text);
-      $('split').checked = split;
-    }];
+    pendingUndo = ['Note discarded.', () => openEditor(cat, text)];
   }
   textarea.value = '';
   history.back();
