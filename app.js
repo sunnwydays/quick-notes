@@ -1,9 +1,14 @@
 const STORE_KEY = 'quicknotes';
 const DRAFT_KEY = 'quicknotes-draft';
 const BACKUP_KEY = 'quicknotes-backup-v1';
-const BUILT_IN = ['Todo', 'Journal', 'Random thought', 'Bring from home'];
+// In button order: left to right, then down.
+const BUILT_IN = ['Todo', 'Working on', 'Thought', 'Random projects', 'Bring from home', 'Journal'];
 // Display only; the stored (and synced) category name stays plain text.
-const EMOJI = { Todo: '✅', Journal: '📓', 'Random thought': '💭', 'Bring from home': '🏠' };
+const EMOJI = {
+  Todo: '✅', 'Working on': '🛠️', Thought: '💭', 'Random projects': '💡', 'Bring from home': '🏠', Journal: '📓',
+};
+// Built-in categories that were renamed: old name -> new name.
+const RENAMED = { 'Random thought': 'Thought' };
 const BULLET = '- ';
 const EPOCH = '1970-01-01T00:00:00.000Z';
 
@@ -52,7 +57,28 @@ function migrate(d) {
       d.categories.push({ name, updatedAt: EPOCH, deletedAt: null, dirty: true });
     }
   }
+  applyRenames(d);
   return d;
+}
+
+// Move notes under a renamed category's new name and remove the old category.
+// Also runs after each download, in case a device on an older version still
+// saves notes under the old name.
+function applyRenames(d) {
+  let changed = false;
+  for (const e of d.entries) {
+    if (RENAMED[e.category]) {
+      touch(e, { category: RENAMED[e.category] });
+      changed = true;
+    }
+  }
+  for (const c of d.categories) {
+    if (RENAMED[c.name] && !c.deletedAt) {
+      touch(c, { deletedAt: new Date().toISOString() });
+      changed = true;
+    }
+  }
+  return changed;
 }
 
 let data = load();
@@ -74,12 +100,12 @@ function categoryNames() {
   return data.categories.filter((c) => !c.deletedAt).map((c) => c.name);
 }
 
-// Projects first (each is its own button), then the built-in categories.
+// Projects first (each is its own button), then the built-in categories in BUILT_IN order.
 function orderedCategories() {
   const names = categoryNames();
   return [
     ...names.filter((c) => !BUILT_IN.includes(c)),
-    ...names.filter((c) => BUILT_IN.includes(c)),
+    ...BUILT_IN.filter((c) => names.includes(c)),
   ];
 }
 
@@ -626,6 +652,7 @@ async function pullChanges() {
       if (rows.length < PAGE) break;
     }
   }
+  if (applyRenames(data)) changed = true;
   if (reviveOrphans()) changed = true;
   persist();
   localStorage.setItem(SYNC_KEY, JSON.stringify(cursors));
@@ -661,8 +688,8 @@ async function sync() {
   try {
     await pushChanges();
     const changed = await pullChanges();
-    // Upload any projects reviveOrphans() brought back.
-    if (data.categories.some((c) => c.dirty)) await pushChanges();
+    // Upload any projects reviveOrphans() brought back and notes applyRenames() moved.
+    if (waitingCount()) await pushChanges();
     syncFailed = false;
     lastSynced = new Date();
     if (changed) refreshView();
@@ -781,9 +808,10 @@ render(null);
 // Reopen an unsaved draft if the app was closed mid-note.
 try {
   const draft = JSON.parse(localStorage.getItem(DRAFT_KEY));
-  if (draft && cleanText(draft.text) && categoryNames().includes(draft.cat)) {
+  const cat = draft && (RENAMED[draft.cat] || draft.cat);
+  if (draft && cleanText(draft.text) && categoryNames().includes(cat)) {
     textarea.value = draft.text;
-    go({ view: 'edit', cat: draft.cat });
+    go({ view: 'edit', cat });
   }
 } catch {}
 
