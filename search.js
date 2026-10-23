@@ -64,13 +64,31 @@ function clearSearch() {
 }
 $('search-clear').addEventListener('click', clearSearch);
 
-// Two taps in a row on empty space (not on a note, heading or the box) clear the search.
-// Timed by hand because phones don't reliably fire dblclick.
+// Two taps in a row, or a press-and-hold, on empty space (not on a note, heading or the box)
+// clear the search. Timed by hand because phones don't reliably fire dblclick.
+function isBlank(e) {
+  return searchTerms().length > 0 &&
+    (e.target === $('home') || e.target === $('search-results') || e.target.classList.contains('empty'));
+}
+
+let holdTimer = 0;
+let held = false;
+$('home').addEventListener('pointerdown', (e) => {
+  held = false;
+  if (!isBlank(e)) return;
+  holdTimer = setTimeout(() => {
+    held = true;
+    clearSearch();
+  }, 600);
+});
+for (const type of ['pointerup', 'pointercancel', 'pointermove']) {
+  $('home').addEventListener(type, () => clearTimeout(holdTimer));
+}
+
 let lastBlankTap = 0;
 $('home').addEventListener('click', (e) => {
-  if (!searchTerms().length) return;
-  const blank = e.target === $('home') || e.target === $('search-results') || e.target.classList.contains('empty');
-  if (!blank) return;
+  if (held) { held = false; return; }
+  if (!isBlank(e)) return;
   const now = Date.now();
   if (now - lastBlankTap < 400) {
     lastBlankTap = 0;
