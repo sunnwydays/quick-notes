@@ -1,5 +1,7 @@
 /* E-ink friendly: pure black on white, thick borders, no transitions or hover effects. */
 * { box-sizing: border-box; }
+/* Chrome's own button styling can fade colour changes; make them instant. */
+*, *::before, *::after { transition: none !important; animation: none !important; }
 [hidden] { display: none !important; }
 
 html, body { margin: 0; background: #fff; color: #000; }
@@ -10,6 +12,8 @@ body {
 section { padding: 12px; max-width: 640px; margin: 0 auto; }
 
 button {
+  appearance: none;
+  -webkit-appearance: none;
   font: inherit;
   color: #000;
   background: #fff;
