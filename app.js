@@ -248,14 +248,18 @@ function renderHome() {
 // press still works if the browser cancels the touch before the timer runs.
 const LONG_PRESS_MS = 300;
 
-// The finger is usually still down when the notes screen opens, and Android's
-// own long press would then select the note under it. Until that finger lifts,
-// block selection and the long-press menu everywhere.
+// The finger is usually still down when the next screen opens, and Android's
+// own long press would then select whatever is under it. Until that finger
+// lifts, block selection everywhere. The click or long-press menu that ends the
+// hold would also land on whatever is now under the finger (a category button,
+// after going back home), so swallow those until the next touch starts.
 const PRESS_ENDS = ['pointerup', 'pointercancel', 'touchend', 'touchcancel'];
 let stillHeld = false;
+let endingHold = false;
 
 function holdUntilRelease() {
   stillHeld = true;
+  endingHold = true;
   document.body.classList.add('still-held');
   const release = () => {
     stillHeld = false;
@@ -265,11 +269,19 @@ function holdUntilRelease() {
   for (const type of PRESS_ENDS) document.addEventListener(type, release, true);
 }
 
-for (const type of ['selectstart', 'contextmenu']) {
+document.addEventListener('selectstart', (e) => {
+  if (stillHeld) e.preventDefault();
+}, true);
+for (const type of ['click', 'contextmenu']) {
   document.addEventListener(type, (e) => {
-    if (stillHeld) e.preventDefault();
+    if (!endingHold) return;
+    e.preventDefault();
+    e.stopPropagation();
   }, true);
 }
+document.addEventListener('pointerdown', () => {
+  if (!stillHeld) endingHold = false;
+}, true);
 
 function onLongPress(btn, action) {
   let timer = null;
