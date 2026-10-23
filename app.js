@@ -119,6 +119,7 @@ function show(id) {
 function render(state) {
   current = state;
   if (state) readNext = false;
+  hideUndo();
   if (!state) {
     renderHome();
     show('home');
@@ -275,6 +276,15 @@ $('discard-btn').addEventListener('click', () => {
 });
 
 // ---------- read ----------
+// Times are hidden by default to keep the list compact. The choice is per device.
+
+const TIMES_KEY = 'quicknotes-show-times';
+let showTimes = readJSON(TIMES_KEY) === true;
+let undoEntry = null; // the last deleted note, until Undo or leaving the screen
+
+const TRASH_ICON =
+  '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+  '<path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 10v6M14 10v6"/></svg>';
 
 function formatShort(iso) {
   return new Date(iso).toLocaleString(undefined, {
@@ -302,27 +312,57 @@ function renderEntries(cat) {
   for (const entry of entries) {
     const div = document.createElement('div');
     div.className = 'entry';
-    const head = document.createElement('div');
-    head.className = 'entry-head';
-    const time = document.createElement('time');
-    time.textContent = formatShort(entry.createdAt);
+    const body = document.createElement('div');
+    body.className = 'entry-body';
+    if (showTimes) {
+      const time = document.createElement('time');
+      time.textContent = formatShort(entry.createdAt);
+      body.append(time);
+    }
+    const p = document.createElement('p');
+    p.textContent = entry.text;
+    body.append(p);
     const del = document.createElement('button');
-    del.textContent = 'Delete';
+    del.className = 'delete';
+    del.setAttribute('aria-label', 'Delete');
+    del.innerHTML = TRASH_ICON;
     del.addEventListener('click', () => {
-      if (!confirm('Delete this note?')) return;
       touch(entry, { deletedAt: new Date().toISOString() });
       persist();
+      undoEntry = entry;
+      $('undo-bar').hidden = false;
       renderEntries(cat);
       sync();
     });
-    head.append(time, del);
-    const p = document.createElement('p');
-    p.textContent = entry.text;
-    div.append(head, p);
+    div.append(body, del);
     box.append(div);
   }
+  box.classList.toggle('with-times', showTimes);
+  $('times-btn').textContent = showTimes ? 'Hide times' : 'Show times';
   $('remove-project-btn').hidden = BUILT_IN.includes(cat);
 }
+
+// The server treats a delete as final, so Undo brings the note back as a copy
+// with a new id. It keeps the original createdAt, so it sorts where it was.
+$('undo-btn').addEventListener('click', () => {
+  const now = new Date().toISOString();
+  data.entries.push({ ...undoEntry, id: newId(), updatedAt: now, deletedAt: null, dirty: true });
+  persist();
+  hideUndo();
+  renderEntries(current.cat);
+  sync();
+});
+
+function hideUndo() {
+  undoEntry = null;
+  $('undo-bar').hidden = true;
+}
+
+$('times-btn').addEventListener('click', () => {
+  showTimes = !showTimes;
+  localStorage.setItem(TIMES_KEY, JSON.stringify(showTimes));
+  renderEntries(current.cat);
+});
 
 $('remove-project-btn').addEventListener('click', () => {
   const cat = current.cat;

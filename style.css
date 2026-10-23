@@ -44,11 +44,30 @@ button.primary { background: #000; color: #fff; font-weight: 700; }
   outline: none;
 }
 
-.entry { border-bottom: 2px solid #000; padding: 12px 0; }
-.entry-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.entry time { font-size: 16px; font-weight: 700; }
-.entry p { margin: 8px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
-.entry button { min-height: 44px; padding: 4px 12px; font-size: 16px; }
+.tools { display: flex; justify-content: flex-end; }
+.tools button { min-height: 44px; padding: 4px 12px; font-size: 16px; }
+
+/* Text on the left, Delete on the right; the time (if shown) sits above the text.
+   Divider lines between notes only appear when times are shown. */
+.entry { display: flex; align-items: flex-start; gap: 12px; padding: 4px 0; }
+.with-times .entry { border-bottom: 2px solid #000; padding: 8px 0; }
+.entry-body { flex: 1; min-width: 0; }
+.entry time { display: block; font-size: 16px; font-weight: 700; }
+.entry p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.entry .delete {
+  display: flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px; min-height: 0; padding: 0; border-width: 2px; border-radius: 6px;
+}
+.delete svg { display: block; }
+
+/* Pinned to the bottom of the screen; the list gets extra room so the banner never covers the last note. */
+#undo-bar {
+  position: fixed; left: 12px; right: 12px; bottom: 12px; max-width: 616px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: #000; color: #fff; border-radius: 8px; padding: 8px 8px 8px 16px;
+}
+#undo-bar button { min-height: 44px; padding: 4px 16px; font-weight: 700; }
+#entries:has(#undo-bar:not([hidden])) { padding-bottom: 88px; }
 
 #remove-project-btn { width: 100%; margin-top: 24px; }
 .empty { font-style: italic; }
