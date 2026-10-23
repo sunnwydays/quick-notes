@@ -7,7 +7,7 @@ body {
   font: 20px/1.4 system-ui, sans-serif;
   -webkit-tap-highlight-color: transparent;
 }
-section { padding: 12px; }
+section { padding: 12px; max-width: 640px; margin: 0 auto; }
 
 button {
   font: inherit;
