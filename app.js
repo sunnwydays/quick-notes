@@ -475,6 +475,14 @@ function restoreEntry(entry) {
   sync();
 }
 
+// Double-tapping anywhere on the notes screen goes back, except on a button,
+// where the double tap is more likely two quick presses of it.
+document.addEventListener('dblclick', (e) => {
+  if (!current || current.view !== 'entries' || e.target.closest('button')) return;
+  getSelection().removeAllRanges(); // a double tap on text selects a word
+  history.back();
+});
+
 $('times-btn').addEventListener('click', () => {
   showTimes = !showTimes;
   localStorage.setItem(TIMES_KEY, JSON.stringify(showTimes));

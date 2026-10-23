@@ -18,7 +18,7 @@ What you type is saved as you go. If the app is closed mid-note, it reopens on t
 
 **Projects:** tap **+ project** to add one. Projects get their own buttons above the built-in categories, with a line between the two groups. To remove one, tap **Read**, then the project, and tap **Remove project**. That deletes its notes too.
 
-**Read:** tap **Read** (it turns black), then a category. Instead of the editor, that category's notes open, newest first, each with its time and a Delete button. Read only applies to the next tap; tap it again to cancel. Holding a category for a moment does the same thing in one step.
+**Read:** tap **Read** (it turns black), then a category. Instead of the editor, that category's notes open, newest first, each with its time and a Delete button. Read only applies to the next tap; tap it again to cancel. Holding a category for a moment does the same thing in one step. Double-tap anywhere on the notes (not on a button) to go back.
 
 **Back up**
 - **Export** on the home screen downloads every note as a `.txt` file.
