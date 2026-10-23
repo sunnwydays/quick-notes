@@ -30,12 +30,21 @@ What you type is saved as you go. If the app is closed mid-note, it reopens on t
 
 ## How it works
 
-Plain HTML, CSS and JS. There's no framework and no build step.
+Plain HTML, CSS and JS. There's no framework and no build step. The JS files are ordinary `<script>` tags, loaded in the order listed below in `index.html`, and they share one global scope (not ES modules), so a file can call functions and use variables from any file. Top-level code that runs while a file loads can only use files above it; everything else runs later, once all of them are loaded. `sw.js` lists the files to cache, so add any new file there too.
 
 | File | What it does |
 | --- | --- |
 | `index.html` | The four screens (home, editor, entries, login) as `<section>`s. Only one is shown at a time. |
-| `app.js` | All the logic: storage, switching screens, the editor, reading notes, export, login and sync. |
+| `data.js` | Constants, the saved data (`data`) and helpers for reading it. |
+| `views.js` | Switching screens, the history/back button and the Undo banner. |
+| `gestures.js` | Long press on a category; double-tap or hold blank space to leave the notes screen. |
+| `home.js` | The home screen: category buttons, + project, Read. |
+| `editor.js` | The note editor: bullets, drafts, Save and Discard. |
+| `entries.js` | The notes screen: list, times, delete, remove project. |
+| `export.js` | Export and Copy all. |
+| `sync.js` | Supabase sync: push, pull, merge and the status line. |
+| `login.js` | Email-code login. |
+| `main.js` | Startup. Loaded last. |
 | `schema.sql` | The Supabase tables, row-level security and triggers that sync uses. |
 | `style.css` | E-ink friendly: black on white, thick borders, large tap targets, no animations. |
 | `sw.js` | Service worker: a background script that caches the app files so the app opens offline. |
@@ -68,7 +77,7 @@ The note in progress is kept separately under `quicknotes-draft` as `{ cat, text
 
 **Offline and updates:** `sw.js` answers each request from its cache right away, then fetches a fresh copy in the background. So after a deploy, the new version appears the *second* time you open the app. It only handles the app's own files; requests to Supabase always go to the network.
 
-**Sync:** the tables `qn_entries` and `qn_categories` live in the Supabase project `job-tracker` (see `schema.sql`). Row-level security limits each account to its own rows, which is why the publishable key in `app.js` is safe to ship. Sync uses plain `fetch` calls to Supabase's REST and Auth endpoints, with no library. One sync:
+**Sync:** the tables `qn_entries` and `qn_categories` live in the Supabase project `job-tracker` (see `schema.sql`). Row-level security limits each account to its own rows, which is why the publishable key in `sync.js` is safe to ship. Sync uses plain `fetch` calls to Supabase's REST and Auth endpoints, with no library. One sync:
 
 1. **Push:** upload every `dirty` row (an upsert).
 2. **Pull:** download rows whose server-set `synced_at` is after the last pull. The cursor is in `quicknotes-sync`.
