@@ -2,6 +2,8 @@ const STORE_KEY = 'quicknotes';
 const DRAFT_KEY = 'quicknotes-draft';
 const BACKUP_KEY = 'quicknotes-backup-v1';
 const BUILT_IN = ['Todo', 'Journal', 'Random thought', 'Bring from home'];
+// Display only; the stored (and synced) category name stays plain text.
+const EMOJI = { Todo: '✅', Journal: '📓', 'Random thought': '💭', 'Bring from home': '🏠' };
 const BULLET = '- ';
 const EPOCH = '1970-01-01T00:00:00.000Z';
 
@@ -64,6 +66,10 @@ function touch(item, fields) {
   Object.assign(item, fields, { updatedAt: new Date().toISOString(), dirty: true });
 }
 
+function label(cat) {
+  return EMOJI[cat] ? `${EMOJI[cat]} ${cat}` : cat;
+}
+
 function categoryNames() {
   return data.categories.filter((c) => !c.deletedAt).map((c) => c.name);
 }
@@ -117,7 +123,7 @@ function render(state) {
     renderHome();
     show('home');
   } else if (state.view === 'edit') {
-    $('editor-title').textContent = state.cat;
+    $('editor-title').textContent = label(state.cat);
     show('editor');
   } else if (state.view === 'entries') {
     renderEntries(state.cat);
@@ -155,7 +161,7 @@ function renderHome() {
   $('read-btn').classList.toggle('primary', readNext);
   fillCategories($('categories'), (cat) => {
     const btn = document.createElement('button');
-    btn.textContent = cat;
+    btn.textContent = label(cat);
     btn.addEventListener('click', () => (readNext ? go({ view: 'entries', cat }) : openEditor(cat)));
     return btn;
   });
@@ -283,7 +289,7 @@ function formatFull(iso) {
 }
 
 function renderEntries(cat) {
-  $('entries-title').textContent = cat;
+  $('entries-title').textContent = label(cat);
   const box = $('entries-list');
   box.replaceChildren();
   const entries = entriesFor(cat);
