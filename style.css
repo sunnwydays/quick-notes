@@ -28,6 +28,8 @@ button.primary { background: #000; color: #fff; font-weight: 700; }
 .grid button { min-height: 110px; font-size: 24px; font-weight: 700; overflow-wrap: anywhere; }
 /* Long press opens a category's notes, so don't select its label or show a callout. */
 .grid button { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+/* Same for the whole page while the finger from that long press is still down. */
+body.still-held * { user-select: none !important; -webkit-user-select: none !important; -webkit-touch-callout: none !important; }
 
 /* Divider between projects and built-in categories; spans both grid columns. */
 .grid hr { grid-column: 1 / -1; width: 100%; margin: 8px 0; border: 0; border-top: 4px solid #000; }
