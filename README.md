@@ -75,6 +75,8 @@ The note in progress is kept separately under `quicknotes-draft` as `{ cat, text
 3. **Merge:** notes are never edited, only added or deleted, so merging is a union by id, and a delete always wins. For categories, the newer `updatedAt` wins, since a project can be removed and re-added. The database triggers apply the same rules, so an out-of-date device can't undo a newer change.
 4. If a note was written offline into a project that the other device removed, the project comes back so the note isn't hidden.
 
+Each open tab keeps its own copy of the notes in memory but shares `localStorage`, so the app re-reads storage before saving after any network wait and follows other tabs' saves. Why: [docs/two-tabs-sync-bug.md](docs/two-tabs-sync-bug.md).
+
 Sync runs on app open, when the app comes back to the foreground, on reconnect, and after each save, delete or project change. It never blocks the UI, and a failure just leaves rows `dirty` for next time.
 
 **Login:** Supabase emails a one-time code (`/auth/v1/otp`, with `create_user: false`), and entering it (`/auth/v1/verify`) returns a session kept in `quicknotes-auth`. The access token lasts an hour and is renewed with the refresh token, so you stay logged in. The Magic Link email template must include `{{ .Token }}` so the email contains the code. New sign-ups are turned off in the Supabase dashboard. On login every local row is marked dirty, so a device's existing notes upload and merge in.
