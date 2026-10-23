@@ -47,7 +47,7 @@ button.primary { background: #000; color: #fff; font-weight: 700; }
 .split-toggle { display: flex; align-items: center; gap: 12px; min-height: 44px; margin-top: 8px; font-size: 18px; }
 .split-toggle input { width: 28px; height: 28px; min-height: 0; margin: 0; padding: 0; flex: none; accent-color: #000; }
 
-.tools { display: flex; justify-content: flex-end; }
+.tools { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-bottom: 16px; }
 .tools button { min-height: 44px; padding: 4px 12px; font-size: 16px; }
 
 /* Text on the left, Delete on the right; the time (if shown) sits above the text.
@@ -74,7 +74,8 @@ button.primary { background: #000; color: #fff; font-weight: 700; }
 #undo-bar button { min-height: 44px; padding: 4px 16px; font-weight: 700; }
 body:has(#undo-bar:not([hidden])) > section { padding-bottom: 88px; }
 
-#remove-project-btn { width: 100%; margin-top: 24px; }
+/* Kept on the far left, away from Copy all and Show times. */
+#remove-project-btn { margin-right: auto; }
 .empty { font-style: italic; }
 
 /* Grey so it doesn't look like another category; black while waiting for a category tap. */
@@ -101,13 +102,20 @@ input {
 }
 #login p { margin: 12px 0 0; }
 
-/* Phones: screens sit at the bottom of the display so everything is in thumb reach.
-   Long lists still scroll normally. In the editor the Save/Discard bar moves below
-   the text box, which puts it just above the keyboard. */
+/* Phones: home and login sit at the bottom of the display so everything is in thumb reach.
+   The notes list reads from the top, with Back and the title pinned to the bottom of the
+   screen (above the Undo banner when it shows) while the notes scroll behind it.
+   In the editor the Save/Discard bar moves below the text box, just above the keyboard. */
 @media (max-width: 600px) {
-  body > section:not(#editor) {
-    display: flex; flex-direction: column; justify-content: flex-end;
+  #home, #login, #entries {
+    display: flex; flex-direction: column;
     min-height: 100vh; min-height: 100dvh;
   }
+  #home, #login { justify-content: flex-end; }
   #editor .bar { order: 1; margin: 12px 0 0; }
+  #entries .bar {
+    order: 1; position: sticky; bottom: 0; margin: auto 0 0; padding: 12px 0;
+    background: #fff; border-top: 2px solid #000;
+  }
+  body:has(#undo-bar:not([hidden])) #entries .bar { bottom: 76px; }
 }
