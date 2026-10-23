@@ -18,6 +18,8 @@ What you type is saved as you go. If the app is closed mid-note, it reopens on t
 
 **Projects:** tap **+ project** to add one. Projects get their own buttons above the built-in categories, with a line between the two groups. To remove one, tap **Read**, then the project, and tap **Remove project**. That deletes its notes too.
 
+**Help:** the **Help** button on the home screen opens a short guide to the app and how to move around it. If you change how something works, update that text in `index.html` too.
+
 **Search:** type in the box at the top of the home screen. The category buttons are replaced by every note that contains all the words you typed (any order, any case), grouped under its category with a count. Tap a category's heading to open its notes. **Clear** puts the buttons back.
 
 **Read:** tap **Read** (it turns black), then a category. Instead of the editor, that category's notes open, newest first, each with its time and a Delete button. Read only applies to the next tap; tap it again to cancel. Holding a category for a moment does the same thing in one step. Double-tap anywhere on the notes (not on a button) to go back, or hold a blank spot for a moment. Holding a note still selects its text.
@@ -32,11 +34,11 @@ What you type is saved as you go. If the app is closed mid-note, it reopens on t
 
 ## How it works
 
-Plain HTML, CSS and JS. There's no framework and no build step. The JS files are ordinary `<script>` tags, loaded in the order listed below in `index.html`, and they share one global scope (not ES modules), so a file can call functions and use variables from any file. Top-level code that runs while a file loads can only use files above it; everything else runs later, once all of them are loaded. `sw.js` lists the files to cache, so add any new file there too.
+Plain HTML, CSS and JS. There's no framework and no build step. The JS files are ordinary `<script>` tags, loaded in the order they appear in `index.html`, and they share one global scope (not ES modules), so a file can call functions and use variables from any file. Top-level code that runs while a file loads can only use files above it; everything else runs later, once all of them are loaded. `sw.js` lists the files to cache, so add any new file there too.
 
 | File | What it does |
 | --- | --- |
-| `index.html` | The four screens (home, editor, entries, login) as `<section>`s. Only one is shown at a time. |
+| `index.html` | The five screens (home, editor, entries, login, help) as `<section>`s. Only one is shown at a time. |
 | `data.js` | Constants, the saved data (`data`) and helpers for reading it. |
 | `views.js` | Switching screens, the history/back button and the Undo banner. |
 | `gestures.js` | Long press on a category; double-tap or hold blank space to leave the notes screen. |
@@ -47,6 +49,7 @@ Plain HTML, CSS and JS. There's no framework and no build step. The JS files are
 | `export.js` | Export and Copy all. |
 | `sync.js` | Supabase sync: push, pull, merge and the status line. |
 | `login.js` | Email-code login. |
+| `help.js` | Opens the Help screen (its text is in `index.html`). |
 | `main.js` | Startup. Loaded last. |
 | `schema.sql` | The Supabase tables, row-level security and triggers that sync uses. |
 | `style.css` | E-ink friendly: black on white, thick borders, large tap targets, no animations. |

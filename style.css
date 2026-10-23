@@ -104,8 +104,13 @@ body:has(#undo-bar:not([hidden])) > section { padding-bottom: 88px; }
 /* On a phone the buttons wrap below the status text and stay right-aligned. */
 .sync-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 24px; font-size: 16px; }
 .sync-row span { flex: 1 1 160px; }
-.small-buttons { display: flex; gap: 8px; margin-left: auto; }
+.small-buttons { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-left: auto; }
 .sync-row button { min-height: 44px; padding: 4px 12px; font-size: 16px; }
+
+#help h2 { margin: 20px 0 6px; font-size: 22px; }
+#help p, #help ul { margin: 0 0 8px; }
+#help ul { padding-left: 24px; }
+#help li { margin-bottom: 6px; }
 
 form { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
 input {
@@ -127,14 +132,14 @@ input {
    screen (above the Undo banner when it shows) while the notes scroll behind it.
    In the editor the Save/Discard bar moves below the text box, just above the keyboard. */
 @media (max-width: 600px) {
-  #home, #login, #entries {
+  #home, #login, #entries, #help {
     display: flex; flex-direction: column;
     min-height: 100vh; min-height: 100dvh;
   }
   #home, #login { justify-content: flex-end; }
   #home .sync-row { margin-bottom: auto; padding-bottom: 24px; }
   #editor .bar { order: 1; margin: 12px 0 0; }
-  #entries .bar {
+  #entries .bar, #help .bar {
     order: 1; position: sticky; bottom: 0; margin: auto 0 0; padding: 12px 0;
     background: #fff; border-top: 2px solid #000;
   }

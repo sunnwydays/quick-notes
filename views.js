@@ -24,6 +24,8 @@ function render(state) {
     show('entries');
   } else if (state.view === 'login') {
     show('login');
+  } else if (state.view === 'help') {
+    show('help');
   }
   window.scrollTo(0, 0);
 }
