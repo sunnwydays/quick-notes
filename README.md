@@ -89,6 +89,8 @@ npx serve .
 python -m http.server 8000
 ```
 
+Then open `http://localhost:3000` (`serve`) or `http://localhost:8000` (Python). There is no build step. If edits don't show up, hard-refresh or unregister the service worker in DevTools under Application → Service Workers. Login and sync work from localhost.
+
 Test in Chrome DevTools' device emulator. To check the keyboard and Gboard behaviour, use a real Android device.
 
 ## Deploying
