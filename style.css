@@ -100,3 +100,14 @@ input {
   outline: none;
 }
 #login p { margin: 12px 0 0; }
+
+/* Phones: screens sit at the bottom of the display so everything is in thumb reach.
+   Long lists still scroll normally. In the editor the Save/Discard bar moves below
+   the text box, which puts it just above the keyboard. */
+@media (max-width: 600px) {
+  body > section:not(#editor) {
+    display: flex; flex-direction: column; justify-content: flex-end;
+    min-height: 100vh; min-height: 100dvh;
+  }
+  #editor .bar { order: 1; margin: 12px 0 0; }
+}
