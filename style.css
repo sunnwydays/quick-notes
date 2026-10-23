@@ -83,7 +83,10 @@ body.still-held * { user-select: none !important; -webkit-user-select: none !imp
 body:has(#undo-bar:not([hidden])) > section { padding-bottom: 88px; }
 
 /* Search box on the home screen; its results replace the category buttons. */
-.search-row { display: flex; gap: 8px; margin-bottom: 12px; }
+.search-row {
+  display: flex; gap: 8px; margin-bottom: 12px;
+  position: sticky; top: 0; z-index: 1; background: #fff; padding: 4px 0;
+}
 .search-row input { flex: 1; min-width: 0; -webkit-appearance: none; appearance: none; }
 .search-row input::-webkit-search-cancel-button { -webkit-appearance: none; display: none; }
 #search-clear { min-height: 56px; }
@@ -137,7 +140,12 @@ input {
     min-height: 100vh; min-height: 100dvh;
   }
   #home, #login { justify-content: flex-end; }
-  #home .sync-row { margin-bottom: auto; padding-bottom: 24px; }
+  /* Sync row and search sit at the top; the category buttons stay at the bottom. While
+     searching, the results fill in below the search box instead. */
+  #home .sync-row { margin-bottom: 12px; }
+  #home .search-row { margin-bottom: auto; }
+  #home.searching { justify-content: flex-start; }
+  #home.searching .search-row { margin-bottom: 12px; }
   #editor .bar { order: 1; margin: 12px 0 0; }
   #entries .bar, #help .bar {
     order: 1; position: sticky; bottom: 0; margin: auto 0 0; padding: 12px 0;

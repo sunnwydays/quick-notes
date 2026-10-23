@@ -10,6 +10,7 @@ function searchTerms() {
 function renderSearch() {
   const terms = searchTerms();
   const searching = terms.length > 0;
+  $('home').classList.toggle('searching', searching);
   $('categories').hidden = searching;
   $('read-btn').hidden = searching;
   $('search-clear').hidden = !$('search').value;

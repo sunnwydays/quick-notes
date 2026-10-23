@@ -18,9 +18,9 @@ What you type is saved as you go. If the app is closed mid-note, it reopens on t
 
 **Projects:** tap **+ project** to add one. Projects get their own buttons above the built-in categories, with a line between the two groups. To remove one, tap **Read**, then the project, and tap **Remove project**. That deletes its notes too.
 
-**Help:** the **Help** button on the home screen opens a short guide to the app and how to move around it. If you change how something works, update that text in `index.html` too.
+**Help:** the **Help** button on the home screen opens a short list of the non-obvious things (holding a category, going back, search, Undo). If you change how something works, update that text in `index.html` too.
 
-**Search:** type in the box at the top of the home screen. The category buttons are replaced by every note that contains all the words you typed (any order, any case), grouped under its category with a count. Tap a category's heading to open its notes. **Clear** puts the buttons back.
+**Search:** type in the box under the buttons at the top of the home screen; it stays put while the results scroll below it. The category buttons are replaced by every note that contains all the words you typed (any order, any case), grouped under its category with a count. Tap a category's heading to open its notes. **Clear** puts the buttons back.
 
 **Read:** tap **Read** (it turns black), then a category. Instead of the editor, that category's notes open, newest first, each with its time and a Delete button. Read only applies to the next tap; tap it again to cancel. Holding a category for a moment does the same thing in one step. Double-tap anywhere on the notes (not on a button) to go back, or hold a blank spot for a moment. Holding a note still selects its text.
 
