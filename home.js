@@ -14,6 +14,7 @@ function renderHome() {
     });
     return btn;
   });
+  renderSearch();
   showStatus();
 }
 

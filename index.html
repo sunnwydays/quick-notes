@@ -20,6 +20,11 @@
         <button id="login-btn">Log in</button>
       </div>
     </div>
+    <div class="search-row">
+      <input id="search" type="search" placeholder="Search notes" autocomplete="off" enterkeyhint="search">
+      <button id="search-clear" hidden>Clear</button>
+    </div>
+    <div id="search-results" hidden></div>
     <div id="categories" class="grid"></div>
     <button id="read-btn">Read</button>
   </section>
@@ -78,6 +83,7 @@
   <script src="views.js"></script>
   <script src="gestures.js"></script>
   <script src="home.js"></script>
+  <script src="search.js"></script>
   <script src="editor.js"></script>
   <script src="entries.js"></script>
   <script src="export.js"></script>

@@ -82,6 +82,17 @@ body.still-held * { user-select: none !important; -webkit-user-select: none !imp
 #undo-bar button { min-height: 44px; padding: 4px 16px; font-weight: 700; }
 body:has(#undo-bar:not([hidden])) > section { padding-bottom: 88px; }
 
+/* Search box on the home screen; its results replace the category buttons. */
+.search-row { display: flex; gap: 8px; margin-bottom: 12px; }
+.search-row input { flex: 1; min-width: 0; -webkit-appearance: none; appearance: none; }
+.search-row input::-webkit-search-cancel-button { -webkit-appearance: none; display: none; }
+#search-clear { min-height: 56px; }
+#search-results { margin-bottom: 12px; }
+.group-head {
+  display: block; width: 100%; margin: 12px 0 4px; min-height: 48px; padding: 6px 12px;
+  text-align: left; font-weight: 700; background: #000; color: #fff;
+}
+
 /* Kept on the far left, away from Copy all and Show times. */
 #remove-project-btn { margin-right: auto; }
 .empty { font-style: italic; }

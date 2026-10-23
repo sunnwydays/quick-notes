@@ -18,6 +18,8 @@ What you type is saved as you go. If the app is closed mid-note, it reopens on t
 
 **Projects:** tap **+ project** to add one. Projects get their own buttons above the built-in categories, with a line between the two groups. To remove one, tap **Read**, then the project, and tap **Remove project**. That deletes its notes too.
 
+**Search:** type in the box at the top of the home screen. The category buttons are replaced by every note that contains all the words you typed (any order, any case), grouped under its category with a count. Tap a category's heading to open its notes. **Clear** puts the buttons back.
+
 **Read:** tap **Read** (it turns black), then a category. Instead of the editor, that category's notes open, newest first, each with its time and a Delete button. Read only applies to the next tap; tap it again to cancel. Holding a category for a moment does the same thing in one step. Double-tap anywhere on the notes (not on a button) to go back, or hold a blank spot for a moment. Holding a note still selects its text.
 
 **Back up**
@@ -40,6 +42,7 @@ Plain HTML, CSS and JS. There's no framework and no build step. The JS files are
 | `gestures.js` | Long press on a category; double-tap or hold blank space to leave the notes screen. |
 | `home.js` | The home screen: category buttons, + project, Read. |
 | `editor.js` | The note editor: bullets, drafts, Save and Discard. |
+| `search.js` | The search box on the home screen: notes that match, grouped by category. |
 | `entries.js` | The notes screen: list, times, delete, remove project. |
 | `export.js` | Export and Copy all. |
 | `sync.js` | Supabase sync: push, pull, merge and the status line. |
