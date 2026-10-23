@@ -58,3 +58,20 @@ button.primary { background: #000; color: #fff; font-weight: 700; }
 
 #remove-project-btn { width: 100%; margin-top: 24px; }
 .empty { font-style: italic; }
+
+.sync-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 24px; font-size: 16px; }
+.sync-row button { min-height: 44px; padding: 4px 12px; font-size: 16px; }
+
+form { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+input {
+  font: inherit;
+  width: 100%;
+  min-height: 56px;
+  color: #000;
+  background: #fff;
+  border: 3px solid #000;
+  border-radius: 8px;
+  padding: 12px;
+  outline: none;
+}
+#login p { margin: 12px 0 0; }

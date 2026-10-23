@@ -18,6 +18,28 @@
       <button id="add-project-btn">+ project</button>
       <button id="export-btn">Export</button>
     </div>
+    <div class="sync-row">
+      <span id="sync-status"></span>
+      <button id="login-btn">Log in</button>
+    </div>
+  </section>
+
+  <section id="login" hidden>
+    <div class="bar">
+      <button class="back">Back</button>
+      <h1>Log in</h1>
+    </div>
+    <p>Log in with the same email on each device to sync notes between them.</p>
+    <form id="email-form">
+      <input id="email" type="email" autocomplete="email" placeholder="Email" required>
+      <button class="primary">Send code</button>
+    </form>
+    <form id="code-form" hidden>
+      <p id="code-sent"></p>
+      <input id="code" inputmode="numeric" autocomplete="one-time-code" placeholder="Code from email" required>
+      <button class="primary">Log in</button>
+    </form>
+    <p id="login-msg"></p>
   </section>
 
   <section id="editor" hidden>
