@@ -26,9 +26,6 @@ button.primary { background: #000; color: #fff; font-weight: 700; }
 /* Divider between projects and built-in categories; spans both grid columns. */
 .grid hr { grid-column: 1 / -1; width: 100%; margin: 8px 0; border: 0; border-top: 4px solid #000; }
 
-.row { display: flex; gap: 12px; margin-top: 12px; }
-.row button { flex: 1; }
-
 .bar { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
 .bar h1 { flex: 1; margin: 0; font-size: 24px; overflow-wrap: anywhere; }
 
@@ -56,7 +53,14 @@ button.primary { background: #000; color: #fff; font-weight: 700; }
 #remove-project-btn { width: 100%; margin-top: 24px; }
 .empty { font-style: italic; }
 
-.sync-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 24px; font-size: 16px; }
+/* Grey so it doesn't look like another category; black while waiting for a category tap. */
+#read-btn { width: 100%; margin-top: 12px; background: #ddd; }
+#read-btn.primary { background: #000; }
+
+/* On a phone the buttons wrap below the status text and stay right-aligned. */
+.sync-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 24px; font-size: 16px; }
+.sync-row span { flex: 1 1 160px; }
+.small-buttons { display: flex; gap: 8px; margin-left: auto; }
 .sync-row button { min-height: 44px; padding: 4px 12px; font-size: 16px; }
 
 form { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
