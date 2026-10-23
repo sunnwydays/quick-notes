@@ -58,7 +58,24 @@ $('search').addEventListener('input', renderSearch);
 $('search').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') $('search').blur();
 });
-$('search-clear').addEventListener('click', () => {
+function clearSearch() {
   $('search').value = '';
   renderSearch();
+}
+$('search-clear').addEventListener('click', clearSearch);
+
+// Two taps in a row on empty space (not on a note, heading or the box) clear the search.
+// Timed by hand because phones don't reliably fire dblclick.
+let lastBlankTap = 0;
+$('home').addEventListener('click', (e) => {
+  if (!searchTerms().length) return;
+  const blank = e.target === $('home') || e.target === $('search-results') || e.target.classList.contains('empty');
+  if (!blank) return;
+  const now = Date.now();
+  if (now - lastBlankTap < 400) {
+    lastBlankTap = 0;
+    clearSearch();
+  } else {
+    lastBlankTap = now;
+  }
 });
