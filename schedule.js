@@ -271,8 +271,9 @@ function renderSchedule(state, fresh = false) {
   setDayButton($('day-prev'), days[at - 1], (d) => `‹ ${d}`);
   setDayButton($('day-next'), days[at + 1], (d) => `${d} ›`);
   $('schedule-day').textContent = isToday ? `Today, ${dayLabel(key)}` : dayLabel(key);
-  $('schedule-edit-btn').textContent = entry ? 'Edit' : 'New';
-  $('schedule-edit-btn').hidden = key < today;
+  // A past day's schedule can only be read: saving it again would make it today's.
+  $('schedule-edit-btn').hidden = !entry || key < today;
+  $('schedule-new-btn').hidden = key < today;
 
   const box = $('schedule-list');
   box.replaceChildren();
@@ -280,7 +281,8 @@ function renderSchedule(state, fresh = false) {
   const nowMin = now.getHours() * 60 + now.getMinutes();
 
   if (!entry) {
-    box.append(textLine('empty', 'No schedule for today. Tap New, then paste one or type a line per block, like "9:00-11:30 Foosball".'));
+    const how = ' Tap New, then paste one or type a line per block, like "9:00-11:30 Foosball".';
+    box.append(textLine('empty', isToday ? `No schedule for today.${how}` : key < today ? 'No schedule for this day.' : `No schedule for this day.${how}`));
     // Point at a schedule saved for a later day, in case it was meant for today.
     const next = days[at + 1];
     if (next) {
@@ -334,12 +336,19 @@ for (const id of ['day-prev', 'day-next']) {
   });
 }
 
-// Called straight from the tap, so the keyboard comes up. A blank line is added
-// at the end, ready for another block.
+// Both are called straight from the tap, so the keyboard comes up. Edit adds a
+// blank line at the end, ready for another block.
 $('schedule-edit-btn').addEventListener('click', () => {
   const key = current.date || dayKey(new Date());
-  const entry = scheduleOn(key);
-  openEditor(SCHEDULE, entry ? `${editText(entry, key)}\n${BULLET}` : BULLET);
+  openEditor(SCHEDULE, `${editText(scheduleOn(key), key)}\n${BULLET}`);
+});
+
+// A blank schedule for the day on screen: today's has no heading, and a later
+// day's starts with its weekday so it's saved for that day.
+$('schedule-new-btn').addEventListener('click', () => {
+  const key = current.date || dayKey(new Date());
+  const head = current.date ? `${keyDate(key).toLocaleDateString('en-US', { weekday: 'short' })}\n` : '';
+  openEditor(SCHEDULE, head + BULLET);
 });
 
 $('schedule-past-btn').addEventListener('click', () => go({ view: 'entries', cat: SCHEDULE }));
