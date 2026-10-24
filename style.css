@@ -33,7 +33,17 @@ button {
 button.primary { background: #000; color: #fff; font-weight: 700; }
 
 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.grid button { min-height: 110px; font-size: 24px; font-weight: 700; overflow-wrap: anywhere; }
+/* Each tile: icon at the top left, the name, then "3 notes · 2h ago". */
+.grid button {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  min-height: 100px; padding: 10px 12px; text-align: left; overflow-wrap: anywhere;
+}
+.tile .icon { margin-bottom: 4px; }
+.tile-name { font-size: 21px; font-weight: 700; line-height: 1.15; }
+.tile-meta { margin-top: auto; font-size: 15px; font-weight: 400; color: #333; font-variant-numeric: tabular-nums; }
+.tile.primary .tile-meta { color: #fff; }
+.icon { display: flex; flex: none; }
+.icon svg { display: block; }
 /* Holding a category opens its editor, so don't select its label or show a callout. */
 .grid button { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 /* Same for the whole page while the finger from that long press is still down. */
@@ -43,7 +53,7 @@ body.still-held * { user-select: none !important; -webkit-user-select: none !imp
 .grid hr { grid-column: 1 / -1; width: 100%; margin: 8px 0; border: 0; border-top: 4px solid #000; }
 
 .bar { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-.bar h1 { flex: 1; margin: 0; font-size: 26px; overflow-wrap: anywhere; }
+.bar h1 { flex: 1; min-width: 0; margin: 0; font-size: 26px; overflow-wrap: anywhere; display: flex; align-items: center; gap: 10px; }
 /* Back is a ‹ icon, square so it's still a full-size tap target. */
 .back { display: flex; align-items: center; justify-content: center; width: 56px; padding: 0; flex: none; }
 .back svg { display: block; }
@@ -112,7 +122,7 @@ body:has(#undo-bar:not([hidden])) > section { padding-bottom: 88px; }
 #search-clear { min-height: 56px; }
 #search-results { margin-bottom: 12px; }
 .group-head {
-  display: block; width: 100%; margin: 12px 0 4px; min-height: 48px; padding: 6px 12px;
+  display: flex; align-items: center; gap: 10px; width: 100%; margin: 12px 0 4px; min-height: 48px; padding: 6px 12px;
   text-align: left; font-weight: 700; background: #000; color: #fff;
 }
 

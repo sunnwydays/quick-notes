@@ -32,7 +32,7 @@ function renderSearch() {
 
     const head = document.createElement('button');
     head.className = 'group-head';
-    head.textContent = `${label(cat)} (${hits.length})`;
+    setLabel(head, cat, `${cat} (${hits.length})`);
     head.addEventListener('click', () => go({ view: 'entries', cat }));
     const notes = document.createElement('div');
     notes.classList.toggle('with-times', timesShown(cat));

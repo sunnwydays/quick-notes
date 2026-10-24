@@ -43,7 +43,7 @@ function entryBody(entry) {
 }
 
 function renderEntries(cat) {
-  $('entries-title').textContent = label(cat);
+  setLabel($('entries-title'), cat);
   const box = $('entries-list');
   box.replaceChildren();
   const entries = entriesFor(cat);

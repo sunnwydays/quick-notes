@@ -17,7 +17,7 @@ function render(state) {
     renderHome();
     show('home');
   } else if (state.view === 'edit') {
-    $('editor-title').textContent = label(state.cat);
+    setLabel($('editor-title'), state.cat);
     renderRecent(state.cat);
     show('editor');
   } else if (state.view === 'entries') {

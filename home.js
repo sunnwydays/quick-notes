@@ -6,7 +6,14 @@ function renderHome() {
   $('write-btn').classList.toggle('primary', writeNext);
   fillCategories($('categories'), (cat) => {
     const btn = document.createElement('button');
-    btn.textContent = label(cat);
+    btn.className = 'tile';
+    const name = document.createElement('span');
+    name.className = 'tile-name';
+    name.textContent = cat;
+    const meta = document.createElement('span');
+    meta.className = 'tile-meta';
+    meta.textContent = categorySummary(cat);
+    btn.append(categoryIcon(cat, 26), name, meta);
     onHoldRelease(btn, () => openEditor(cat));
     btn.addEventListener('click', () => {
       if (btn.held) return; // the click that ends a long press
