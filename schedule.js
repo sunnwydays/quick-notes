@@ -343,11 +343,22 @@ $('schedule-edit-btn').addEventListener('click', () => {
   openEditor(SCHEDULE, `${editText(scheduleOn(key), key)}\n${BULLET}`);
 });
 
-// A blank schedule for the day on screen: today's has no heading, and a later
-// day's starts with its weekday so it's saved for that day.
+// The first day from `key` on that has no schedule yet. A weekday heading only
+// reaches 6 days ahead, so if the whole week is planned it stays on `key`.
+function freeDay(key) {
+  const today = keyDate(dayKey(new Date()));
+  for (let d = keyDate(key); d <= addDays(today, 6); d = addDays(d, 1)) {
+    if (!scheduleOn(dayKey(d))) return dayKey(d);
+  }
+  return key;
+}
+
+// A blank schedule for the first unplanned day from the one on screen: today's
+// has no heading, and a later day's starts with its weekday so it's saved for that day.
 $('schedule-new-btn').addEventListener('click', () => {
-  const key = current.date || dayKey(new Date());
-  const head = current.date ? `${keyDate(key).toLocaleDateString('en-US', { weekday: 'short' })}\n` : '';
+  const today = dayKey(new Date());
+  const key = freeDay(current.date || today);
+  const head = key !== today ? `${keyDate(key).toLocaleDateString('en-US', { weekday: 'short' })}\n` : '';
   openEditor(SCHEDULE, head + BULLET);
 });
 
