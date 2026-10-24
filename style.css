@@ -142,7 +142,8 @@ input {
    except the sync row, which stays at the top of the home screen.
    The notes list reads from the top, with the title (and Add and Back on its right) pinned to the bottom of the
    screen (above the Undo banner when it shows) while the notes scroll behind it.
-   In the editor the Save/Discard bar moves below the text box, just above the keyboard. */
+   The editor's bar (title, Discard, Save) is styled the same so the title and buttons don't move when Add is
+   tapped; it sits below the text box, just above the keyboard. */
 @media (max-width: 600px) {
   #home, #login, #entries, #help {
     display: flex; flex-direction: column;
@@ -155,8 +156,7 @@ input {
   #home .search-row { margin-bottom: auto; }
   #home.searching { justify-content: flex-start; }
   #home.searching .search-row { margin-bottom: 12px; }
-  #editor .bar { order: 1; margin: 12px 0 0; }
-  #entries .bar, #help .bar {
+  #entries .bar, #help .bar, #editor .bar {
     order: 1; position: sticky; bottom: 0; margin: auto 0 0; padding: 12px 0;
     background: #fff; border-top: 2px solid #000;
   }
