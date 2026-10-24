@@ -9,7 +9,7 @@ Live: https://quick-notes-liart.vercel.app
 **Install:** open the link in Chrome, tap ⋮ and then **Add to Home screen** (or **Install app**). On a Boox, use Chrome rather than the built-in browser.
 
 **Write a note**
-1. Hold a category until it turns black, then let go (or tap **Write**, then the category): a project, Todo, Working on, Thought, Random projects, Bring from home or Journal.
+1. Hold a category until it turns black, then let go (or tap **Write**, then the category): a project, Todo, Working on, Thought, Random projs, Bring or Journal.
 2. The text box opens with `- ` in it and the keyboard up, under that category's latest notes. Tap the Gboard mic and talk.
 3. Press Enter to start a new `- ` line.
 4. Tap **Save**, or use Android's back button. Both save the note and go home. **Discard** throws it away.
