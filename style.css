@@ -230,6 +230,8 @@ input {
   }
   /* A thin line between the notes and the title, on the read pages only. */
   #entries .bar, #schedule .bar { border-top: 2px solid #000; }
-  /* Above the Undo banner, matching the room the page leaves for it. */
-  body:has(#undo-bar:not([hidden])) :is(#entries, #schedule) .bar { bottom: 88px; }
+  /* Above the Undo banner, at the same height whether the page scrolls or not;
+     the bar's own padding leaves a gap between them. */
+  body:has(#undo-bar:not([hidden])) > :is(#entries, #schedule) { padding-bottom: 76px; }
+  body:has(#undo-bar:not([hidden])) :is(#entries, #schedule) .bar { bottom: 76px; }
 }
