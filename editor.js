@@ -65,7 +65,7 @@ function cleanText(text) {
 function commitEditor() {
   const text = cleanText(textarea.value);
   if (text) {
-    const notes = current.cat === SCHEDULE ? splitDays(text)
+    const notes = current.cat === SCHEDULE ? splitDays(text).filter(changesSchedule)
       : $('split').checked ? text.split('\n').filter((line) => line.trim()) : [text];
     // Split notes are a millisecond apart, first line newest, so the list
     // (newest first) shows them in the order they were typed.

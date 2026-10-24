@@ -167,6 +167,15 @@ function editText(entry, key) {
   return lines.join('\n');
 }
 
+// False when a day's schedule would only repeat the version already saved for
+// that day, as when Edit is saved without changes. Edit may have rewritten the
+// heading, so the text it opened with counts as the same too.
+function changesSchedule(text) {
+  const key = scheduleDay({ text, createdAt: new Date().toISOString() });
+  const prev = scheduleOn(key);
+  return !prev || (text !== prev.text && text !== cleanText(editText(prev, key)));
+}
+
 function dayLabel(key, month = true) {
   const opts = { weekday: 'short', day: 'numeric' };
   if (month) opts.month = 'short';
