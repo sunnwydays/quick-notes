@@ -84,24 +84,29 @@ function onHoldRelease(btn, action) {
   });
 }
 
+// The notes and schedule screens, where these back gestures work.
+function onListScreen() {
+  return Boolean(current) && (current.view === 'entries' || current.view === 'schedule');
+}
+
 // Double-tapping anywhere on the notes screen goes back, except on a button,
 // where the double tap is more likely two quick presses of it.
 document.addEventListener('dblclick', (e) => {
-  if (!current || current.view !== 'entries' || e.target.closest('button')) return;
+  if (!onListScreen() || e.target.closest('button')) return;
   getSelection().removeAllRanges(); // a double tap on text selects a word
   history.back();
 });
 
 // Holding blank space on the notes screen goes back too. Holding a note, the
 // title or a button is left alone, so text can still be selected as usual.
-const NOT_BLANK = 'button, .entry, h1, .empty, #undo-bar';
+const NOT_BLANK = 'button, .entry, .block, h1, h2, .empty, .free, .schedule-note, #undo-bar';
 let blankTimer = null;
 
 document.addEventListener('pointerdown', (e) => {
   clearTimeout(blankTimer);
-  if (!current || current.view !== 'entries' || e.target.closest(NOT_BLANK)) return;
+  if (!onListScreen() || e.target.closest(NOT_BLANK)) return;
   blankTimer = setTimeout(() => {
-    if (!current || current.view !== 'entries') return;
+    if (!onListScreen()) return;
     holdUntilRelease();
     history.back();
   }, LONG_PRESS_MS);

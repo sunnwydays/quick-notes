@@ -4,8 +4,10 @@
 const STORE_KEY = 'quicknotes';
 const DRAFT_KEY = 'quicknotes-draft';
 const BACKUP_KEY = 'quicknotes-backup-v1';
+// Opens its own screen instead of the notes list (schedule.js).
+const SCHEDULE = 'Schedule';
 // In button order: left to right, then down.
-const BUILT_IN = ['Todo', 'Working on', 'Thought', 'Random projs', 'Bring', 'Journal'];
+const BUILT_IN = ['Todo', 'Working on', 'Thought', 'Random projs', 'Bring', 'Journal', SCHEDULE];
 // Line icons (SVG path data, 24x24), drawn in the text colour so they stay crisp
 // on e-ink and turn white on a black button. Display only; the stored (and
 // synced) category name stays plain text. Projects all share the folder.
@@ -16,6 +18,7 @@ const ICONS = {
   'Random projs': 'M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5M9 18h6M10 22h4',
   Bring: 'M3 10l9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z',
   Journal: 'M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z',
+  [SCHEDULE]: 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z',
 };
 const PROJECT_ICON = 'M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2z';
 // Built-in categories that were renamed: old name -> new name.

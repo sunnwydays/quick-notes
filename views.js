@@ -18,11 +18,16 @@ function render(state) {
     show('home');
   } else if (state.view === 'edit') {
     setLabel($('editor-title'), state.cat);
+    // A schedule is split by day heading instead.
+    $('split').parentElement.hidden = state.cat === SCHEDULE;
     renderRecent(state.cat);
     show('editor');
   } else if (state.view === 'entries') {
     renderEntries(state.cat);
     show('entries');
+  } else if (state.view === 'schedule') {
+    renderSchedule(state, true);
+    show('schedule');
   } else if (state.view === 'login') {
     show('login');
   } else if (state.view === 'help') {
@@ -36,6 +41,7 @@ function render(state) {
 function refreshView() {
   if (!current) renderHome();
   else if (current.view === 'entries') renderEntries(current.cat);
+  else if (current.view === 'schedule') renderSchedule(current);
   else if (current.view === 'edit') renderRecent(current.cat);
 }
 

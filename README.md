@@ -9,7 +9,7 @@ Live: https://quick-notes-liart.vercel.app
 **Install:** open the link in Chrome, tap ⋮ and then **Add to Home screen** (or **Install app**). On a Boox, use Chrome rather than the built-in browser.
 
 **Write a note**
-1. Hold a category until it turns black, then let go (or tap **Write**, then the category): a project, Todo, Working on, Thought, Random projs, Bring or Journal.
+1. Hold a category until it turns black, then let go (or tap **Write**, then the category): a project, Todo, Working on, Thought, Random projs, Bring, Journal or Schedule.
 2. The text box opens with `- ` in it and the keyboard up, under that category's latest notes. Tap the Gboard mic and talk.
 3. Press Enter to start a new `- ` line.
 4. Tap **Save**, or use Android's back button. Both save the note and go home. **Discard** throws it away.
@@ -28,6 +28,21 @@ What you type is saved as you go. If the app is closed mid-note, it reopens on t
 
 **Read:** tap a category. Its notes open, newest first, each with a Delete button. **Show times** adds each note's time, and is remembered per category (e.g. on for Journal only). **Write** on the home screen only applies to the next tap; tap it again to cancel. Double-tap anywhere on the notes (not on a button) to go back, or hold a blank spot for a moment. Holding a note still selects its text.
 
+**Schedule:** tap Schedule to see today's plan. The block happening now is shown in black with "Now, until 11:30", a gap between blocks shows "Free until 15:00", and finished blocks fold into a **See 5 done** row (each tap shows 3 more, newest first; **Hide done** folds them again). To write one, hold Schedule (or tap **New**/**Edit** on its screen) and paste a plan or type a line per block:
+
+```
+Sun (full day)
+7:15-8:45 IBM OA: 30m prep, then the real thing
+11:30 lunch
+17:00 dinner, 17:45 chess, 18:30 job apps
+No new material after that, early night
+```
+
+- A block is a time or a range (`9:00`, `9:00-11:30`, `9am`, `2:30 pm`, `10:30 to 12`) and then its text. A block with no end time lasts until the next one starts. A comma followed by a time starts another block on the same line. A line with no time is a note under the block above it.
+- Without am/pm, a time earlier than the block before it counts as afternoon, so `12:30` then `1:00` reads as 13:00.
+- A line starting with a day (`Sun`, `Monday:`, `Tue 27 Oct`, `Tomorrow`) starts that day's schedule, so a paste covering several days is saved as one note per day. Without one, it's today's. A day means the next one on or after the day it was saved.
+- **Edit** opens the day's schedule in the editor with a new line at the end. Saving it adds a new version; the newest one for a day is the one shown. **Past schedules** lists every version as plain notes (with Delete, Show times and Copy all). The ‹ › arrows step through the days that have a schedule.
+
 **Back up**
 - **Export** in the home screen's ☰ menu downloads every note as a `.txt` file.
 - **Copy all** on a category's notes screen copies the same text to the clipboard.
@@ -42,14 +57,15 @@ Plain HTML, CSS and JS. There's no framework and no build step. The JS files are
 
 | File | What it does |
 | --- | --- |
-| `index.html` | The five screens (home, editor, entries, login, help) as `<section>`s. Only one is shown at a time. |
+| `index.html` | The six screens (home, editor, entries, schedule, login, help) as `<section>`s. Only one is shown at a time. |
 | `data.js` | Constants, the saved data (`data`) and helpers for reading it. |
 | `views.js` | Switching screens, the history/back button and the Undo banner. |
-| `gestures.js` | Hold-and-release on a category; double-tap or hold blank space to leave the notes screen. |
+| `gestures.js` | Hold-and-release on a category; double-tap or hold blank space to leave the notes or schedule screen. |
 | `home.js` | The home screen: category buttons, the ☰ menu, New project, Write. |
 | `editor.js` | The note editor: bullets, drafts, Save and Discard. |
 | `search.js` | The search box on the home screen: notes that match, grouped by category. |
 | `entries.js` | The notes screen: list, times, delete, remove project. |
+| `schedule.js` | The schedule screen: reads times and day headings out of a Schedule note, highlights the block on now, folds finished ones, and splits a multi-day paste on save. Redraws only when a block starts or ends, since each redraw flashes an e-ink screen. |
 | `export.js` | Export and Copy all. |
 | `sync.js` | Supabase sync: push, pull, merge and the status line. |
 | `login.js` | Email-code login. |

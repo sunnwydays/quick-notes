@@ -134,6 +134,22 @@ body:has(#undo-bar:not([hidden])) > section { padding-bottom: 88px; }
   text-align: left; font-weight: 700; background: #000; color: #fff;
 }
 
+/* Schedule: the day with arrows to the days either side, then one block per line with
+   its time above it. The block on now is the one solid black thing on the screen;
+   finished ones are grey and folded behind the See/Hide row. */
+.day-nav { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.day-nav h2 { flex: 1; margin: 0; font-size: 22px; text-align: center; }
+.day-nav button { min-height: 44px; padding: 4px 8px; font-size: 16px; white-space: nowrap; }
+.schedule-note { margin: 0 0 8px; font-style: italic; white-space: pre-wrap; overflow-wrap: anywhere; }
+.block { padding: 8px; border-bottom: 2px solid #000; }
+.block time, .block-now { display: block; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.block p { margin: 0; font-family: Literata, Georgia, serif; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
+.block.now { background: #000; color: #fff; border-radius: 12px; }
+.block.done { color: #555; }
+.free { margin: 8px 0; padding: 8px; border: 2px dashed #000; border-radius: 12px; font-weight: 700; }
+.fold { display: flex; justify-content: space-between; gap: 8px; }
+.fold button { min-height: 44px; padding: 4px 12px; font-size: 16px; }
+
 /* Kept on the far left, away from Copy all and Show times. */
 #remove-project-btn { margin-right: auto; }
 .empty { font-style: italic; }
@@ -185,7 +201,7 @@ input {
    The editor's bar (title, Discard, Save) is styled the same so the title and buttons don't move when Add is
    tapped; it sits below the text box, just above the keyboard. */
 @media (max-width: 600px) {
-  #home, #login, #entries, #help {
+  #home, #login, #entries, #schedule, #help {
     display: flex; flex-direction: column;
     min-height: 100vh; min-height: 100dvh;
   }
@@ -196,11 +212,11 @@ input {
   #home .search-row { margin-bottom: auto; }
   #home.searching { justify-content: flex-start; }
   #home.searching .search-row { margin-bottom: 12px; }
-  #entries .bar, #help .bar, #editor .bar {
+  #entries .bar, #schedule .bar, #help .bar, #editor .bar {
     order: 1; position: sticky; bottom: 0; margin: auto 0 0; padding: 12px 0 4px;
     background: #fff;
   }
-  /* A thin line between the notes and the title, on the read page only. */
-  #entries .bar { border-top: 2px solid #000; }
+  /* A thin line between the notes and the title, on the read pages only. */
+  #entries .bar, #schedule .bar { border-top: 2px solid #000; }
   body:has(#undo-bar:not([hidden])) #entries .bar { bottom: 76px; }
 }

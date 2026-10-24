@@ -17,7 +17,8 @@ function renderHome() {
     onHoldRelease(btn, () => openEditor(cat));
     btn.addEventListener('click', () => {
       if (btn.held) return; // the click that ends a long press
-      writeNext ? openEditor(cat) : go({ view: 'entries', cat });
+      if (writeNext) openEditor(cat);
+      else go(cat === SCHEDULE ? { view: 'schedule', date: null } : { view: 'entries', cat });
     });
     return btn;
   });
