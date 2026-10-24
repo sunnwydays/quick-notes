@@ -18,7 +18,7 @@ What you type is saved as you go. If the app is closed mid-note, it reopens on t
 
 **Menu:** the ☰ button at the top right of the home screen holds **New project**, **Export**, **Help** and **Log in**. Tapping anywhere else closes it without doing anything else.
 
-**Category buttons** show a line icon (projects get a folder), the name, and how many notes there are and how long ago the latest was written, e.g. "3 notes · 2h ago". The icons are SVG rather than emoji so they stay sharp on e-ink.
+**Category buttons** show a line icon (projects get a folder), the name, and how many notes there are and how long ago the latest was written, e.g. "3 notes · 2h ago". Projects show just the count. The icons are SVG rather than emoji so they stay sharp on e-ink.
 
 **Projects:** open the ☰ menu and tap **New project** to add one. Projects get their own buttons above the built-in categories, with a line between the two groups. To remove one, tap the project and tap **Remove project**. That deletes its notes too.
 

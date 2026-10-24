@@ -128,12 +128,13 @@ function setLabel(el, cat, text = cat) {
   el.replaceChildren(categoryIcon(cat), text);
 }
 
-// "3 notes · 2h ago" under a category's name on the home screen.
+// "3 notes · 2h ago" under a category's name on the home screen. Projects show
+// just the count.
 function categorySummary(cat) {
   const entries = entriesFor(cat);
   if (!entries.length) return 'No notes';
   const count = `${entries.length} note${entries.length === 1 ? '' : 's'}`;
-  return `${count} · ${ago(entries[0].createdAt)}`;
+  return BUILT_IN.includes(cat) ? `${count} · ${ago(entries[0].createdAt)}` : count;
 }
 
 function ago(iso) {
