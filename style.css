@@ -159,5 +159,7 @@ input {
     order: 1; position: sticky; bottom: 0; margin: auto 0 0; padding: 12px 0 4px;
     background: #fff;
   }
+  /* A thin line between the notes and the title, on the read page only. */
+  #entries .bar { border-top: 1px solid #000; }
   body:has(#undo-bar:not([hidden])) #entries .bar { bottom: 76px; }
 }
