@@ -62,12 +62,15 @@ body.still-held * { user-select: none !important; -webkit-user-select: none !imp
   font: 22px/1.5 Literata, Georgia, serif;
   color: #000;
   background: #fff;
-  border: 3px solid #000;
-  border-radius: 8px;
-  padding: 12px;
+  /* Just a rule under the writing, like a page, rather than a box. */
+  border: 0;
+  border-bottom: 3px solid #000;
+  border-radius: 0;
+  padding: 8px 4px;
   resize: none;
   outline: none;
 }
+#editor textarea::placeholder { color: #555; opacity: 1; }
 
 .split-toggle { display: flex; align-items: center; gap: 12px; min-height: 44px; font-size: 18px; }
 .split-toggle input { width: 28px; height: 28px; min-height: 0; margin: 0; padding: 0; flex: none; accent-color: #000; }
