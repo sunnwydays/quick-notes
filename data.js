@@ -128,24 +128,11 @@ function setLabel(el, cat, text = cat) {
   el.replaceChildren(categoryIcon(cat), text);
 }
 
-// "3 notes · 2h ago" under a category's name on the home screen. Projects show
-// just the count.
+// "3 notes" under a category's name on the home screen.
 function categorySummary(cat) {
-  const entries = entriesFor(cat);
-  if (!entries.length) return 'No notes';
-  const count = `${entries.length} note${entries.length === 1 ? '' : 's'}`;
-  return BUILT_IN.includes(cat) ? `${count} · ${ago(entries[0].createdAt)}` : count;
-}
-
-function ago(iso) {
-  const mins = Math.floor((Date.now() - Date.parse(iso)) / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
-  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  const n = entriesFor(cat).length;
+  if (!n) return 'No notes';
+  return `${n} note${n === 1 ? '' : 's'}`;
 }
 
 function categoryNames() {

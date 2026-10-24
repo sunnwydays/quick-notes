@@ -36,7 +36,7 @@ button.primary { background: #000; color: #fff; font-weight: 700; }
 button.quiet { border-color: transparent; background: transparent; font-weight: 700; }
 
 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-/* Each tile: icon at the top left, the name, then "3 notes · 2h ago". */
+/* Each tile: icon at the top left, the name, then "3 notes". */
 .grid button {
   display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
   min-height: 100px; padding: 10px 12px; border-radius: 14px; text-align: left; overflow-wrap: anywhere;
