@@ -160,6 +160,6 @@ input {
     background: #fff;
   }
   /* A thin line between the notes and the title, on the read page only. */
-  #entries .bar { border-top: 1px solid #000; }
+  #entries .bar { border-top: 2px solid #000; }
   body:has(#undo-bar:not([hidden])) #entries .bar { bottom: 76px; }
 }
