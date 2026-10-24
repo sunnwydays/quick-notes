@@ -117,6 +117,16 @@ textarea.addEventListener('input', (e) => {
   saveDraft();
 });
 
+// Pasting "- foo" right after a "- " would give "- - foo", so drop the pasted bullet.
+textarea.addEventListener('paste', (e) => {
+  const pasted = e.clipboardData.getData('text/plain');
+  const { selectionStart, selectionEnd } = textarea;
+  if (!pasted.startsWith(BULLET) || !textarea.value.slice(0, selectionStart).endsWith(BULLET)) return;
+  e.preventDefault();
+  textarea.setRangeText(pasted.slice(BULLET.length), selectionStart, selectionEnd, 'end');
+  saveDraft();
+});
+
 // Saving happens in the popstate handler, so Save and the back button behave the same.
 $('save-btn').addEventListener('click', () => history.back());
 // Undo reopens the editor with the draft, from the Undo tap so the keyboard comes up.
