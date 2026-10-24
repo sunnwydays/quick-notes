@@ -87,6 +87,8 @@ body.still-held * { user-select: none !important; -webkit-user-select: none !imp
 }
 
 #editor-tools { min-height: 44px; }
+/* Long text: the box gets the whole screen (editor.js fitText). */
+#editor.full #editor-tools, #editor.full #editor-recent { display: none; }
 
 .tools { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-bottom: 16px; }
 .tools button { min-height: 44px; padding: 4px 12px; font-size: 16px; }

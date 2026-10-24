@@ -23,6 +23,7 @@ function render(state) {
     $('editor-tools').hidden = state.cat === SCHEDULE;
     renderRecent(state.cat);
     show('editor');
+    fitText(true);
   } else if (state.view === 'entries') {
     renderEntries(state.cat);
     show('entries');

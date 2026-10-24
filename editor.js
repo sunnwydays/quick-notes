@@ -37,6 +37,15 @@ function renderRecent(cat) {
   box.classList.toggle('with-times', timesShown(cat));
 }
 
+// Once the text outgrows its box (a long schedule, say), the recent notes are
+// hidden and the box takes the whole screen. It stays that way until the editor
+// closes or Enter clears the box, so it doesn't flip back and forth.
+function fitText(reset = false) {
+  const editor = $('editor');
+  if (reset) editor.classList.remove('full');
+  if (textarea.scrollHeight > textarea.clientHeight) editor.classList.add('full');
+}
+
 function saveDraft() {
   if (!current || current.view !== 'edit') return;
   localStorage.setItem(DRAFT_KEY, JSON.stringify({ cat: current.cat, text: textarea.value }));
@@ -102,6 +111,7 @@ function enter() {
     textarea.value = BULLET;
     textarea.setSelectionRange(BULLET.length, BULLET.length);
   }
+  fitText(current.cat !== SCHEDULE);
   saveDraft();
 }
 
@@ -125,6 +135,7 @@ textarea.addEventListener('input', (e) => {
     if (current.cat === SCHEDULE) textarea.setRangeText(BULLET, textarea.selectionStart, textarea.selectionEnd, 'end');
     else enter();
   }
+  fitText();
   saveDraft();
 });
 
@@ -135,6 +146,7 @@ textarea.addEventListener('paste', (e) => {
   if (!pasted.startsWith(BULLET) || !textarea.value.slice(0, selectionStart).endsWith(BULLET)) return;
   e.preventDefault();
   textarea.setRangeText(pasted.slice(BULLET.length), selectionStart, selectionEnd, 'end');
+  fitText();
   saveDraft();
 });
 
