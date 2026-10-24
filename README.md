@@ -16,19 +16,21 @@ Live: https://quick-notes-liart.vercel.app
 
 What you type is saved as you go. If the app is closed mid-note, it reopens on that note next time.
 
-**Projects:** tap **+ project** to add one. Projects get their own buttons above the built-in categories, with a line between the two groups. To remove one, tap the project and tap **Remove project**. That deletes its notes too.
+**Menu:** the ☰ button at the top right of the home screen holds **New project**, **Export**, **Help** and **Log in**. Tapping anywhere else closes it without doing anything else.
 
-**Help:** the **Help** button on the home screen opens a short list of the non-obvious things (holding a category, going back, search, Undo). If you change how something works, update that text in `index.html` too.
+**Projects:** open the ☰ menu and tap **New project** to add one. Projects get their own buttons above the built-in categories, with a line between the two groups. To remove one, tap the project and tap **Remove project**. That deletes its notes too.
 
-**Search:** type in the box under the buttons at the top of the home screen; it stays put while the results scroll below it. The category buttons are replaced by every note that contains all the words you typed (any order, any case), grouped under its category with a count. Tap a category's heading to open its notes. **Clear** puts the buttons back.
+**Help:** **Help** in the ☰ menu opens a short list of the non-obvious things (holding a category, going back, search, Undo). If you change how something works, update that text in `index.html` too.
+
+**Search:** type in the box under the sync icon and ☰ menu at the top of the home screen; it stays put while the results scroll below it. The category buttons are replaced by every note that contains all the words you typed (any order, any case), grouped under its category with a count. Tap a category's heading to open its notes. **Clear** puts the buttons back.
 
 **Read:** tap a category. Its notes open, newest first, each with a Delete button. **Show times** adds each note's time, and is remembered per category (e.g. on for Journal only). **Write** on the home screen only applies to the next tap; tap it again to cancel. Double-tap anywhere on the notes (not on a button) to go back, or hold a blank spot for a moment. Holding a note still selects its text.
 
 **Back up**
-- **Export** on the home screen downloads every note as a `.txt` file.
+- **Export** in the home screen's ☰ menu downloads every note as a `.txt` file.
 - **Copy all** on a category's notes screen copies the same text to the clipboard.
 
-**Sync between devices:** tap **Log in** at the bottom of the home screen, enter your email, then the code from the email. Do this once on each device and it stays logged in. Notes, deletes and projects then sync between devices. Logging in is optional: without it, notes stay on that device only. The cloud icon at the top left shows a tick when synced, dots while syncing and a line through it otherwise; tap it for the details (time of last sync, or "Offline" with how many changes are waiting).
+**Sync between devices:** open the ☰ menu and tap **Log in**, enter your email, then the code from the email. Do this once on each device and it stays logged in. Notes, deletes and projects then sync between devices. Logging in is optional: without it, notes stay on that device only. The cloud icon at the top right, next to the ☰ menu, shows a tick when synced, dots while syncing and a line through it otherwise; tap it for the details (time of last sync, or "Offline" with how many changes are waiting).
 
 **Offline:** after the first load, the app works with no internet. Notes save on the device first and sync later, when the app is opened, brought back to the front, or gets a connection. For voice typing offline, download Gboard's offline speech pack in Gboard settings, then Voice typing.
 
@@ -42,7 +44,7 @@ Plain HTML, CSS and JS. There's no framework and no build step. The JS files are
 | `data.js` | Constants, the saved data (`data`) and helpers for reading it. |
 | `views.js` | Switching screens, the history/back button and the Undo banner. |
 | `gestures.js` | Hold-and-release on a category; double-tap or hold blank space to leave the notes screen. |
-| `home.js` | The home screen: category buttons, + project, Write. |
+| `home.js` | The home screen: category buttons, the ☰ menu, New project, Write. |
 | `editor.js` | The note editor: bullets, drafts, Save and Discard. |
 | `search.js` | The search box on the home screen: notes that match, grouped by category. |
 | `entries.js` | The notes screen: list, times, delete, remove project. |

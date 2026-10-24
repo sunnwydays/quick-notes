@@ -24,5 +24,5 @@ $('copy-btn').addEventListener('click', () => {
   navigator.clipboard
     .writeText(exportText())
     .then(() => alert('Copied all notes.'))
-    .catch(() => alert('Copy failed. Use Export on the home screen instead.'));
+    .catch(() => alert('Copy failed. Use Export in the menu on the home screen instead.'));
 });

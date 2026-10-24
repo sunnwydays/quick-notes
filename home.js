@@ -1,4 +1,4 @@
-// The home screen: category buttons, + project and Write.
+// The home screen: category buttons, the ☰ menu, New project and Write.
 
 // ---------- home ----------
 
@@ -32,6 +32,27 @@ $('add-project-btn').addEventListener('click', () => {
   renderHome();
   sync();
 });
+
+// ---------- menu ----------
+// New project, Export, Help and Log in live behind the ☰ button. Picking one
+// closes the menu. So does tapping anywhere else, and that tap does nothing
+// more, so closing it can't open a category by accident.
+
+function setMenu(open) {
+  $('menu').hidden = !open;
+  $('menu-btn').setAttribute('aria-expanded', open);
+}
+
+$('menu-btn').addEventListener('click', () => setMenu($('menu').hidden));
+$('menu').addEventListener('click', (e) => {
+  if (e.target.closest('button')) setMenu(false);
+});
+document.addEventListener('click', (e) => {
+  if ($('menu').hidden || e.target.closest('#menu, #menu-btn')) return;
+  e.preventDefault();
+  e.stopPropagation();
+  setMenu(false);
+}, true);
 
 // Tapping Write again cancels it.
 $('write-btn').addEventListener('click', () => {

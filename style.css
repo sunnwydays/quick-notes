@@ -124,12 +124,22 @@ body:has(#undo-bar:not([hidden])) > section { padding-bottom: 88px; }
 #write-btn { width: 100%; margin-top: 12px; background: #b4b4b4; }
 #write-btn.primary { background: #000; }
 
-/* Sync icon on the left, buttons on the right. */
-.sync-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 24px; font-size: 16px; }
-#sync-status { display: flex; align-items: center; min-height: 44px; }
-#sync-status svg { display: block; }
-.small-buttons { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-left: auto; }
-.sync-row button { min-height: 44px; padding: 4px 12px; font-size: 16px; }
+/* Sync icon and the ☰ menu button together on the right. The menu drops down
+   over the page below them. */
+.sync-row {
+  position: relative; display: flex; align-items: center; justify-content: flex-end; gap: 4px; margin-bottom: 24px;
+}
+#sync-status { display: flex; align-items: center; justify-content: center; min-width: 48px; min-height: 56px; }
+#sync-status svg, #menu-btn svg { display: block; }
+#menu-btn { display: flex; align-items: center; justify-content: center; width: 56px; padding: 0; border: 0; }
+#menu-btn[aria-expanded='true'] { background: #000; color: #fff; }
+#menu {
+  position: absolute; top: 100%; right: 0; z-index: 2; min-width: 240px;
+  display: flex; flex-direction: column; overflow: hidden;
+  background: #fff; border: 3px solid #000; border-radius: 12px;
+}
+#menu button { border: 0; border-radius: 0; text-align: left; padding: 10px 20px; }
+#menu button + button { border-top: 2px solid #000; }
 
 #help h2 { margin: 20px 0 6px; font-size: 22px; }
 #help p, #help ul { margin: 0 0 8px; }
