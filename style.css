@@ -38,8 +38,16 @@ body.still-held * { user-select: none !important; -webkit-user-select: none !imp
 .bar h1 { flex: 1; margin: 0; font-size: 24px; overflow-wrap: anywhere; }
 
 #editor { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+/* Recent notes and the text box share the height; the notes are anchored to the
+   bottom (newest next to the text box). With no notes the text box takes it all. */
+#editor-recent {
+  flex: 1 1 0; min-height: 0; overflow-y: auto; margin-bottom: 8px; font-size: 18px;
+  display: flex; flex-direction: column-reverse;
+}
+#editor-recent:empty { display: none; }
 #editor textarea {
-  flex: 1;
+  flex: 1 1 0;
+  min-height: 120px;
   width: 100%;
   font: inherit;
   font-size: 22px;

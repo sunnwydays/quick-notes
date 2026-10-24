@@ -24,6 +24,22 @@ function openEditor(cat, text = BULLET) {
 
 $('add-btn').addEventListener('click', () => openEditor(current.cat));
 
+// The latest notes in the category sit above the text box, newest at the
+// bottom next to it. The box shows as many as fit; older ones scroll up.
+const RECENT_COUNT = 30;
+
+function renderRecent(cat) {
+  const box = $('editor-recent');
+  box.replaceChildren();
+  for (const entry of entriesFor(cat).slice(0, RECENT_COUNT)) {
+    const div = document.createElement('div');
+    div.className = 'entry';
+    div.append(entryBody(entry));
+    box.append(div);
+  }
+  box.classList.toggle('with-times', timesShown(cat));
+}
+
 function saveDraft() {
   if (!current || current.view !== 'edit') return;
   localStorage.setItem(DRAFT_KEY, JSON.stringify({ cat: current.cat, text: textarea.value }));

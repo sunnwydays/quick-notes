@@ -10,7 +10,7 @@ Live: https://quick-notes-liart.vercel.app
 
 **Write a note**
 1. Tap a category: a project, Todo, Working on, Thought, Random projects, Bring from home or Journal.
-2. The text box opens with `- ` in it and the keyboard up. Tap the Gboard mic and talk.
+2. The text box opens with `- ` in it and the keyboard up, under that category's latest notes. Tap the Gboard mic and talk.
 3. Press Enter to start a new `- ` line.
 4. Tap **Save**, or use Android's back button. Both save the note and go home. **Discard** throws it away.
 

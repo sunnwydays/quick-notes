@@ -18,6 +18,7 @@ function render(state) {
     show('home');
   } else if (state.view === 'edit') {
     $('editor-title').textContent = label(state.cat);
+    renderRecent(state.cat);
     show('editor');
   } else if (state.view === 'entries') {
     renderEntries(state.cat);
@@ -30,11 +31,12 @@ function render(state) {
   window.scrollTo(0, 0);
 }
 
-// Redraw the current screen after a sync brought in changes. Leaves the editor
-// and login screens alone so nothing jumps while typing.
+// Redraw the current screen after a sync brought in changes. In the editor only
+// the recent notes above the text box are redrawn, so nothing jumps while typing.
 function refreshView() {
   if (!current) renderHome();
   else if (current.view === 'entries') renderEntries(current.cat);
+  else if (current.view === 'edit') renderRecent(current.cat);
 }
 
 function go(state) {
