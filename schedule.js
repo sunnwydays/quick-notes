@@ -2,7 +2,7 @@
 // A schedule is an ordinary note in the Schedule category, kept exactly as it was
 // pasted or typed. Its times are read from the text each time it's shown, so the
 // original stays as written. Changing a plan saves a new note: the newest one for
-// a day is the one shown, and older versions stay under Past schedules.
+// a day is the one shown, and every version stays under All saved.
 
 const WEEKDAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 // A line that starts with a day: "Sun (full day)", "Monday:", "Tue 27 Oct", "Tomorrow".
@@ -19,6 +19,9 @@ const DONE_PAGE = 3; // finished blocks shown per tap of "See more"
 
 let doneShown = 0; // finished blocks unfolded on today's schedule
 let scheduleTimer = 0;
+// The day a schedule was just saved for, so going back to the schedule screen
+// shows that day: a plan headed "Sun" and saved on Saturday is tomorrow's.
+let savedDay = null;
 
 // A line without its "- " bullet.
 function bare(line) {
@@ -269,6 +272,15 @@ function renderSchedule(state, fresh = false) {
 
   if (!entry) {
     box.append(textLine('empty', 'No schedule for today. Tap New, then paste one or type a line per block, like "9:00-11:30 Foosball".'));
+    // Point at a schedule saved for a later day, in case it was meant for today.
+    const next = days[at + 1];
+    if (next) {
+      const btn = document.createElement('button');
+      btn.className = 'next-day';
+      btn.textContent = `See ${dayLabel(next)} ›`;
+      btn.addEventListener('click', () => $('day-next').click());
+      box.append(btn);
+    }
   } else {
     if (plan.head) box.append(textLine('schedule-note', plan.head));
     for (const line of plan.intro) box.append(textLine('schedule-note', line));

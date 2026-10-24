@@ -52,7 +52,14 @@ function go(state) {
 
 window.addEventListener('popstate', (e) => {
   if (current && current.view === 'edit' && commitEditor()) sync();
-  render(e.state);
+  let state = e.state;
+  // Back on the schedule screen after saving one: show the day it was saved for.
+  if (savedDay && state && state.view === 'schedule') {
+    state = { view: 'schedule', date: savedDay === dayKey(new Date()) ? null : savedDay };
+    history.replaceState(state, '');
+  }
+  savedDay = null;
+  render(state);
   // Discard leaves the editor through history.back(), so its Undo can only be
   // shown once the home screen has rendered.
   if (pendingUndo) {
