@@ -114,3 +114,27 @@ document.addEventListener('pointerdown', (e) => {
 for (const type of ['pointerup', 'pointercancel']) {
   document.addEventListener(type, () => clearTimeout(blankTimer));
 }
+
+// Swiping sideways on the schedule steps through the days, the same as the ‹ ›
+// arrows: left for the next day, right for the one before. Touch events rather
+// than pointer ones, since the browser can cancel the pointer partway.
+const SWIPE_PX = 60;
+let swipeStart = null;
+
+document.addEventListener('touchstart', (e) => {
+  swipeStart = current && current.view === 'schedule' && e.touches.length === 1
+    ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
+}, { passive: true });
+document.addEventListener('touchmove', (e) => {
+  // A finger on the move isn't holding blank space.
+  if (swipeStart && Math.abs(e.touches[0].clientX - swipeStart.x) > 10) clearTimeout(blankTimer);
+}, { passive: true });
+document.addEventListener('touchend', (e) => {
+  if (!swipeStart || !current || current.view !== 'schedule') return;
+  const dx = e.changedTouches[0].clientX - swipeStart.x;
+  const dy = e.changedTouches[0].clientY - swipeStart.y;
+  swipeStart = null;
+  if (Math.abs(dx) < SWIPE_PX || Math.abs(dx) < 2 * Math.abs(dy)) return;
+  const btn = $(dx < 0 ? 'day-next' : 'day-prev');
+  if (btn.dataset.day) btn.click();
+});
