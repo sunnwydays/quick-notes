@@ -22,7 +22,7 @@ What you type is saved as you go. If the app is closed mid-note, it reopens on t
 
 **Search:** type in the box under the buttons at the top of the home screen; it stays put while the results scroll below it. The category buttons are replaced by every note that contains all the words you typed (any order, any case), grouped under its category with a count. Tap a category's heading to open its notes. **Clear** puts the buttons back.
 
-**Read:** tap **Read** (it turns black), then a category. Instead of the editor, that category's notes open, newest first, each with its time and a Delete button. Read only applies to the next tap; tap it again to cancel. Holding a category for a moment does the same thing in one step. Double-tap anywhere on the notes (not on a button) to go back, or hold a blank spot for a moment. Holding a note still selects its text.
+**Read:** tap **Read** (it turns black), then a category. Instead of the editor, that category's notes open, newest first, each with a Delete button. **Show times** adds each note's time, and is remembered per category (e.g. on for Journal only). Read only applies to the next tap; tap it again to cancel. Holding a category for a moment does the same thing in one step. Double-tap anywhere on the notes (not on a button) to go back, or hold a blank spot for a moment. Holding a note still selects its text.
 
 **Back up**
 - **Export** on the home screen downloads every note as a `.txt` file.

@@ -18,7 +18,6 @@ function renderSearch() {
   box.hidden = !searching;
   box.replaceChildren();
   if (!searching) return;
-  box.classList.toggle('with-times', showTimes);
 
   let total = 0;
   let groups = 0;
@@ -36,6 +35,7 @@ function renderSearch() {
     head.textContent = `${label(cat)} (${hits.length})`;
     head.addEventListener('click', () => go({ view: 'entries', cat }));
     const notes = document.createElement('div');
+    notes.classList.toggle('with-times', timesShown(cat));
     for (const entry of hits) {
       const div = document.createElement('div');
       div.className = 'entry';

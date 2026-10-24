@@ -1,8 +1,14 @@
 // ---------- read ----------
-// Times are hidden by default to keep the list compact. The choice is per device.
+// Times are hidden by default to keep the list compact. The choice is per
+// category and per device: {categoryName: true} for the ones showing times.
 
-const TIMES_KEY = 'quicknotes-show-times';
-let showTimes = readJSON(TIMES_KEY) === true;
+const TIMES_KEY = 'quicknotes-times-by-category';
+localStorage.removeItem('quicknotes-show-times');
+const showTimes = readJSON(TIMES_KEY) || {};
+
+function timesShown(cat) {
+  return showTimes[cat] === true;
+}
 
 const TRASH_ICON =
   '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
@@ -20,11 +26,12 @@ function formatFull(iso) {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
-// The text of a note, with its time above it when times are shown. Also used by search.
+// The text of a note, with its time above it when its category shows times.
+// Also used by search and the editor.
 function entryBody(entry) {
   const body = document.createElement('div');
   body.className = 'entry-body';
-  if (showTimes) {
+  if (timesShown(entry.category)) {
     const time = document.createElement('time');
     time.textContent = formatShort(entry.createdAt);
     body.append(time);
@@ -68,8 +75,8 @@ function renderEntries(cat) {
     div.append(body, del);
     box.append(div);
   }
-  box.classList.toggle('with-times', showTimes);
-  $('times-btn').textContent = showTimes ? 'Hide times' : 'Show times';
+  box.classList.toggle('with-times', timesShown(cat));
+  $('times-btn').textContent = timesShown(cat) ? 'Hide times' : 'Show times';
   $('remove-project-btn').hidden = BUILT_IN.includes(cat);
 }
 
@@ -84,7 +91,8 @@ function restoreEntry(entry) {
 }
 
 $('times-btn').addEventListener('click', () => {
-  showTimes = !showTimes;
+  if (timesShown(current.cat)) delete showTimes[current.cat];
+  else showTimes[current.cat] = true;
   localStorage.setItem(TIMES_KEY, JSON.stringify(showTimes));
   renderEntries(current.cat);
 });
