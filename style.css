@@ -216,8 +216,11 @@ input {
   #home .search-row { margin-bottom: auto; }
   #home.searching { justify-content: flex-start; }
   #home.searching .search-row { margin-bottom: 12px; }
+  /* The gap under the bar is its own padding, not the page's, so it sits at the
+     same height whether the page is short or long enough to scroll behind it. */
+  section:where(#entries, #schedule, #help, #editor) { padding-bottom: 0; }
   #entries .bar, #schedule .bar, #help .bar, #editor .bar {
-    order: 1; position: sticky; bottom: 0; margin: auto 0 0; padding: 12px 0 4px;
+    order: 1; position: sticky; bottom: 0; margin: auto 0 0; padding: 12px 0 16px;
     background: #fff;
   }
   /* A thin line between the notes and the title, on the read pages only. */
