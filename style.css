@@ -206,7 +206,7 @@ input {
 /* Phones: home and login sit at the bottom of the display so everything is in thumb reach,
    except the sync row, which stays at the top of the home screen.
    The notes list reads from the top, with the title (and Add and Back on its right) pinned to the bottom of the
-   screen (above the Undo banner when it shows) while the notes scroll behind it.
+   screen (with the Undo banner just above it when it shows) while the notes scroll behind it.
    The editor's bar (title, Discard, Save) is styled the same so the title and buttons don't move when Add is
    tapped; it sits below the text box, just above the keyboard. */
 @media (max-width: 600px) {
@@ -230,8 +230,9 @@ input {
   }
   /* A thin line between the notes and the title, on the read pages only. */
   #entries .bar, #schedule .bar { border-top: 2px solid #000; }
-  /* Above the Undo banner, at the same height whether the page scrolls or not;
-     the bar's own padding leaves a gap between them. */
-  body:has(#undo-bar:not([hidden])) > :is(#entries, #schedule) { padding-bottom: 76px; }
-  body:has(#undo-bar:not([hidden])) :is(#entries, #schedule) .bar { bottom: 76px; }
+  /* The bar stays at the bottom and the Undo banner shows just above it. The list
+     gets room under it instead, so its last note can scroll clear of the banner. */
+  body:has(#undo-bar:not([hidden])) > :is(#entries, #schedule) { padding-bottom: 0; }
+  body:has(#undo-bar:not([hidden])) :is(#entries-list, #schedule-list) { padding-bottom: 76px; }
+  body:has(:is(#entries, #schedule):not([hidden])) #undo-bar { bottom: 94px; }
 }
