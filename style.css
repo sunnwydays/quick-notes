@@ -4,11 +4,19 @@
 *, *::before, *::after { transition: none !important; animation: none !important; }
 [hidden] { display: none !important; }
 
+/* Self-hosted (and cached by sw.js) so they work offline. Atkinson Hyperlegible for the
+   interface, Literata (designed for e-readers) for the notes themselves. Latin only;
+   other scripts fall back to the system font. */
+@font-face { font-family: 'Atkinson'; src: url(fonts/atkinson-400.woff2) format('woff2'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Atkinson'; src: url(fonts/atkinson-700.woff2) format('woff2'); font-weight: 700; font-display: swap; }
+@font-face { font-family: 'Literata'; src: url(fonts/literata.woff2) format('woff2'); font-weight: 200 900; font-display: swap; }
+
 html, body { margin: 0; background: #fff; color: #000; }
 body {
-  font: 20px/1.4 system-ui, sans-serif;
+  font: 20px/1.4 Atkinson, system-ui, sans-serif;
   -webkit-tap-highlight-color: transparent;
 }
+h1, h2 { font-weight: 700; letter-spacing: -0.01em; line-height: 1.2; }
 section { padding: 12px; max-width: 640px; margin: 0 auto; }
 
 button {
@@ -35,7 +43,7 @@ body.still-held * { user-select: none !important; -webkit-user-select: none !imp
 .grid hr { grid-column: 1 / -1; width: 100%; margin: 8px 0; border: 0; border-top: 4px solid #000; }
 
 .bar { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-.bar h1 { flex: 1; margin: 0; font-size: 24px; overflow-wrap: anywhere; }
+.bar h1 { flex: 1; margin: 0; font-size: 26px; overflow-wrap: anywhere; }
 
 #editor { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
 /* Recent notes read from the top, newest first, laid out like the notes screen; the
@@ -48,8 +56,7 @@ body.still-held * { user-select: none !important; -webkit-user-select: none !imp
   flex: 1 1 0;
   min-height: 120px;
   width: 100%;
-  font: inherit;
-  font-size: 22px;
+  font: 22px/1.5 Literata, Georgia, serif;
   color: #000;
   background: #fff;
   border: 3px solid #000;
@@ -72,8 +79,8 @@ body.still-held * { user-select: none !important; -webkit-user-select: none !imp
 .entry:nth-child(even) { background: #d4d4d4; }
 .with-times .entry { border-bottom: 2px solid #000; padding-top: 8px; padding-bottom: 8px; }
 .entry-body { flex: 1; min-width: 0; }
-.entry time { display: block; font-size: 16px; font-weight: 700; }
-.entry p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.entry time { display: block; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.entry p { margin: 0; font-family: Literata, Georgia, serif; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
 .entry .delete {
   display: flex; align-items: center; justify-content: center;
   width: 38px; height: 38px; min-height: 0; padding: 0; border-width: 2px; border-radius: 6px;

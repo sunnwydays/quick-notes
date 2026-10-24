@@ -5,7 +5,7 @@
 // Only the app's own files are handled. Sync requests to Supabase go straight
 // to the network, so the app never sees stale notes from the cache.
 
-const CACHE = 'quick-notes-v6';
+const CACHE = 'quick-notes-v7';
 const FILES = [
   './',
   'index.html',
@@ -25,6 +25,9 @@ const FILES = [
   'manifest.json',
   'icons/icon-192.png',
   'icons/icon-512.png',
+  'fonts/atkinson-400.woff2',
+  'fonts/atkinson-700.woff2',
+  'fonts/literata.woff2',
 ];
 
 self.addEventListener('install', (e) => {
