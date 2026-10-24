@@ -230,5 +230,6 @@ input {
   }
   /* A thin line between the notes and the title, on the read pages only. */
   #entries .bar, #schedule .bar { border-top: 2px solid #000; }
-  body:has(#undo-bar:not([hidden])) #entries .bar { bottom: 76px; }
+  /* Above the Undo banner, matching the room the page leaves for it. */
+  body:has(#undo-bar:not([hidden])) :is(#entries, #schedule) .bar { bottom: 88px; }
 }
