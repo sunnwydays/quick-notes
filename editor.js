@@ -2,16 +2,6 @@ const textarea = $('text');
 
 // ---------- editor ----------
 
-// Split is remembered per device, across all projects.
-const SPLIT_KEY = 'quicknotes-split';
-$('split').checked = readJSON(SPLIT_KEY) === true;
-
-// Hand focus back so the keyboard stays up.
-$('split').addEventListener('change', () => {
-  localStorage.setItem(SPLIT_KEY, JSON.stringify($('split').checked));
-  textarea.focus();
-});
-
 // Called straight from the category button's click handler. Focusing inside a
 // real tap is what lets Android raise the keyboard.
 function openEditor(cat, text = BULLET) {
@@ -61,61 +51,79 @@ function cleanText(text) {
     .trim();
 }
 
+// Saves what's in the text box. Returns true if there was anything to save.
+function saveNotes() {
+  const text = cleanText(textarea.value);
+  if (!text) return false;
+  // Each line is its own note (a pasted list, say); a schedule is split by day instead.
+  const notes = current.cat === SCHEDULE ? splitDays(text).filter(changesSchedule)
+    : text.split('\n').filter((line) => line.trim());
+  // Split notes are a millisecond apart, first line newest, so the list
+  // (newest first) shows them in the order they were typed.
+  const base = Date.now();
+  notes.forEach((note, i) => {
+    const now = new Date(base - i).toISOString();
+    data.entries.push({
+      id: newId(),
+      category: current.cat,
+      text: note.trim(),
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+      dirty: true,
+    });
+  });
+  // For a multi-day paste, the first day.
+  if (current.cat === SCHEDULE && notes.length) savedDay = scheduleDay(data.entries[data.entries.length - notes.length]);
+  persist();
+  return true;
+}
+
 // Returns true if a note was saved.
 function commitEditor() {
-  const text = cleanText(textarea.value);
-  if (text) {
-    const notes = current.cat === SCHEDULE ? splitDays(text).filter(changesSchedule)
-      : $('split').checked ? text.split('\n').filter((line) => line.trim()) : [text];
-    // Split notes are a millisecond apart, first line newest, so the list
-    // (newest first) shows them in the order they were typed.
-    const base = Date.now();
-    notes.forEach((note, i) => {
-      const now = new Date(base - i).toISOString();
-      data.entries.push({
-        id: newId(),
-        category: current.cat,
-        text: note.trim(),
-        createdAt: now,
-        updatedAt: now,
-        deletedAt: null,
-        dirty: true,
-      });
-    });
-    // For a multi-day paste, the first day.
-    if (current.cat === SCHEDULE && notes.length) savedDay = scheduleDay(data.entries[data.entries.length - notes.length]);
-    persist();
-  }
+  const saved = saveNotes();
   localStorage.removeItem(DRAFT_KEY);
   textarea.value = '';
   textarea.blur();
-  return Boolean(text);
+  return saved;
 }
 
-function insertBullet() {
-  const { selectionStart, selectionEnd } = textarea;
-  textarea.setRangeText('\n' + BULLET, selectionStart, selectionEnd, 'end');
+// Enter adds the note and starts the next one, with the keyboard still up. A
+// schedule is one note, so there it starts a new "- " line instead.
+function enter() {
+  if (current.cat === SCHEDULE) {
+    const { selectionStart, selectionEnd } = textarea;
+    textarea.setRangeText('\n' + BULLET, selectionStart, selectionEnd, 'end');
+  } else {
+    if (saveNotes()) {
+      renderRecent(current.cat);
+      sync();
+    }
+    textarea.value = BULLET;
+    textarea.setSelectionRange(BULLET.length, BULLET.length);
+  }
   saveDraft();
 }
 
-// Enter starts a new "- " line. Physical keyboards are caught on keydown;
-// Gboard often reports keydown as key code 229, so beforeinput catches it there.
+// Physical keyboards are caught on keydown; Gboard often reports keydown as
+// key code 229, so beforeinput catches it there.
 textarea.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
     e.preventDefault();
-    insertBullet();
+    enter();
   }
 });
 textarea.addEventListener('beforeinput', (e) => {
   if ((e.inputType === 'insertLineBreak' || e.inputType === 'insertParagraph') && e.cancelable) {
     e.preventDefault();
-    insertBullet();
+    enter();
   }
 });
 textarea.addEventListener('input', (e) => {
-  // Fallback: the line break got through uncancelled, so add the bullet after it.
+  // Fallback: the line break got through uncancelled.
   if (e.inputType === 'insertLineBreak' || e.inputType === 'insertParagraph') {
-    textarea.setRangeText(BULLET, textarea.selectionStart, textarea.selectionEnd, 'end');
+    if (current.cat === SCHEDULE) textarea.setRangeText(BULLET, textarea.selectionStart, textarea.selectionEnd, 'end');
+    else enter();
   }
   saveDraft();
 });

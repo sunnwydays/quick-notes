@@ -18,8 +18,9 @@ function render(state) {
     show('home');
   } else if (state.view === 'edit') {
     setLabel($('editor-title'), state.cat);
-    // A schedule is split by day heading instead.
-    $('split').parentElement.hidden = state.cat === SCHEDULE;
+    // Enter adds the note, except in a schedule, where it starts a new line.
+    textarea.enterKeyHint = state.cat === SCHEDULE ? 'enter' : 'send';
+    $('editor-tools').hidden = state.cat === SCHEDULE;
     renderRecent(state.cat);
     show('editor');
   } else if (state.view === 'entries') {

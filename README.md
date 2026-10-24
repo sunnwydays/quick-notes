@@ -11,8 +11,8 @@ Live: https://quick-notes-liart.vercel.app
 **Write a note**
 1. Hold a category until it turns black, then let go (or tap **Write**, then the category): a project, Todo, Working on, Schedule, Thought, Random projs, Bring or Journal.
 2. The text box opens with `- ` in it and the keyboard up, under that category's latest notes. Tap the Gboard mic and talk.
-3. Press Enter to start a new `- ` line.
-4. Tap **Save**, or use Android's back button. Both save the note and go home. **Discard** throws it away.
+3. Press Enter to add the note. The box goes back to `- ` with the keyboard still up, ready for the next one. There's no way to type a line break in a note (except in a Schedule, where Enter starts a new `- ` line).
+4. Tap **Save**, or use Android's back button. Both save what's in the box and go home. **Discard** throws it away.
 
 What you type is saved as you go. If the app is closed mid-note, it reopens on that note next time.
 
@@ -62,7 +62,7 @@ Plain HTML, CSS and JS. There's no framework and no build step. The JS files are
 | `views.js` | Switching screens, the history/back button and the Undo banner. |
 | `gestures.js` | Hold-and-release on a category; double-tap or hold blank space to leave the notes or schedule screen. |
 | `home.js` | The home screen: category buttons, the ☰ menu, New project, Write. |
-| `editor.js` | The note editor: bullets, drafts, Save and Discard. |
+| `editor.js` | The note editor: Enter to add, drafts, Save and Discard. |
 | `search.js` | The search box on the home screen: notes that match, grouped by category. |
 | `entries.js` | The notes screen: list, times, delete, remove project. |
 | `schedule.js` | The schedule screen: reads times and day headings out of a Schedule note, highlights the block on now, folds finished ones, and splits a multi-day paste on save. Redraws only when a block starts or ends, since each redraw flashes an e-ink screen. |
@@ -100,7 +100,7 @@ The note in progress is kept separately under `quicknotes-draft` as `{ cat, text
 
 **Keyboard on tap:** the category button's click handler shows the editor and calls `textarea.focus()` in the same tick. Android only raises the keyboard when focus comes directly from a real tap, so this can't be moved into a timeout or an async callback. That's also why holding a category opens the editor when the finger lifts (`pointerup`) rather than when the hold timer fires.
 
-**Bullets on Enter:** Enter is caught on `keydown` for physical keyboards. Gboard usually doesn't report Enter on `keydown` (it sends key code 229), so `beforeinput` (`insertLineBreak`) catches it there. Both insert `\n- `. On save, empty `- ` lines are removed. With **Split each line into its own note** ticked (it resets to unticked after every save), each remaining line is saved as a separate note, a millisecond apart so they list in the order typed.
+**Enter adds the note:** Enter is caught on `keydown` for physical keyboards. Gboard usually doesn't report Enter on `keydown` (it sends key code 229), so `beforeinput` (`insertLineBreak`) catches it there, and if a line break still gets through, the `input` handler does the same thing. Either way the box is saved without closing the editor, then reset to `- `. The text box has `enterkeyhint="send"` so Gboard's Enter key shows that it sends rather than starting a line. In a Schedule, Enter inserts `\n- ` instead. On save, empty `- ` lines are removed and each remaining line (say, from a pasted list) is saved as a separate note, a millisecond apart so they list in the order typed.
 
 **Offline and updates:** `sw.js` answers each request from its cache right away, then fetches a fresh copy in the background. So after a deploy, the new version appears the *second* time you open the app. It only handles the app's own files; requests to Supabase always go to the network.
 

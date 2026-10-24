@@ -56,7 +56,7 @@
     </div>
     <p>Tap a category to read it, hold one to write. Notes save on this device, and sync to your other devices if you log in.</p>
     <ul>
-      <li><b>Hold</b> a category until it turns black, then let go, to write (or tap <b>Write</b> first). <b>Save</b> or your phone's back button saves the note.</li>
+      <li><b>Hold</b> a category until it turns black, then let go, to write (or tap <b>Write</b> first). <b>Enter</b> adds the note and starts the next one. <b>Save</b> or your phone's back button saves what's left and goes back.</li>
       <li>The cloud at the top shows sync: a tick when synced, a line through it when not. Tap it for details.</li>
       <li><b>Show times</b> is remembered for each category separately.</li>
       <li>On the notes screen, <b>double-tap</b> or <b>hold</b> blank space to go back.</li>
@@ -72,12 +72,7 @@
       <button id="discard-btn">Discard</button>
       <button id="save-btn" class="primary">Save</button>
     </div>
-    <div class="tools">
-      <label class="split-toggle">
-        <input id="split" type="checkbox">
-        Split each line into its own note
-      </label>
-    </div>
+    <div id="editor-tools" class="tools"></div>
     <div id="editor-recent"></div>
     <textarea id="text" autocapitalize="sentences"></textarea>
   </section>
