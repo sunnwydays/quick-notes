@@ -44,6 +44,9 @@ body.still-held * { user-select: none !important; -webkit-user-select: none !imp
 
 .bar { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
 .bar h1 { flex: 1; margin: 0; font-size: 26px; overflow-wrap: anywhere; }
+/* Back is a ‹ icon, square so it's still a full-size tap target. */
+.back { display: flex; align-items: center; justify-content: center; width: 56px; padding: 0; flex: none; }
+.back svg { display: block; }
 
 #editor { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
 /* Recent notes read from the top, newest first, laid out like the notes screen; the
