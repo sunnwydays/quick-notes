@@ -8,8 +8,9 @@ const WEEKDAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 // A line that starts with a day: "Sun (full day)", "Monday:", "Tue 27 Oct", "Tomorrow".
 // What follows the day has to look like a heading, so "Sat runs late" stays text.
 const DAY_HEAD = /^(today|tomorrow|sun(?:day)?|mon(?:day)?|tue(?:s(?:day)?)?|wed(?:nesday)?|thu(?:rs?(?:day)?)?|fri(?:day)?|sat(?:urday)?)\.?(?=\s*(?:$|[(:,–—-]|\d|[a-z]{3,9}\.?\s+\d))/i;
-// 9:00, 14:30, 9am, 2:30 p.m. A bare number isn't a time, so "2h30" and "15m" stay text.
-const TIME = String.raw`(\d{1,2})(?::([0-5]\d))?(?:\s*([ap])\.?\s?m\b\.?)?`;
+// 9:00, 14:30, 9am, 2:30 p.m., and plain numbers: 10, 830, 1030. Groups: hour,
+// the colon (or ''), minutes, a/p. Whether a plain number counts is up to readTime.
+const TIME = String.raw`(\d{1,2}?)(?:(:?)([0-5]\d))?(?!\d)(?:\s*([ap])\.?\s?m\b\.?)?`;
 const TIME_AT = new RegExp('^' + TIME, 'i');
 const TO_TIME = new RegExp(String.raw`^\s*(?:-|–|—|to)\s*` + TIME, 'i');
 // "17:00 dinner, 17:45 chess" is two blocks: a comma or semicolon followed by a time starts a new one.
@@ -56,18 +57,22 @@ function addDays(d, n) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
 }
 
-// A time at the start of s, as {h, m, ap, length}, or null. TO_TIME reads the
-// end of a range. A bare hour counts at the start of a line when a word follows
-// ("10 brunch", as voice typing writes it) and as the end of a range ("10:30 -
-// 12 email"), but not when it runs into more text, like "2h30" or "15m".
+// A time at the start of s, as {h, m, ap, bare, length}, or null. TO_TIME reads
+// the end of a range. A bare number (no colon or am/pm: "10", "830", "1030")
+// counts at the start of a line when a word or a range follows ("10 brunch", as
+// voice typing writes it, or "2130-2230 read") and as the end of a range
+// ("10:30 - 12 email"), but not when it runs into more text, like "2h30" or "15m".
 function readTime(s, re = TIME_AT) {
   const t = re.exec(s);
-  const after = s.slice(t ? t[0].length : 0);
-  const bareOk = re === TO_TIME ? !/^[a-z0-9:]/i.test(after) : /^\s+[a-z(]/i.test(after);
-  if (!t || (t[2] === undefined && !t[3] && !bareOk)) return null;
+  if (!t) return null;
+  const bare = t[2] !== ':' && !t[4];
+  const after = s.slice(t[0].length);
+  const bareOk = re === TO_TIME ? !/^[a-z0-9:]/i.test(after) : /^(?:\s+[a-z(]|\s*(?:-|–|—|to\b)\s*\d)/i.test(after);
+  if (bare && !bareOk) return null;
   const h = Number(t[1]);
-  if (h > 24) return null;
-  return { h, m: Number(t[2] || 0), ap: t[3] && t[3].toLowerCase(), length: t[0].length };
+  const m = Number(t[3] || 0);
+  if (h * 60 + m > DAY_END) return null;
+  return { h, m, ap: t[4] && t[4].toLowerCase(), bare, length: t[0].length };
 }
 
 // Minutes after midnight. Without am/pm, a time that would come before `after`
@@ -99,18 +104,22 @@ function parseSchedule(text) {
     for (const part of line.split(NEXT_BLOCK)) {
       const last = plan.blocks[plan.blocks.length - 1];
       const start = readTime(part);
-      if (!start) {
+      const at = start && minutes(start, last && last.start);
+      // A bare number only starts a block if it comes after the one above
+      // (counting afternoon, so "1 lunch" after "10 brunch" is 13:00); otherwise
+      // it's a line of that block, like "5 sets" under "20:00 gym".
+      if (!start || (start.bare && last && at <= last.start)) {
         (last ? last.lines : plan.intro).push(part);
         continue;
       }
-      const block = { start: minutes(start, last && last.start), end: null, lines: [] };
+      const block = { start: at, end: null, lines: [] };
       let rest = part.slice(start.length);
       const end = readTime(rest, TO_TIME);
       if (end) {
         block.end = minutes(end, block.start);
         rest = rest.slice(end.length);
       }
-      block.lines.push(rest.replace(/^[\s:.–—-]+/, ''));
+      block.lines.push(rest.replace(/^[\s:.,;–—-]+/, ''));
       plan.blocks.push(block);
     }
   }
