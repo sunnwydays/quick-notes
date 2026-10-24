@@ -244,24 +244,43 @@ function waitingCount() {
   return data.entries.filter((e) => e.dirty).length + data.categories.filter((c) => c.dirty).length;
 }
 
+// The status shows as a cloud icon: a tick when synced, dots while syncing and
+// a line through it otherwise. Tapping it shows the status in words.
+const CLOUD = 'M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z';
+const SYNC_MARKS = {
+  synced: 'M9 14l2 2 4-4',
+  syncing: 'M9 15h.01M12 15h.01M15 15h.01',
+  off: 'M3 3l18 18',
+};
+let statusText = '';
+
 function showStatus() {
   $('login-btn').textContent = auth ? 'Log out' : 'Log in';
-  let text;
+  let mark = 'off';
   if (!auth) {
-    text = logoutReason || 'Not syncing. Notes stay on this device.';
+    statusText = logoutReason || 'Not syncing. Notes stay on this device.';
   } else if (syncing) {
-    text = 'Syncing…';
+    statusText = 'Syncing…';
+    mark = 'syncing';
   } else if (syncFailed) {
     const waiting = waitingCount();
-    text = navigator.onLine ? "Can't reach sync server." : 'Offline.';
-    text += waiting ? ` ${waiting} change(s) will sync later.` : ' Will sync later.';
+    statusText = navigator.onLine ? "Can't reach sync server." : 'Offline.';
+    statusText += waiting ? ` ${waiting} change(s) will sync later.` : ' Will sync later.';
   } else if (lastSynced) {
-    text = `Synced ${lastSynced.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`;
+    statusText = `Synced ${lastSynced.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`;
+    mark = 'synced';
   } else {
-    text = 'Not synced yet.';
+    statusText = 'Not synced yet.';
   }
-  $('sync-status').textContent = text;
+  const el = $('sync-status');
+  el.innerHTML =
+    '<svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    `<path d="${CLOUD}"/><path d="${SYNC_MARKS[mark]}"/></svg>`;
+  el.setAttribute('aria-label', statusText);
+  el.title = statusText;
 }
+
+$('sync-status').addEventListener('click', () => alert(statusText));
 
 function logOut(reason = null) {
   auth = null;

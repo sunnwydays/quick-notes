@@ -28,7 +28,7 @@ What you type is saved as you go. If the app is closed mid-note, it reopens on t
 - **Export** on the home screen downloads every note as a `.txt` file.
 - **Copy all** on a category's notes screen copies the same text to the clipboard.
 
-**Sync between devices:** tap **Log in** at the bottom of the home screen, enter your email, then the code from the email. Do this once on each device and it stays logged in. Notes, deletes and projects then sync between devices. Logging in is optional: without it, notes stay on that device only. The line next to the button shows "Synced 3:42 PM", or "Offline" with how many changes are waiting.
+**Sync between devices:** tap **Log in** at the bottom of the home screen, enter your email, then the code from the email. Do this once on each device and it stays logged in. Notes, deletes and projects then sync between devices. Logging in is optional: without it, notes stay on that device only. The cloud icon at the top left shows a tick when synced, dots while syncing and a line through it otherwise; tap it for the details (time of last sync, or "Offline" with how many changes are waiting).
 
 **Offline:** after the first load, the app works with no internet. Notes save on the device first and sync later, when the app is opened, brought back to the front, or gets a connection. For voice typing offline, download Gboard's offline speech pack in Gboard settings, then Voice typing.
 

@@ -104,9 +104,10 @@ body:has(#undo-bar:not([hidden])) > section { padding-bottom: 88px; }
 #read-btn { width: 100%; margin-top: 12px; background: #b4b4b4; }
 #read-btn.primary { background: #000; }
 
-/* On a phone the buttons wrap below the status text and stay right-aligned. */
+/* Sync icon on the left, buttons on the right. */
 .sync-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 24px; font-size: 16px; }
-.sync-row span { flex: 1 1 160px; }
+#sync-status { display: flex; align-items: center; min-height: 44px; }
+#sync-status svg { display: block; }
 .small-buttons { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-left: auto; }
 .sync-row button { min-height: 44px; padding: 4px 12px; font-size: 16px; }
 
