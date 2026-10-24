@@ -26,7 +26,7 @@ button.primary { background: #000; color: #fff; font-weight: 700; }
 
 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .grid button { min-height: 110px; font-size: 24px; font-weight: 700; overflow-wrap: anywhere; }
-/* Long press opens a category's notes, so don't select its label or show a callout. */
+/* Holding a category opens its editor, so don't select its label or show a callout. */
 .grid button { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 /* Same for the whole page while the finger from that long press is still down. */
 body.still-held * { user-select: none !important; -webkit-user-select: none !important; -webkit-touch-callout: none !important; }
@@ -109,8 +109,8 @@ body:has(#undo-bar:not([hidden])) > section { padding-bottom: 88px; }
 .empty { font-style: italic; }
 
 /* Grey so it doesn't look like another category; black while waiting for a category tap. */
-#read-btn { width: 100%; margin-top: 12px; background: #b4b4b4; }
-#read-btn.primary { background: #000; }
+#write-btn { width: 100%; margin-top: 12px; background: #b4b4b4; }
+#write-btn.primary { background: #000; }
 
 /* Sync icon on the left, buttons on the right. */
 .sync-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 24px; font-size: 16px; }

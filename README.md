@@ -1,6 +1,6 @@
 # Quick Notes
 
-One-tap dictation notes for Android phones and Boox e-readers. Writing comes first: tap a category, and the text box is open with the keyboard up, ready for Gboard voice typing. Reading is behind one extra tap.
+One-tap dictation notes for Android phones and Boox e-readers. Tap a category to read its notes; hold it and let go to open the text box with the keyboard up, ready for Gboard voice typing.
 
 Live: https://quick-notes-liart.vercel.app
 
@@ -9,20 +9,20 @@ Live: https://quick-notes-liart.vercel.app
 **Install:** open the link in Chrome, tap ⋮ and then **Add to Home screen** (or **Install app**). On a Boox, use Chrome rather than the built-in browser.
 
 **Write a note**
-1. Tap a category: a project, Todo, Working on, Thought, Random projects, Bring from home or Journal.
+1. Hold a category until it turns black, then let go (or tap **Write**, then the category): a project, Todo, Working on, Thought, Random projects, Bring from home or Journal.
 2. The text box opens with `- ` in it and the keyboard up, under that category's latest notes. Tap the Gboard mic and talk.
 3. Press Enter to start a new `- ` line.
 4. Tap **Save**, or use Android's back button. Both save the note and go home. **Discard** throws it away.
 
 What you type is saved as you go. If the app is closed mid-note, it reopens on that note next time.
 
-**Projects:** tap **+ project** to add one. Projects get their own buttons above the built-in categories, with a line between the two groups. To remove one, tap **Read**, then the project, and tap **Remove project**. That deletes its notes too.
+**Projects:** tap **+ project** to add one. Projects get their own buttons above the built-in categories, with a line between the two groups. To remove one, tap the project and tap **Remove project**. That deletes its notes too.
 
 **Help:** the **Help** button on the home screen opens a short list of the non-obvious things (holding a category, going back, search, Undo). If you change how something works, update that text in `index.html` too.
 
 **Search:** type in the box under the buttons at the top of the home screen; it stays put while the results scroll below it. The category buttons are replaced by every note that contains all the words you typed (any order, any case), grouped under its category with a count. Tap a category's heading to open its notes. **Clear** puts the buttons back.
 
-**Read:** tap **Read** (it turns black), then a category. Instead of the editor, that category's notes open, newest first, each with a Delete button. **Show times** adds each note's time, and is remembered per category (e.g. on for Journal only). Read only applies to the next tap; tap it again to cancel. Holding a category for a moment does the same thing in one step. Double-tap anywhere on the notes (not on a button) to go back, or hold a blank spot for a moment. Holding a note still selects its text.
+**Read:** tap a category. Its notes open, newest first, each with a Delete button. **Show times** adds each note's time, and is remembered per category (e.g. on for Journal only). **Write** on the home screen only applies to the next tap; tap it again to cancel. Double-tap anywhere on the notes (not on a button) to go back, or hold a blank spot for a moment. Holding a note still selects its text.
 
 **Back up**
 - **Export** on the home screen downloads every note as a `.txt` file.
@@ -41,8 +41,8 @@ Plain HTML, CSS and JS. There's no framework and no build step. The JS files are
 | `index.html` | The five screens (home, editor, entries, login, help) as `<section>`s. Only one is shown at a time. |
 | `data.js` | Constants, the saved data (`data`) and helpers for reading it. |
 | `views.js` | Switching screens, the history/back button and the Undo banner. |
-| `gestures.js` | Long press on a category; double-tap or hold blank space to leave the notes screen. |
-| `home.js` | The home screen: category buttons, + project, Read. |
+| `gestures.js` | Hold-and-release on a category; double-tap or hold blank space to leave the notes screen. |
+| `home.js` | The home screen: category buttons, + project, Write. |
 | `editor.js` | The note editor: bullets, drafts, Save and Discard. |
 | `search.js` | The search box on the home screen: notes that match, grouped by category. |
 | `entries.js` | The notes screen: list, times, delete, remove project. |
@@ -77,7 +77,7 @@ The note in progress is kept separately under `quicknotes-draft` as `{ cat, text
 
 **Screens and the back button:** opening a screen pushes a browser history entry (`history.pushState`), so Android's back button returns to the previous screen instead of closing the app. The editor saves inside the `popstate` handler, which is why Save (`history.back()`) and the hardware back button behave the same.
 
-**Keyboard on tap:** the category button's click handler shows the editor and calls `textarea.focus()` in the same tick. Android only raises the keyboard when focus comes directly from a real tap, so this can't be moved into a timeout or an async callback.
+**Keyboard on tap:** the category button's click handler shows the editor and calls `textarea.focus()` in the same tick. Android only raises the keyboard when focus comes directly from a real tap, so this can't be moved into a timeout or an async callback. That's also why holding a category opens the editor when the finger lifts (`pointerup`) rather than when the hold timer fires.
 
 **Bullets on Enter:** Enter is caught on `keydown` for physical keyboards. Gboard usually doesn't report Enter on `keydown` (it sends key code 229), so `beforeinput` (`insertLineBreak`) catches it there. Both insert `\n- `. On save, empty `- ` lines are removed. With **Split each line into its own note** ticked (it resets to unticked after every save), each remaining line is saved as a separate note, a millisecond apart so they list in the order typed.
 

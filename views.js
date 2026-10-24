@@ -3,7 +3,7 @@
 // Android back button returns to the previous screen instead of closing the app.
 
 let current = null; // null = home, or {view, cat}
-let readNext = false; // Read was tapped: the next category tap opens its notes
+let writeNext = false; // Write was tapped: the next category tap opens the editor
 
 function show(id) {
   for (const s of document.querySelectorAll('body > section')) s.hidden = s.id !== id;
@@ -11,7 +11,7 @@ function show(id) {
 
 function render(state) {
   current = state;
-  if (state) readNext = false;
+  if (state) writeNext = false;
   hideUndo();
   if (!state) {
     renderHome();

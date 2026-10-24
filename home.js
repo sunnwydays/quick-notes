@@ -1,16 +1,16 @@
-// The home screen: category buttons, + project and Read.
+// The home screen: category buttons, + project and Write.
 
 // ---------- home ----------
 
 function renderHome() {
-  $('read-btn').classList.toggle('primary', readNext);
+  $('write-btn').classList.toggle('primary', writeNext);
   fillCategories($('categories'), (cat) => {
     const btn = document.createElement('button');
     btn.textContent = label(cat);
-    onLongPress(btn, () => go({ view: 'entries', cat }));
+    onHoldRelease(btn, () => openEditor(cat));
     btn.addEventListener('click', () => {
       if (btn.held) return; // the click that ends a long press
-      readNext ? go({ view: 'entries', cat }) : openEditor(cat);
+      writeNext ? openEditor(cat) : go({ view: 'entries', cat });
     });
     return btn;
   });
@@ -33,8 +33,8 @@ $('add-project-btn').addEventListener('click', () => {
   sync();
 });
 
-// Tapping Read again cancels it.
-$('read-btn').addEventListener('click', () => {
-  readNext = !readNext;
-  $('read-btn').classList.toggle('primary', readNext);
+// Tapping Write again cancels it.
+$('write-btn').addEventListener('click', () => {
+  writeNext = !writeNext;
+  $('write-btn').classList.toggle('primary', writeNext);
 });

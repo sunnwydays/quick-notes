@@ -1,9 +1,6 @@
 // Touch gestures: long press on a category, and double-tap or hold-blank-space
 // to leave the notes screen.
 
-// Holding a category opens its notes, the same as tapping Read and then it.
-// Android also fires contextmenu on a long press, which counts too, so the
-// press still works if the browser cancels the touch before the timer runs.
 const LONG_PRESS_MS = 300;
 
 // The finger is usually still down when the next screen opens, and Android's
@@ -41,25 +38,49 @@ document.addEventListener('pointerdown', () => {
   if (!stillHeld) endingHold = false;
 }, true);
 
-function onLongPress(btn, action) {
+// Holding a category and letting go opens its editor, the same as tapping Write
+// and then it. The button turns black once held long enough, as the cue to let
+// go. It opens on the lift rather than when the timer runs, because Android only
+// raises the keyboard for a focus() inside a real touch event. Android also
+// fires contextmenu on a long press, which counts too. If the browser cancels
+// the touch after that, open straight away; the keyboard may then need a tap.
+function onHoldRelease(btn, action) {
   let timer = null;
-  const fire = () => {
+  let armed = false;
+  const arm = () => {
     clearTimeout(timer);
-    if (btn.held) return;
+    armed = true;
     btn.held = true;
-    holdUntilRelease();
-    action();
+    btn.classList.add('primary');
+  };
+  const disarm = () => {
+    clearTimeout(timer);
+    const was = armed;
+    armed = false;
+    btn.classList.remove('primary');
+    return was;
   };
   btn.addEventListener('pointerdown', () => {
     btn.held = false;
-    timer = setTimeout(fire, LONG_PRESS_MS);
+    disarm();
+    timer = setTimeout(arm, LONG_PRESS_MS);
   });
-  for (const type of ['pointerup', 'pointerleave', 'pointercancel']) {
-    btn.addEventListener(type, () => clearTimeout(timer));
-  }
+  btn.addEventListener('pointerup', () => {
+    if (disarm()) action();
+  });
+  btn.addEventListener('pointercancel', () => {
+    if (!disarm()) return;
+    holdUntilRelease();
+    action();
+  });
+  btn.addEventListener('pointerleave', disarm);
+  // Stop the tap's mouse events, which could move focus off the text box.
+  btn.addEventListener('touchend', (e) => {
+    if (btn.held) e.preventDefault();
+  });
   btn.addEventListener('contextmenu', (e) => {
     e.preventDefault();
-    fire();
+    if (!armed && !btn.held) arm();
   });
 }
 
