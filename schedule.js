@@ -54,11 +54,13 @@ function addDays(d, n) {
 }
 
 // A time at the start of s, as {h, m, ap, length}, or null. TO_TIME reads the
-// end of a range, where a bare hour counts too ("10:30 - 12 email"), unless
-// it runs into more text, like "2h".
+// end of a range. A bare hour counts at the start of a line when a word follows
+// ("10 brunch", as voice typing writes it) and as the end of a range ("10:30 -
+// 12 email"), but not when it runs into more text, like "2h30" or "15m".
 function readTime(s, re = TIME_AT) {
   const t = re.exec(s);
-  const bareOk = re === TO_TIME && !/^[a-z0-9:]/i.test(s.slice(t ? t[0].length : 0));
+  const after = s.slice(t ? t[0].length : 0);
+  const bareOk = re === TO_TIME ? !/^[a-z0-9:]/i.test(after) : /^\s+[a-z(]/i.test(after);
   if (!t || (t[2] === undefined && !t[3] && !bareOk)) return null;
   const h = Number(t[1]);
   if (h > 24) return null;
