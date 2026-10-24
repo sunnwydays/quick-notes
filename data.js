@@ -7,7 +7,7 @@ const BACKUP_KEY = 'quicknotes-backup-v1';
 // Opens its own screen instead of the notes list (schedule.js).
 const SCHEDULE = 'Schedule';
 // In button order: left to right, then down.
-const BUILT_IN = ['Todo', 'Working on', 'Thought', 'Random projs', 'Bring', 'Journal', SCHEDULE];
+const BUILT_IN = ['Todo', 'Working on', SCHEDULE, 'Thought', 'Random projs', 'Bring', 'Journal'];
 // Line icons (SVG path data, 24x24), drawn in the text colour so they stay crisp
 // on e-ink and turn white on a black button. Display only; the stored (and
 // synced) category name stays plain text. Projects all share the folder.
