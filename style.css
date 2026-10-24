@@ -137,8 +137,11 @@ body:has(#undo-bar:not([hidden])) > section { padding-bottom: 88px; }
 /* Schedule: the day with arrows to the days either side, then one block per line with
    its time above it. The block on now is the one solid black thing on the screen;
    finished ones are grey and folded behind the See/Hide row. */
-.day-nav { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-.day-nav h2 { flex: 1; margin: 0; font-size: 22px; text-align: center; }
+/* Equal side columns keep the day centred when one arrow is hidden. */
+.day-nav { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 8px; margin-bottom: 8px; }
+.day-nav h2 { margin: 0; font-size: 22px; text-align: center; }
+#day-prev { justify-self: start; }
+#day-next { justify-self: end; }
 .day-nav button { min-height: 44px; padding: 4px 8px; font-size: 16px; white-space: nowrap; }
 .schedule-note { margin: 0 0 8px; font-style: italic; white-space: pre-wrap; overflow-wrap: anywhere; }
 .block { padding: 8px; border-bottom: 2px solid #000; }
