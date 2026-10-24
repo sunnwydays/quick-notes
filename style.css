@@ -78,7 +78,7 @@ body.still-held * { user-select: none !important; -webkit-user-select: none !imp
   /* Just rules above and below the writing, like a page, rather than a box. The
      top one sets what's being written apart from the saved notes above it. */
   border: 0;
-  border-top: 3px solid #000;
+  border-top: 2px solid #000;
   border-bottom: 3px solid #000;
   border-radius: 0;
   padding: 8px 4px;
