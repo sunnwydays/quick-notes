@@ -1,4 +1,6 @@
-/* E-ink friendly: pure black on white, thick borders, no transitions or hover effects. */
+/* E-ink friendly: pure black on white, no shadows, gradients, transitions or hover effects.
+   Three kinds of button: solid black for the main action (.primary), a 2px outline for the
+   rest, and plain bold text or an icon for minor ones (.quiet), so the screen isn't all boxes. */
 * { box-sizing: border-box; }
 /* Chrome's own button styling can fade colour changes; make them instant. */
 *, *::before, *::after { transition: none !important; animation: none !important; }
@@ -25,18 +27,19 @@ button {
   font: inherit;
   color: #000;
   background: #fff;
-  border: 3px solid #000;
-  border-radius: 8px;
+  border: 2px solid #000;
+  border-radius: 12px;
   padding: 10px 16px;
   min-height: 56px;
 }
 button.primary { background: #000; color: #fff; font-weight: 700; }
+button.quiet { border-color: transparent; background: transparent; font-weight: 700; }
 
 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 /* Each tile: icon at the top left, the name, then "3 notes · 2h ago". */
 .grid button {
   display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
-  min-height: 100px; padding: 10px 12px; text-align: left; overflow-wrap: anywhere;
+  min-height: 100px; padding: 10px 12px; border-radius: 14px; text-align: left; overflow-wrap: anywhere;
 }
 .tile .icon { margin-bottom: 4px; }
 .tile-name { font-size: 21px; font-weight: 700; line-height: 1.15; }
@@ -64,7 +67,7 @@ body.still-held * { user-select: none !important; -webkit-user-select: none !imp
    They take up to half the height and scroll; the text box fills the rest. */
 #editor-recent { flex: 0 1 auto; max-height: 50%; min-height: 0; overflow-y: auto; margin-bottom: 8px; }
 /* Stands in for the Delete button, so each note wraps and spaces as it does on the notes screen. */
-#editor-recent .entry::after { content: ''; flex: none; width: 38px; height: 38px; }
+#editor-recent .entry::after { content: ''; flex: none; width: 44px; height: 44px; }
 #editor textarea {
   flex: 1 1 0;
   min-height: 120px;
@@ -98,8 +101,8 @@ body.still-held * { user-select: none !important; -webkit-user-select: none !imp
 .entry time { display: block; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .entry p { margin: 0; font-family: Literata, Georgia, serif; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
 .entry .delete {
-  display: flex; align-items: center; justify-content: center;
-  width: 38px; height: 38px; min-height: 0; padding: 0; border-width: 2px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center; flex: none;
+  width: 44px; height: 44px; min-height: 0; padding: 0;
 }
 .delete svg { display: block; }
 
@@ -107,7 +110,7 @@ body.still-held * { user-select: none !important; -webkit-user-select: none !imp
 #undo-bar {
   position: fixed; left: 12px; right: 12px; bottom: 12px; max-width: 616px; margin: 0 auto;
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  background: #000; color: #fff; border-radius: 8px; padding: 8px 8px 8px 16px;
+  background: #000; color: #fff; border-radius: 12px; padding: 8px 8px 8px 16px;
 }
 #undo-bar button { min-height: 44px; padding: 4px 16px; font-weight: 700; }
 body:has(#undo-bar:not([hidden])) > section { padding-bottom: 88px; }
@@ -117,7 +120,13 @@ body:has(#undo-bar:not([hidden])) > section { padding-bottom: 88px; }
   display: flex; gap: 8px; margin-bottom: 12px;
   position: sticky; top: 0; z-index: 1; background: #fff; padding: 4px 0;
 }
-.search-row input { flex: 1; min-width: 0; -webkit-appearance: none; appearance: none; }
+/* A pill with a magnifier inside it. */
+.search-row input {
+  flex: 1; min-width: 0; -webkit-appearance: none; appearance: none;
+  border-radius: 999px; padding-left: 52px;
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.5' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-4-4'/%3E%3C/svg%3E") no-repeat 18px center;
+}
+.search-row input::placeholder { color: #555; opacity: 1; }
 .search-row input::-webkit-search-cancel-button { -webkit-appearance: none; display: none; }
 #search-clear { min-height: 56px; }
 #search-results { margin-bottom: 12px; }
@@ -146,7 +155,7 @@ body:has(#undo-bar:not([hidden])) > section { padding-bottom: 88px; }
 #menu {
   position: absolute; top: 100%; right: 0; z-index: 2; min-width: 240px;
   display: flex; flex-direction: column; overflow: hidden;
-  background: #fff; border: 3px solid #000; border-radius: 12px;
+  background: #fff; border: 2px solid #000; border-radius: 12px;
 }
 #menu button { border: 0; border-radius: 0; text-align: left; padding: 10px 20px; }
 #menu button + button { border-top: 2px solid #000; }
@@ -163,8 +172,8 @@ input {
   min-height: 56px;
   color: #000;
   background: #fff;
-  border: 3px solid #000;
-  border-radius: 8px;
+  border: 2px solid #000;
+  border-radius: 12px;
   padding: 12px;
   outline: none;
 }

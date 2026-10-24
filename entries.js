@@ -58,7 +58,7 @@ function renderEntries(cat) {
     div.className = 'entry';
     const body = entryBody(entry);
     const del = document.createElement('button');
-    del.className = 'delete';
+    del.className = 'delete quiet';
     del.setAttribute('aria-label', 'Delete');
     del.innerHTML = TRASH_ICON;
     // Look the note up again: `data` may have been reloaded since this list was drawn.

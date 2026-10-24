@@ -56,7 +56,7 @@ Plain HTML, CSS and JS. There's no framework and no build step. The JS files are
 | `help.js` | Opens the Help screen (its text is in `index.html`). |
 | `main.js` | Startup. Loaded last. |
 | `schema.sql` | The Supabase tables, row-level security and triggers that sync uses. |
-| `style.css` | E-ink friendly: black on white, thick borders, large tap targets, no animations. |
+| `style.css` | E-ink friendly: black on white, large tap targets, no shadows or animations. Main actions are solid black, others a 2px outline, minor ones (`.quiet`) plain bold text or an icon. |
 | `sw.js` | Service worker: a background script that caches the app files so the app opens offline. |
 | `manifest.json` | Tells Android the app's name and icon, and to open full-screen without the browser bar. |
 | `icons/` | App icons, 192 px and 512 px. |
