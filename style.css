@@ -157,7 +157,7 @@ input {
   #home.searching .search-row { margin-bottom: 12px; }
   #entries .bar, #help .bar, #editor .bar {
     order: 1; position: sticky; bottom: 0; margin: auto 0 0; padding: 12px 0;
-    background: #fff; border-top: 2px solid #000;
+    background: #fff;
   }
   body:has(#undo-bar:not([hidden])) #entries .bar { bottom: 76px; }
 }
