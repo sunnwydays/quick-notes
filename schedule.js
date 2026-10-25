@@ -270,7 +270,7 @@ function renderSchedule(state, fresh = false) {
   const at = days.indexOf(key);
   setDayButton($('day-prev'), days[at - 1], (d) => `‹ ${d}`);
   setDayButton($('day-next'), days[at + 1], (d) => `${d} ›`);
-  $('schedule-day').textContent = isToday ? `Today, ${dayLabel(key)}` : dayLabel(key);
+  $('schedule-day').textContent = isToday ? 'Today' : dayLabel(key);
   // A past day's schedule can only be read: saving it again would make it today's.
   $('schedule-edit-btn').hidden = !entry || key < today;
   $('schedule-new-btn').hidden = key < today;
