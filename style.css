@@ -35,10 +35,8 @@ button {
 button.primary { background: #000; color: #fff; font-weight: 700; }
 button.quiet { border-color: transparent; background: transparent; font-weight: 700; }
 
-/* Projects: three round tiles a row, capped so they don't balloon on a wide screen. */
-.grid { display: grid; grid-template-columns: repeat(3, minmax(0, 150px)); justify-content: center; gap: 12px; }
 /* Each round tile: the icon, then the name under it, centred, with enough padding to keep it off the curve. */
-.grid button, #flower button {
+#projects button, #flower button {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
   aspect-ratio: 1; min-height: 0; padding: 12px; border-radius: 50%; text-align: center; overflow-wrap: anywhere;
 }
@@ -72,6 +70,20 @@ button.quiet { border-color: transparent; background: transparent; font-weight: 
 /* Same for the whole page while the finger from that long press is still down. */
 body.still-held * { user-select: none !important; -webkit-user-select: none !important; -webkit-touch-callout: none !important; }
 
+/* Projects: a zigzag of four circles a row, each a slightly different size, so they don't
+   read as a grid. Each takes a quarter of the width; the bigger ones overlap their neighbours'
+   quarters, which the up-down zigzag leaves room for. A short last row is centred.
+   All sizes and offsets are % of the width (at 366px: 104, 88, 96 and 84px circles). */
+#projects {
+  display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; row-gap: 8px;
+  max-width: 420px; margin: 0 auto;
+}
+#projects .tile { flex: none; padding: 8px; }
+#projects .tile-name { font-size: 15px; }
+#projects .tile:nth-child(4n+1) { width: 28.4%; margin: 0 -1.7%; }
+#projects .tile:nth-child(4n+2) { width: 24%; margin: 16.4% 0.5% 0; }
+#projects .tile:nth-child(4n+3) { width: 26.2%; margin: 3.3% -0.6% 0; }
+#projects .tile:nth-child(4n+4) { width: 23%; margin: 15.3% 1% 0; }
 /* Divider between projects and the built-in categories. */
 #projects:not(:empty) { padding-bottom: 20px; margin-bottom: 20px; border-bottom: 4px solid #000; }
 
