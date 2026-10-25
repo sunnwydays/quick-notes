@@ -4,7 +4,10 @@ const textarea = $('text');
 
 // Called straight from the category button's click handler. Focusing inside a
 // real tap is what lets Android raise the keyboard.
+let openedWith = null; // what the editor opened with, so a discard that changed nothing can tell
+
 function openEditor(cat, text = BULLET) {
+  openedWith = text;
   textarea.value = text;
   go({ view: 'edit', cat });
   textarea.focus();
@@ -186,7 +189,8 @@ $('save-btn').addEventListener('click', () => history.back());
 $('discard-btn').addEventListener('click', () => {
   const { cat } = current;
   const text = textarea.value;
-  if (cleanText(text)) {
+  // Nothing to undo if the text is just what the editor opened with (editing a schedule, say).
+  if (cleanText(text) && text !== openedWith) {
     pendingUndo = ['Note discarded.', () => openEditor(cat, text)];
   }
   textarea.value = '';
