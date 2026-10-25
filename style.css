@@ -174,7 +174,7 @@ body:has(#undo-bar:not([hidden])) > section { padding-bottom: 88px; }
 #glance { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 6px; }
 #glance > * { flex: 1 1 0; min-width: 0; padding: 0 0 2px; }
 #home.searching #glance { display: none; }
-#home-todos:not([hidden]) + #home-schedule { border-left: 2px solid #000; padding-left: 10px; }
+#home-schedule:not([hidden]) + #home-todos { border-left: 2px solid #000; padding-left: 10px; }
 .glance-head { display: flex; align-items: center; gap: 6px; padding-left: 4px; font-size: 15px; font-weight: 700; margin-bottom: 2px; }
 /* Each line is a button only so it can be held to tick it off; it turns black (.primary) when held long enough. */
 .todo-line {
