@@ -8,13 +8,14 @@ const WEEKDAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 // A line that starts with a day: "Sun (full day)", "Monday:", "Tue 27 Oct", "Tomorrow".
 // What follows the day has to look like a heading, so "Sat runs late" stays text.
 const DAY_HEAD = /^(today|tomorrow|sun(?:day)?|mon(?:day)?|tue(?:s(?:day)?)?|wed(?:nesday)?|thu(?:rs?(?:day)?)?|fri(?:day)?|sat(?:urday)?)\.?(?=\s*(?:$|[(:,–—-]|\d|[a-z]{3,9}\.?\s+\d))/i;
-// 9:00, 14:30, 9am, 2:30 p.m., and plain numbers: 10, 830, 1030. Groups: hour,
+// 9:00, 14:30, 9am, 9p, 2:30 p.m., and plain numbers: 10, 830, 1030. Groups: hour,
 // the colon (or ''), minutes, a/p. Whether a plain number counts is up to readTime.
-const TIME = String.raw`(\d{1,2}?)(?:(:?)([0-5]\d))?(?!\d)(?:\s*([ap])\.?\s?m\b\.?)?`;
+// A lone a or p has to follow the number directly, so "10 a walk" stays text.
+const TIME = String.raw`(\d{1,2}?)(?:(:?)([0-5]\d))?(?!\d)(?:(?:\s*(?=[ap]\.?\s?m\b)|(?=[ap]\b))([ap])(?:\.?\s?m)?\b\.?)?`;
 const TIME_AT = new RegExp('^' + TIME, 'i');
 const TO_TIME = new RegExp(String.raw`^\s*(?:-|–|—|to)\s*` + TIME, 'i');
 // "17:00 dinner, 17:45 chess" is two blocks: a comma or semicolon followed by a time starts a new one.
-const NEXT_BLOCK = /[,;]\s+(?=\d{1,2}(?::[0-5]\d|\s*[ap]\.?\s?m\b))/i;
+const NEXT_BLOCK = /[,;]\s+(?=\d{1,2}(?::[0-5]\d|\s*[ap]\.?\s?m\b|[ap]\b))/i;
 const DAY_END = 24 * 60;
 const DONE_PAGE = 3; // finished blocks shown per tap of "See more"
 
