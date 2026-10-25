@@ -86,10 +86,10 @@ function minutes(t, after) {
 
 // "3:20pm", however the time was written. Without `half`, the am/pm is left off,
 // for the start of a range in the same half of the day: "3:20–3:30pm".
-function clock(min, half = true) {
+function clock(min, half = true, short = false) {
   const h = Math.floor(min / 60) % 24;
   const time = `${h % 12 || 12}:${String(min % 60).padStart(2, '0')}`;
-  return half ? time + (h < 12 ? 'am' : 'pm') : time;
+  return half ? time + (h < 12 ? 'a' : 'p') + (short ? '' : 'm') : time;
 }
 
 function timeRange(start, end) {
@@ -367,7 +367,7 @@ function homeBlockLine(b, state) {
   const line = document.createElement('span');
   line.className = state ? `glance-block ${state}` : 'glance-block';
   const time = document.createElement('time');
-  time.textContent = clock(b.start);
+  time.textContent = clock(b.start, true, true);
   const text = document.createElement('span');
   text.className = 'glance-text';
   text.textContent = b.lines.find(Boolean) || '';
@@ -393,7 +393,7 @@ function renderHomeSchedule() {
     const later = i >= 0 ? blocks.slice(i + 1) : blocks.filter((b) => b.start > nowMin);
     if (prev) box.append(homeBlockLine(prev, 'done'));
     if (i >= 0) box.append(homeBlockLine(blocks[i], 'now'));
-    else box.append(textLine('glance-free', later.length ? `Free until ${clock(later[0].start)}` : 'Done for today.'));
+    else box.append(textLine('glance-free', later.length ? `Free until ${clock(later[0].start, true, true)}` : 'Done for today.'));
     for (const b of later.slice(0, glanceLines - (prev ? 2 : 1))) box.append(homeBlockLine(b, ''));
   }
   const marks = blocks.flatMap((b) => [b.start, b.until]).filter((m) => m > nowMin);
