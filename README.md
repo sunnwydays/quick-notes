@@ -26,7 +26,7 @@ Above the text box are the latest notes from every folder, each with its folder'
 
 **Menu:** the ☰ button at the top right of the home screen holds **New project**, **Export**, **Help** and **Log in**. Tapping anywhere else closes it without doing anything else.
 
-**Category buttons** are square tiles, three to a row, each with a line icon (projects get a folder) over its name. The icons are SVG rather than emoji so they stay sharp on e-ink. The built-in categories form a 3×3 "flower" with **Add note** in the middle and **Write** in the bottom-right corner, so the main button sits where the thumb rests instead of at the bottom edge.
+**Category buttons** are circles, three to a row, each with a line icon (projects get a folder) over its name. The icons are SVG rather than emoji so they stay sharp on e-ink. The built-in categories form a 3×3 "flower" with **Add note** in the middle and **Write** in the bottom-right corner, so the main button sits where the thumb rests instead of at the bottom edge.
 
 **Projects:** open the ☰ menu and tap **New project** to add one. Projects get their own buttons above the built-in categories, with a line between the two groups. To remove one, tap the project and tap **Remove project**. That deletes its notes too.
 

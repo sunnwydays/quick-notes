@@ -35,12 +35,12 @@ button {
 button.primary { background: #000; color: #fff; font-weight: 700; }
 button.quiet { border-color: transparent; background: transparent; font-weight: 700; }
 
-/* Three square tiles a row, capped so they don't balloon on a wide screen. */
+/* Three round tiles a row, capped so they don't balloon on a wide screen. */
 .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 150px)); justify-content: center; gap: 12px; }
-/* Each tile: the icon, then the name under it, centred. */
+/* Each tile: the icon, then the name under it, centred, with enough padding to keep it off the curve. */
 .grid button {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
-  aspect-ratio: 1; min-height: 0; padding: 8px; border-radius: 14px; text-align: center; overflow-wrap: anywhere;
+  aspect-ratio: 1; min-height: 0; padding: 12px; border-radius: 50%; text-align: center; overflow-wrap: anywhere;
 }
 .tile-name { font-size: 17px; font-weight: 700; line-height: 1.1; }
 .icon { display: flex; flex: none; }
