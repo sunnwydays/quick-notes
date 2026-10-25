@@ -84,8 +84,17 @@ function minutes(t, after) {
   return h * 60 + t.m;
 }
 
-function clock(min) {
-  return `${Math.floor(min / 60)}:${String(min % 60).padStart(2, '0')}`;
+// "3:20pm", however the time was written. Without `half`, the am/pm is left off,
+// for the start of a range in the same half of the day: "3:20–3:30pm".
+function clock(min, half = true) {
+  const h = Math.floor(min / 60) % 24;
+  const time = `${h % 12 || 12}:${String(min % 60).padStart(2, '0')}`;
+  return half ? time + (h < 12 ? 'am' : 'pm') : time;
+}
+
+function timeRange(start, end) {
+  const pm = (min) => Math.floor(min / 60) % 24 >= 12;
+  return `${clock(start, pm(start) !== pm(end))}–${clock(end)}`;
 }
 
 // {head, intro, blocks}. head is the day heading line, intro the lines before the
@@ -224,7 +233,7 @@ function blockRow(b, state) {
   const div = document.createElement('div');
   div.className = state ? `block ${state}` : 'block';
   const time = document.createElement('time');
-  time.textContent = b.end != null ? `${clock(b.start)}–${clock(b.end)}` : clock(b.start);
+  time.textContent = b.end != null ? timeRange(b.start, b.end) : clock(b.start);
   div.append(time);
   if (state === 'now') {
     const now = document.createElement('b');
