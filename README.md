@@ -11,7 +11,7 @@ Live: https://quick-notes-liart.vercel.app
 **Write a note**
 1. Hold a category until it turns black, then let go (or tap **Write**, then the category): a project, Todo, Working on, Schedule, Thought, Random projs, Bring or Journal.
 2. The text box opens with `- ` in it and the keyboard up, under that category's latest notes. Tap the Gboard mic and talk. Once the text is longer than the box (a long schedule, say), the latest notes are hidden and the box takes the whole screen.
-3. Press Enter to add the note. The box goes back to `- ` with the keyboard still up, ready for the next one. There's no way to type a line break in a note (except in a Schedule, where Enter starts a new `- ` line).
+3. Press Enter to add the note. The box goes back to `- ` with the keyboard still up, ready for the next one. There's no way to type a line break in a note (except in a Schedule, where Enter starts a new `- ` line). A note that's already in its category (ignoring case, spacing and a full stop at the end) isn't added again; the banner at the bottom says "Already in Bring." instead.
 4. Tap **Save**, or use Android's back button. Both save what's in the box and go home. **Discard** throws it away.
 
 What you type is saved as you go. If the app is closed mid-note, it reopens on that note next time.

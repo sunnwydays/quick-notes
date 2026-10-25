@@ -60,8 +60,30 @@ function cleanText(text) {
     .trim();
 }
 
-// Saves what's in the text box. Returns true if there was anything to save.
+// A note already in its category isn't added again. Notes count as the same
+// ignoring case, spacing, the bullet and a full stop at the end (Gboard sometimes
+// adds one). Schedules are compared by changesSchedule instead.
+function noteKey(text) {
+  return text.replace(/^-\s*/, '').replace(/[\s.!?,]+$/, '').replace(/\s+/g, ' ').toLowerCase();
+}
+
+function alreadySaved(cat, text) {
+  return cat !== SCHEDULE && entriesFor(cat).some((e) => noteKey(e.text) === noteKey(text));
+}
+
+// Categories of the notes the last save left out, for the "Already in" message.
+let skipped = [];
+
+function skippedMessage() {
+  if (!skipped.length) return null;
+  const cats = [...new Set(skipped)];
+  return cats.length === 1 ? `Already in ${cats[0]}.` : `${skipped.length} notes were already there.`;
+}
+
+// Saves what's in the text box. Returns true if there was anything to save
+// that wasn't already there.
 function saveNotes() {
+  skipped = [];
   const text = cleanText(textarea.value);
   if (!text) return false;
   // Each line is its own note (a pasted list, say); a schedule is split by day instead.
@@ -73,6 +95,10 @@ function saveNotes() {
   notes.forEach((note, i) => {
     const now = new Date(base - i).toISOString();
     const { cat, text } = current.cat === AUTO ? fileNote(note.trim()) : { cat: current.cat, text: note.trim() };
+    if (alreadySaved(cat, text)) {
+      skipped.push(cat);
+      return;
+    }
     data.entries.push({
       id: newId(),
       category: cat,
@@ -86,7 +112,7 @@ function saveNotes() {
   // For a multi-day paste, the first day.
   if (current.cat === SCHEDULE && notes.length) savedDay = scheduleDay(data.entries[data.entries.length - notes.length]);
   persist();
-  return true;
+  return skipped.length < notes.length || !notes.length;
 }
 
 // Returns true if a note was saved.
@@ -109,6 +135,9 @@ function enter() {
       renderRecent(current.cat);
       sync();
     }
+    // Stays up until the next Enter, so it can be read while dictating the next note.
+    if (skippedMessage()) showUndo(skippedMessage());
+    else hideUndo();
     textarea.value = BULLET;
     textarea.setSelectionRange(BULLET.length, BULLET.length);
   }

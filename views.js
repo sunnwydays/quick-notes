@@ -53,7 +53,11 @@ function go(state) {
 }
 
 window.addEventListener('popstate', (e) => {
-  if (current && current.view === 'edit' && commitEditor()) sync();
+  if (current && current.view === 'edit') {
+    if (commitEditor()) sync();
+    // Saved notes that were already there: say so on the screen we go back to.
+    if (skippedMessage() && !pendingUndo) pendingUndo = [skippedMessage()];
+  }
   let state = e.state;
   // Back on the schedule screen after saving one: show the day it was saved for.
   if (savedDay && state && state.view === 'schedule') {
@@ -82,9 +86,11 @@ for (const btn of document.querySelectorAll('.back')) {
 let undoAction = null;
 let pendingUndo = null; // [message, action] to show after the next popstate
 
-function showUndo(message, action) {
+// With no action it's just a message, with no Undo button (a note that was already there).
+function showUndo(message, action = null) {
   undoAction = action;
   $('undo-msg').textContent = message;
+  $('undo-btn').hidden = !action;
   $('undo-bar').hidden = false;
 }
 

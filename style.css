@@ -241,5 +241,5 @@ input {
      gets room under it instead, so its last note can scroll clear of the banner. */
   body:has(#undo-bar:not([hidden])) > :is(#entries, #schedule) { padding-bottom: 0; }
   body:has(#undo-bar:not([hidden])) :is(#entries-list, #schedule-list) { padding-bottom: 76px; }
-  body:has(:is(#entries, #schedule):not([hidden])) #undo-bar { bottom: 94px; }
+  body:has(:is(#entries, #schedule, #editor):not([hidden])) #undo-bar { bottom: 94px; }
 }
