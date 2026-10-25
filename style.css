@@ -154,20 +154,18 @@ body.still-held * { user-select: none !important; -webkit-user-select: none !imp
 #undo-bar button { min-height: 44px; padding: 4px 16px; font-weight: 700; }
 body:has(#undo-bar:not([hidden])) > section { padding-bottom: 88px; }
 
-/* Search box on the home screen; its results replace the category buttons. */
-.search-row {
-  display: flex; gap: 8px; margin-bottom: 12px;
-  position: sticky; top: 0; z-index: 1; background: #fff; padding: 4px 0;
-}
+/* Search box on the home screen, small, on the sync icon's row (it's rarely used);
+   its results replace the category buttons. */
+.search-row { flex: 1; min-width: 0; display: flex; gap: 4px; margin-right: 8px; }
 /* A pill with a magnifier inside it. */
 .search-row input {
   flex: 1; min-width: 0; -webkit-appearance: none; appearance: none;
-  border-radius: 999px; padding-left: 52px;
-  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.5' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-4-4'/%3E%3C/svg%3E") no-repeat 18px center;
+  min-height: 44px; padding: 4px 12px 4px 40px; font-size: 17px; border-radius: 999px;
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.5' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-4-4'/%3E%3C/svg%3E") no-repeat 12px center / 20px;
 }
 .search-row input::placeholder { color: #555; opacity: 1; }
 .search-row input::-webkit-search-cancel-button { -webkit-appearance: none; display: none; }
-#search-clear { min-height: 56px; }
+#search-clear { min-height: 44px; padding: 4px 8px; font-size: 17px; }
 #search-results { margin-bottom: 12px; }
 .group-head {
   display: flex; align-items: center; gap: 10px; width: 100%; margin: 12px 0 4px; min-height: 48px; padding: 6px 12px;
@@ -202,10 +200,11 @@ body:has(#undo-bar:not([hidden])) > section { padding-bottom: 88px; }
 
 #add-any-btn svg { display: block; flex: none; }
 
-/* Sync icon and the ☰ menu button together on the right. The menu drops down
-   over the page below them. */
+/* Search, then the sync icon and the ☰ menu button on the right. It stays at the
+   top while search results scroll. The menu drops down over the page below. */
 .sync-row {
-  position: relative; display: flex; align-items: center; justify-content: flex-end; gap: 4px; margin-bottom: 24px;
+  position: sticky; top: 0; z-index: 1; background: #fff;
+  display: flex; align-items: center; justify-content: flex-end; gap: 4px; margin-bottom: 16px;
 }
 #sync-status { display: flex; align-items: center; justify-content: center; min-width: 48px; min-height: 56px; }
 #sync-status svg, #menu-btn svg { display: block; }
@@ -250,12 +249,10 @@ input {
     min-height: 100vh; min-height: 100dvh;
   }
   #home, #login { justify-content: flex-end; }
-  /* Sync row and search sit at the top; the category buttons stay at the bottom. While
-     searching, the results fill in below the search box instead. */
-  #home .sync-row { margin-bottom: 12px; }
-  #home .search-row { margin-bottom: auto; }
+  /* The search and sync row sits at the top; the category buttons stay at the bottom.
+     While searching, the results fill in below the row instead. */
+  #home #categories { margin-top: auto; }
   #home.searching { justify-content: flex-start; }
-  #home.searching .search-row { margin-bottom: 12px; }
   /* The gap under the bar is its own padding, not the page's, so it sits at the
      same height whether the page is short or long enough to scroll behind it. */
   section:where(#entries, #schedule, #help, #editor) { padding-bottom: 0; }

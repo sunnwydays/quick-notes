@@ -32,7 +32,7 @@ Above the text box are the latest notes from every folder, each with its folder'
 
 **Help:** **Help** in the ☰ menu opens a short list of the non-obvious things (holding a category, going back, search, Undo). If you change how something works, update that text in `index.html` too.
 
-**Search:** type in the box under the sync icon and ☰ menu at the top of the home screen; it stays put while the results scroll below it. The category buttons are replaced by every note that contains all the words you typed (any order, any case), grouped under its category with a count. Tap a category's heading to open its notes. **Clear** puts the buttons back.
+**Search:** type in the small box beside the sync icon and ☰ menu at the top of the home screen; that row stays put while the results scroll below it. The category buttons are replaced by every note that contains all the words you typed (any order, any case), grouped under its category with a count. Tap a category's heading to open its notes. **Clear** puts the buttons back.
 
 **Read:** tap a category. Its notes open, newest first, each with a Delete button and a Replace button (two arrows). Replace deletes the note and opens the text box for that category, so you can tick off a task and write the next one; the new note gets the current time, not the old note's. Back on the notes screen, Undo brings the old note back. **Show times** adds each note's time, and is remembered per category (e.g. on for Journal only). **Write** on the home screen only applies to the next tap; tap it again to cancel. Double-tap anywhere on the notes (not on a button) to go back, or hold a blank spot for a moment. Holding a note still selects its text.
 
