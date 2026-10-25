@@ -37,6 +37,7 @@ function renderHome() {
 // A few to-dos, one line each, at the top of the screen where they're read
 // rather than tapped. The newest, except that the last line is the oldest, with
 // its age, so an old one can't stay out of sight. Hidden when there are none.
+// Tapping opens Todo; holding a line until it turns black ticks it off.
 const HOME_TODOS = 3;
 
 function renderTodos() {
@@ -50,8 +51,9 @@ function renderTodos() {
   head.append(categoryIcon('Todo', 18), 'Todo');
   box.replaceChildren(head);
   for (const e of shown) {
-    const line = document.createElement('span');
+    const line = document.createElement('button');
     line.className = 'todo-line';
+    onHoldRelease(line, () => removeEntry(e.id, 'done'), HOLD_TO_DONE_MS);
     const text = document.createElement('span');
     text.className = 'todo-text';
     text.textContent = e.text.replace(/^-\s*/, '');
@@ -73,7 +75,11 @@ function renderTodos() {
   }
 }
 
-$('home-todos').addEventListener('click', () => go({ view: 'entries', cat: 'Todo' }));
+$('home-todos').addEventListener('click', (e) => {
+  const line = e.target.closest('.todo-line');
+  if (line && line.held) return; // the click that ends a hold
+  go({ view: 'entries', cat: 'Todo' });
+});
 
 $('add-project-btn').addEventListener('click', () => {
   const name = (prompt('Project name') || '').trim();

@@ -4,6 +4,8 @@
 const LONG_PRESS_MS = 300;
 // Shorter for holding a category to write, which is done all the time; a quick tap still reads.
 const HOLD_TO_WRITE_MS = 200;
+// Longer for holding a to-do on the home screen to tick it off, which can't be done by accident.
+const HOLD_TO_DONE_MS = 400;
 
 // The finger is usually still down when the next screen opens, and Android's
 // own long press would then select whatever is under it. Until that finger
@@ -46,7 +48,8 @@ document.addEventListener('pointerdown', () => {
 // raises the keyboard for a focus() inside a real touch event. Android also
 // fires contextmenu on a long press, which counts too. If the browser cancels
 // the touch after that, open straight away; the keyboard may then need a tap.
-function onHoldRelease(btn, action) {
+// Also used, with a longer hold, to tick off a to-do on the home screen.
+function onHoldRelease(btn, action, ms = HOLD_TO_WRITE_MS) {
   let timer = null;
   let armed = false;
   const arm = () => {
@@ -65,7 +68,7 @@ function onHoldRelease(btn, action) {
   btn.addEventListener('pointerdown', () => {
     btn.held = false;
     disarm();
-    timer = setTimeout(arm, HOLD_TO_WRITE_MS);
+    timer = setTimeout(arm, ms);
   });
   btn.addEventListener('pointerup', () => {
     if (disarm()) action();

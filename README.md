@@ -28,7 +28,7 @@ Above the text box are the latest notes from every folder, each with its folder'
 
 **Category buttons** are circles, three to a row, each with a line icon (projects get a folder) over its name. The icons are SVG rather than emoji so they stay sharp on e-ink. The built-in categories form a "flower": seven smaller circles evenly round a larger **Add note** (Todo at the top, then clockwise), so the main button sits where the thumb rests instead of at the bottom edge. **Write** is an ordinary button under it.
 
-**To-dos on the home screen:** three to-dos show as plain lines under the top row, so they can be seen without opening anything, with "+5 more" when there are others. They're the two newest and then the oldest, with its age ("9d"), so an old to-do can't stay out of sight. Tap them to open Todo. They're hidden when there are no to-dos, or while searching.
+**To-dos on the home screen:** three to-dos show as plain lines under the top row, so they can be seen without opening anything, with "+5 more" when there are others. They're the two newest and then the oldest, with its age ("9d"), so an old to-do can't stay out of sight. Tap them to open Todo. Hold one until it turns black and let go to mark it done, the same as its tick (`HOLD_TO_DONE_MS`, longer than the hold to write so it doesn't happen by accident), with an Undo. They're hidden when there are no to-dos, or while searching.
 
 **Projects:** open the ☰ menu and tap **New project** to add one. Projects get their own circles above the built-in categories, with a line between the two groups. They zigzag up and down four to a row, each a slightly different size, and a short last row is centred. To remove one, tap the project and tap **Remove project**. That deletes its notes too.
 
