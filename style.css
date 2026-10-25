@@ -170,8 +170,8 @@ body:has(#undo-bar:not([hidden])) > section { padding-bottom: 88px; }
 /* The newest to-dos under the top row: plain lines in the notes' font, not boxes,
    so they read as something to look at rather than more buttons. */
 /* Two columns, to-dos and today's schedule, or one when either is empty. */
-#glance { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; }
-#glance > * { flex: 1 1 0; min-width: 0; padding: 0 0 8px; }
+#glance { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 6px; }
+#glance > * { flex: 1 1 0; min-width: 0; padding: 0 0 2px; }
 #home.searching #glance { display: none; }
 #home-todos:not([hidden]) + #home-schedule { border-left: 2px solid #000; padding-left: 10px; }
 .glance-head { display: flex; align-items: center; gap: 6px; padding-left: 4px; font-size: 15px; font-weight: 700; margin-bottom: 2px; }
