@@ -30,11 +30,18 @@ function formatFull(iso) {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
-// The text of a note, with its time above it when its category shows times.
+// The text of a note, with its time above it when its category shows times, and
+// its folder above that when withFolder is set (the Add note editor).
 // Also used by search and the editor.
-function entryBody(entry) {
+function entryBody(entry, withFolder = false) {
   const body = document.createElement('div');
   body.className = 'entry-body';
+  if (withFolder) {
+    const folder = document.createElement('span');
+    folder.className = 'entry-folder';
+    folder.append(categoryIcon(entry.category, 16), entry.category);
+    body.append(folder);
+  }
   if (timesShown(entry.category)) {
     const time = document.createElement('time');
     time.textContent = formatShort(entry.createdAt);

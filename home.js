@@ -29,7 +29,7 @@ function renderHome() {
 $('add-project-btn').addEventListener('click', () => {
   const name = (prompt('Project name') || '').trim();
   if (!name) return;
-  if (categoryNames().some((c) => c.toLowerCase() === name.toLowerCase())) {
+  if ([...categoryNames(), AUTO].some((c) => c.toLowerCase() === name.toLowerCase())) {
     alert(`"${name}" already exists.`);
     return;
   }
@@ -61,6 +61,9 @@ document.addEventListener('click', (e) => {
   e.stopPropagation();
   setMenu(false);
 }, true);
+
+// Add note skips picking a category: each note is filed by its first words (autofile.js).
+$('add-any-btn').addEventListener('click', () => openEditor(AUTO));
 
 // Tapping Write again cancels it.
 $('write-btn').addEventListener('click', () => {

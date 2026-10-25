@@ -8,7 +8,7 @@ render(null);
 try {
   const draft = JSON.parse(localStorage.getItem(DRAFT_KEY));
   const cat = draft && (RENAMED[draft.cat] || draft.cat);
-  if (draft && cleanText(draft.text) && categoryNames().includes(cat)) {
+  if (draft && cleanText(draft.text) && (cat === AUTO || categoryNames().includes(cat))) {
     textarea.value = draft.text;
     go({ view: 'edit', cat });
   }

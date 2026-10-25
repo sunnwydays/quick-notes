@@ -101,6 +101,8 @@ body.still-held * { user-select: none !important; -webkit-user-select: none !imp
 .entry:nth-child(even) { background: #d4d4d4; }
 .with-times .entry { border-bottom: 2px solid #000; padding-top: 8px; padding-bottom: 8px; }
 .entry-body { flex: 1; min-width: 0; }
+/* The folder a note went to, above it in the Add note editor. */
+.entry-folder { display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 700; }
 .entry time { display: block; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .entry p { margin: 0; font-family: Literata, Georgia, serif; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
 .entry .entry-btn {
@@ -164,8 +166,12 @@ body:has(#undo-bar:not([hidden])) > section { padding-bottom: 88px; }
 #remove-project-btn { margin-right: auto; }
 .empty { font-style: italic; }
 
+/* Add note (files itself) is the main action; Write (pick a category) sits beside it. */
+#add-row { display: flex; gap: 12px; margin-top: 12px; }
+#add-any-btn { flex: 2; display: flex; align-items: center; justify-content: center; gap: 10px; }
+#add-any-btn svg { display: block; flex: none; }
 /* Grey so it doesn't look like another category; black while waiting for a category tap. */
-#write-btn { width: 100%; margin-top: 12px; background: #b4b4b4; }
+#write-btn { flex: 1; background: #b4b4b4; }
 #write-btn.primary { background: #000; }
 
 /* Sync icon and the ☰ menu button together on the right. The menu drops down

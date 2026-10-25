@@ -21,7 +21,7 @@ const RECENT_COUNT = 30;
 function renderRecent(cat) {
   const box = $('editor-recent');
   box.replaceChildren();
-  const entries = entriesFor(cat);
+  const entries = cat === AUTO ? latestNotes() : entriesFor(cat);
   if (!entries.length) {
     const p = document.createElement('p');
     p.className = 'empty';
@@ -31,7 +31,7 @@ function renderRecent(cat) {
   for (const entry of entries.slice(0, RECENT_COUNT)) {
     const div = document.createElement('div');
     div.className = 'entry';
-    div.append(entryBody(entry));
+    div.append(entryBody(entry, cat === AUTO));
     box.append(div);
   }
   box.classList.toggle('with-times', timesShown(cat));
@@ -72,10 +72,11 @@ function saveNotes() {
   const base = Date.now();
   notes.forEach((note, i) => {
     const now = new Date(base - i).toISOString();
+    const { cat, text } = current.cat === AUTO ? fileNote(note.trim()) : { cat: current.cat, text: note.trim() };
     data.entries.push({
       id: newId(),
-      category: current.cat,
-      text: note.trim(),
+      category: cat,
+      text,
       createdAt: now,
       updatedAt: now,
       deletedAt: null,

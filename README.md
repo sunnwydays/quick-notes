@@ -16,6 +16,14 @@ Live: https://quick-notes-liart.vercel.app
 
 What you type is saved as you go. If the app is closed mid-note, it reopens on that note next time.
 
+**Add note** (the black button at the bottom of the home screen) opens the same text box without picking a category. Each note is filed by how it starts:
+- A folder's name, or a word for it, goes there and is taken off the note: `bring blender` saves `- blender` in Bring. The words are in `FOLDER_WORDS` in `autofile.js`, including the ways Gboard mishears them (`brain` for bring, `yeah tutor` for ai-tutor). Add to that list when dictation gets one wrong.
+- A project's own name works too (`deer clear research` goes to deer; `ai tutor` to ai-tutor).
+- `I think …` / `I feel …` go to Thought and `today was …` to Journal, keeping those words (`FOLDER_CUES`).
+- Anything else goes to Todo. Schedule is never picked, since a one-line schedule would replace the day's plan.
+
+Above the text box are the latest notes from every folder, each with its folder's name, so you can see where the one you just added went.
+
 **Menu:** the ☰ button at the top right of the home screen holds **New project**, **Export**, **Help** and **Log in**. Tapping anywhere else closes it without doing anything else.
 
 **Category buttons** show a line icon (projects get a folder), the name, and how many notes it has. The icons are SVG rather than emoji so they stay sharp on e-ink.
@@ -61,8 +69,9 @@ Plain HTML, CSS and JS. There's no framework and no build step. The JS files are
 | `data.js` | Constants, the saved data (`data`) and helpers for reading it. |
 | `views.js` | Switching screens, the history/back button and the Undo banner. |
 | `gestures.js` | Hold-and-release on a category; double-tap or hold blank space to leave the notes or schedule screen. |
-| `home.js` | The home screen: category buttons, the ☰ menu, New project, Write. |
+| `home.js` | The home screen: category buttons, the ☰ menu, New project, Add note, Write. |
 | `editor.js` | The note editor: Enter to add, drafts, Save and Discard. |
+| `autofile.js` | Add note: picks each note's folder from its first words. |
 | `search.js` | The search box on the home screen: notes that match, grouped by category. |
 | `entries.js` | The notes screen: list, times, delete, replace, remove project. |
 | `schedule.js` | The schedule screen: reads times and day headings out of a Schedule note, highlights the block on now, folds finished ones, and splits a multi-day paste on save. Redraws only when a block starts or ends, since each redraw flashes an e-ink screen. |
