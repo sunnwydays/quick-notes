@@ -10,10 +10,7 @@ function renderHome() {
     const name = document.createElement('span');
     name.className = 'tile-name';
     name.textContent = cat;
-    const meta = document.createElement('span');
-    meta.className = 'tile-meta';
-    meta.textContent = categorySummary(cat);
-    btn.append(categoryIcon(cat, 26), name, meta);
+    btn.append(categoryIcon(cat, 26), name);
     onHoldRelease(btn, () => openEditor(cat));
     btn.addEventListener('click', () => {
       if (btn.held) return; // the click that ends a long press

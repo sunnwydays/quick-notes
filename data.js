@@ -139,13 +139,6 @@ function setLabel(el, cat, text = cat) {
   el.replaceChildren(categoryIcon(cat), text);
 }
 
-// "3 notes" under a category's name on the home screen.
-function categorySummary(cat) {
-  const n = entriesFor(cat).length;
-  if (!n) return 'No notes';
-  return `${n} note${n === 1 ? '' : 's'}`;
-}
-
 function categoryNames() {
   return data.categories.filter((c) => !c.deletedAt).map((c) => c.name);
 }
