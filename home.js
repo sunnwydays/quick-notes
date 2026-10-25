@@ -43,10 +43,13 @@ let glanceLines = HOME_LINES;
 // keeping GLANCE_ROOM px of it on top of #glance's own margin. Every line is the same height, so one
 // measurement is enough. What's still left (less than a line, or more when there
 // are no more to show) goes to the biggest of GLANCE_SIZES that fits: the text's
-// size and the space above and below each line. Elsewhere there's no gap and they
+// size and the least space above and below each line. Then what's left after that
+// is shared out as more space round each line, up to GLANCE_PAD_MAX, so none of it
+// sits unused between the columns and the buttons. Elsewhere there's no gap and they
 // stay at three, at the usual size.
 const GLANCE_ROOM = 4;
-const GLANCE_SIZES = [[21, 10], [20, 8], [19, 6], [18, 4], [18, 2]];
+const GLANCE_SIZES = [[21, 10], [20, 8], [19, 6], [18, 0]];
+const GLANCE_PAD_MAX = 10;
 
 function fitGlance() {
   const glance = $('glance');
@@ -69,7 +72,15 @@ function fitGlance() {
   }
   for (const [font, pad] of GLANCE_SIZES) {
     size(font, pad);
-    if (room() >= 0) return;
+    const spare = room();
+    if (spare < 0) continue;
+    // How much taller the columns get per 1px more padding (twice the lines in the longer one).
+    const height = glance.getBoundingClientRect().height;
+    size(font, pad + 1);
+    const perPx = glance.getBoundingClientRect().height - height;
+    const more = perPx > 0 ? Math.floor((spare / perPx) * 4) / 4 : 0;
+    size(font, Math.max(pad, Math.min(GLANCE_PAD_MAX, pad + more)));
+    return;
   }
   size(18, 0);
 }
