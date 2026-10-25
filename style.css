@@ -167,6 +167,21 @@ body:has(#undo-bar:not([hidden])) > section { padding-bottom: 88px; }
 .search-row input::-webkit-search-cancel-button { -webkit-appearance: none; display: none; }
 #search-clear { min-height: 44px; padding: 4px 8px; font-size: 17px; }
 #search-results { margin-bottom: 12px; }
+
+/* The newest to-dos under the top row: plain lines in the notes' font, not boxes,
+   so they read as something to look at rather than more buttons. */
+#home-todos {
+  display: block; width: 100%; min-height: 0; padding: 4px 4px 8px; margin-bottom: 12px;
+  border: 0; border-radius: 0; text-align: left;
+}
+#home.searching #home-todos { display: none; }
+.todos-head { display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 700; margin-bottom: 2px; }
+.todo-line {
+  display: block; font-family: Literata, Georgia, serif; font-size: 18px; line-height: 1.4;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.todo-line::before { content: '• '; }
+.todos-more { display: block; font-size: 15px; color: #555; margin-top: 2px; }
 .group-head {
   display: flex; align-items: center; gap: 10px; width: 100%; margin: 12px 0 4px; min-height: 48px; padding: 6px 12px;
   text-align: left; font-weight: 700; background: #000; color: #fff;

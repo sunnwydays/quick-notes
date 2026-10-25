@@ -29,9 +29,38 @@ function renderHome() {
   for (const box of [$('flower'), $('flower-row')]) box.querySelectorAll('.tile').forEach((t) => t.remove());
   $('flower').prepend(...builtIns.slice(0, 7).map(categoryTile));
   $('flower-row').prepend(...builtIns.slice(7).map(categoryTile));
+  renderTodos();
   renderSearch();
   showStatus();
 }
+
+// The newest few to-dos, one line each, at the top of the screen where they're
+// read rather than tapped. Hidden when there are none.
+const HOME_TODOS = 3;
+
+function renderTodos() {
+  const todos = entriesFor('Todo');
+  const box = $('home-todos');
+  box.hidden = !todos.length;
+  const head = document.createElement('span');
+  head.className = 'todos-head';
+  head.append(categoryIcon('Todo', 18), 'Todo');
+  box.replaceChildren(head);
+  for (const e of todos.slice(0, HOME_TODOS)) {
+    const line = document.createElement('span');
+    line.className = 'todo-line';
+    line.textContent = e.text.replace(/^-\s*/, '');
+    box.append(line);
+  }
+  if (todos.length > HOME_TODOS) {
+    const more = document.createElement('span');
+    more.className = 'todos-more';
+    more.textContent = `+${todos.length - HOME_TODOS} more`;
+    box.append(more);
+  }
+}
+
+$('home-todos').addEventListener('click', () => go({ view: 'entries', cat: 'Todo' }));
 
 $('add-project-btn').addEventListener('click', () => {
   const name = (prompt('Project name') || '').trim();
