@@ -78,14 +78,17 @@ body.still-held * { user-select: none !important; -webkit-user-select: none !imp
 /* Projects: a zigzag of four circles a row, each a slightly different size, so they don't
    read as a grid. Each takes a quarter of the width; the bigger ones overlap their neighbours'
    quarters, which the up-down zigzag leaves room for. A short last row is centred.
-   All sizes and offsets are % of the width (at 382px: 113, 96, 104 and 91px circles). */
+   All sizes and offsets are % of the width (at 382px: 113, 96, 104 and 91px circles).
+   The row is moved 1.4% right (the first and last outer margins) so the first circle
+   doesn't poke past the left edge of the screen; it reaches under 1% past each side.
+   The last margin is a hair more negative than that so rounding can't wrap the row. */
 #projects { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; row-gap: 8px; }
 #projects .tile { flex: none; padding: 8px; }
 #projects .tile-name { font-size: 15px; }
-#projects .tile:nth-child(4n+1) { width: 29.5%; margin: 0 -2.25%; }
+#projects .tile:nth-child(4n+1) { width: 29.5%; margin: 0 -2.25% 0 -0.85%; }
 #projects .tile:nth-child(4n+2) { width: 25%; margin: 18.5% 0 0; }
 #projects .tile:nth-child(4n+3) { width: 27.2%; margin: 3.2% -1.1% 0; }
-#projects .tile:nth-child(4n+4) { width: 23.9%; margin: 17.5% 0.55% 0; }
+#projects .tile:nth-child(4n+4) { width: 23.9%; margin: 17.5% -0.9% 0 0.55%; }
 /* Divider between projects and the built-in categories. */
 #projects:not(:empty) { padding-bottom: 20px; margin-bottom: 20px; border-bottom: 4px solid #000; }
 
