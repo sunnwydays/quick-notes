@@ -133,6 +133,8 @@ body.still-held * { user-select: none !important; -webkit-user-select: none !imp
    Every other note gets a grey band so neighbours are easy to tell apart. */
 .entry { display: flex; align-items: center; gap: 12px; padding: 4px 4px 4px 8px; }
 .entry:nth-child(even) { background: #d4d4d4; }
+/* Swiped sideways to delete (gestures.js), so the browser only gets vertical scrolling. */
+.entry.swipe { touch-action: pan-y pinch-zoom; }
 .with-times .entry { border-bottom: 2px solid #000; padding-top: 8px; padding-bottom: 8px; }
 .entry-body { flex: 1; min-width: 0; }
 /* The folder a note went to, above it in the Add note editor. */

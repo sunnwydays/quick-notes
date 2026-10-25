@@ -39,8 +39,8 @@ const $ = (id) => document.getElementById(id);
 // Categories are {name, updatedAt, deletedAt, dirty} and entries are
 // {id, category, text, createdAt, updatedAt, deletedAt, deletedHow, dirty}.
 // Deleting sets deletedAt instead of removing the row, so the delete can sync
-// to other devices. deletedHow says what removed it ('deleted', 'replaced',
-// 'undone' or 'project_removed'; missing on older notes). dirty = changed here
+// to other devices. deletedHow says what removed it ('deleted', 'done',
+// 'replaced', 'undone' or 'project_removed'; missing on older notes). dirty = changed here
 // and not yet uploaded.
 
 function readJSON(key) {

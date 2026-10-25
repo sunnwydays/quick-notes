@@ -9,7 +9,7 @@ create table public.qn_entries (
   created_at timestamptz not null,
   updated_at timestamptz not null,
   deleted_at timestamptz,
-  -- What removed the note: 'deleted', 'replaced', 'undone' or 'project_removed'.
+  -- What removed the note: 'deleted', 'done' (ticked off), 'replaced', 'undone' or 'project_removed'.
   -- Null for live notes and for notes deleted before this was recorded.
   deleted_how text,
   -- Set by the server on every write; clients pull rows with synced_at past their cursor.

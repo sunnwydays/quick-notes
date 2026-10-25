@@ -1,5 +1,5 @@
-// Touch gestures: long press on a category, and double-tap or hold-blank-space
-// to leave the notes screen.
+// Touch gestures: long press on a category, double-tap or hold-blank-space to
+// leave the notes screen, and swipes on notes and the schedule.
 
 const LONG_PRESS_MS = 300;
 // Shorter for holding a category to write, which is done all the time; a quick tap still reads.
@@ -115,6 +115,41 @@ document.addEventListener('pointerdown', (e) => {
 });
 for (const type of ['pointerup', 'pointercancel']) {
   document.addEventListener(type, () => clearTimeout(blankTimer));
+}
+
+// Swiping a note sideways (either way) in Todo or Bring deletes it. The note
+// follows the finger and springs back if let go before SWIPE_DELETE_PX; a
+// mostly vertical move is left to scroll the page.
+const SWIPE_DELETE_PX = 100;
+
+function onSwipe(el, action) {
+  let start = null;
+  let sideways = false;
+  const reset = () => {
+    start = null;
+    el.style.transform = '';
+  };
+  el.addEventListener('touchstart', (e) => {
+    start = e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
+    sideways = false;
+  }, { passive: true });
+  el.addEventListener('touchmove', (e) => {
+    if (!start) return;
+    const dx = e.touches[0].clientX - start.x;
+    const dy = e.touches[0].clientY - start.y;
+    if (!sideways) {
+      if (Math.abs(dy) > 10 && Math.abs(dy) >= Math.abs(dx)) return reset();
+      if (Math.abs(dx) > 10 && Math.abs(dx) > 2 * Math.abs(dy)) sideways = true;
+    }
+    if (sideways) el.style.transform = `translateX(${dx}px)`;
+  }, { passive: true });
+  el.addEventListener('touchend', (e) => {
+    if (!start) return;
+    const dx = e.changedTouches[0].clientX - start.x;
+    reset();
+    if (sideways && Math.abs(dx) >= SWIPE_DELETE_PX) action();
+  });
+  el.addEventListener('touchcancel', reset);
 }
 
 // Swiping sideways on the schedule steps through the days, the same as the ‹ ›

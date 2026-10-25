@@ -14,6 +14,14 @@ const TRASH_ICON =
   '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
   '<path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 10v6M14 10v6"/></svg>';
 
+const CHECK_ICON =
+  '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+  '<path d="M4 12l5 5L20 6"/></svg>';
+
+// Lists of things to get done. Their notes get a tick, which marks one done,
+// instead of the trash button; swiping a note sideways deletes it instead.
+const CHECK_OFF = ['Todo', 'Bring'];
+
 const REPLACE_ICON =
   '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
   '<path d="M4 8h15M15 4l4 4-4 4M20 16H5M9 12l-4 4 4 4"/></svg>';
@@ -69,14 +77,13 @@ function renderEntries(cat) {
     div.className = 'entry';
     const body = entryBody(entry);
     const { id } = entry;
-    const del = iconButton('Delete', TRASH_ICON);
-    del.addEventListener('click', () => {
-      const entry = deleteEntry(id, 'deleted');
-      if (!entry) return;
-      showUndo('Note deleted.', () => restoreEntry(entry));
-      renderEntries(cat);
-      sync();
-    });
+    const checkOff = CHECK_OFF.includes(cat);
+    const del = checkOff ? iconButton('Done', CHECK_ICON) : iconButton('Delete', TRASH_ICON);
+    del.addEventListener('click', () => removeEntry(id, checkOff ? 'done' : 'deleted'));
+    if (checkOff) {
+      div.classList.add('swipe');
+      onSwipe(div, () => removeEntry(id, 'deleted'));
+    }
     // Replace deletes the note and opens the editor for the next one (tick off a
     // task, write the one after it). Undo, back on this screen, brings the old one back.
     const replace = iconButton('Replace', REPLACE_ICON);
@@ -105,7 +112,7 @@ function iconButton(label, icon) {
 
 // Looks the note up again, since `data` may have been reloaded since the list
 // was drawn. Returns the deleted note, or null if it's already gone.
-// `how` records which button removed it ('deleted' or 'replaced'), for looking
+// `how` records what removed it ('deleted', 'done' or 'replaced'), for looking
 // back at how notes get dealt with; the app itself doesn't use it.
 function deleteEntry(id, how) {
   const entry = data.entries.find((e) => e.id === id);
@@ -113,6 +120,15 @@ function deleteEntry(id, how) {
   touch(entry, { deletedAt: new Date().toISOString(), deletedHow: how });
   persist();
   return entry;
+}
+
+// Delete or tick off a note, with an Undo, and redraw whichever screen it was on.
+function removeEntry(id, how) {
+  const entry = deleteEntry(id, how);
+  if (!entry) return;
+  showUndo(how === 'done' ? 'Done.' : 'Note deleted.', () => restoreEntry(entry));
+  refreshView();
+  sync();
 }
 
 // The server treats a delete as final, so Undo brings the note back as a copy
@@ -124,7 +140,7 @@ function restoreEntry(entry) {
   if (old) touch(old, { deletedHow: 'undone' });
   data.entries.push({ ...entry, id: newId(), updatedAt: now, deletedAt: null, deletedHow: null, dirty: true });
   persist();
-  renderEntries(current.cat);
+  refreshView();
   sync();
 }
 
