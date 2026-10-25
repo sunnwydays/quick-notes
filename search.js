@@ -12,7 +12,6 @@ function renderSearch() {
   const searching = terms.length > 0;
   $('home').classList.toggle('searching', searching);
   $('categories').hidden = searching;
-  $('add-row').hidden = searching;
   $('search-clear').hidden = !$('search').value;
   const box = $('search-results');
   box.hidden = !searching;

@@ -35,14 +35,14 @@ button {
 button.primary { background: #000; color: #fff; font-weight: 700; }
 button.quiet { border-color: transparent; background: transparent; font-weight: 700; }
 
-.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-/* Each tile: icon at the top left, then the name. */
+/* Three square tiles a row, capped so they don't balloon on a wide screen. */
+.grid { display: grid; grid-template-columns: repeat(3, minmax(0, 150px)); justify-content: center; gap: 12px; }
+/* Each tile: the icon, then the name under it, centred. */
 .grid button {
-  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
-  min-height: 100px; padding: 10px 12px; border-radius: 14px; text-align: left; overflow-wrap: anywhere;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  aspect-ratio: 1; min-height: 0; padding: 8px; border-radius: 14px; text-align: center; overflow-wrap: anywhere;
 }
-.tile .icon { margin-bottom: 4px; }
-.tile-name { font-size: 21px; font-weight: 700; line-height: 1.15; }
+.tile-name { font-size: 17px; font-weight: 700; line-height: 1.1; }
 .icon { display: flex; flex: none; }
 .icon svg { display: block; }
 /* Holding a category opens its editor, so don't select its label or show a callout. */
@@ -50,8 +50,8 @@ button.quiet { border-color: transparent; background: transparent; font-weight: 
 /* Same for the whole page while the finger from that long press is still down. */
 body.still-held * { user-select: none !important; -webkit-user-select: none !important; -webkit-touch-callout: none !important; }
 
-/* Divider between projects and built-in categories; spans both grid columns. */
-.grid hr { grid-column: 1 / -1; width: 100%; margin: 8px 0; border: 0; border-top: 4px solid #000; }
+/* Divider between projects and the built-in categories. */
+#projects:not(:empty) { padding-bottom: 20px; margin-bottom: 20px; border-bottom: 4px solid #000; }
 
 .bar { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
 .bar h1 { flex: 1; min-width: 0; margin: 0; font-size: 26px; overflow-wrap: anywhere; display: flex; align-items: center; gap: 10px; }
@@ -164,12 +164,12 @@ body:has(#undo-bar:not([hidden])) > section { padding-bottom: 88px; }
 #remove-project-btn { margin-right: auto; }
 .empty { font-style: italic; }
 
-/* Add note (files itself) is the main action; Write (pick a category) sits beside it. */
-#add-row { display: flex; gap: 12px; margin-top: 12px; }
-#add-any-btn { flex: 2; display: flex; align-items: center; justify-content: center; gap: 10px; }
+/* Add note (files itself) is the main action, in the middle of the built-ins; Write
+   (pick a category) takes the last corner. The tiles flow around both. */
+#add-any-btn { grid-area: 2 / 2; font-size: 17px; }
 #add-any-btn svg { display: block; flex: none; }
 /* Grey so it doesn't look like another category; black while waiting for a category tap. */
-#write-btn { flex: 1; background: #b4b4b4; }
+#write-btn { grid-area: 3 / 3; font-size: 17px; font-weight: 700; background: #b4b4b4; }
 #write-btn.primary { background: #000; }
 
 /* Sync icon and the ☰ menu button together on the right. The menu drops down

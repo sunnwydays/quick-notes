@@ -152,18 +152,6 @@ function orderedCategories() {
   ];
 }
 
-// One button per category, with a divider line between projects and the built-ins.
-function fillCategories(box, makeButton) {
-  box.replaceChildren();
-  const cats = orderedCategories();
-  cats.forEach((cat, i) => {
-    if (i > 0 && BUILT_IN.includes(cat) && !BUILT_IN.includes(cats[i - 1])) {
-      box.append(document.createElement('hr'));
-    }
-    box.append(makeButton(cat));
-  });
-}
-
 function entriesFor(cat) {
   return data.entries
     .filter((e) => e.category === cat && !e.deletedAt)

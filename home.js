@@ -2,23 +2,31 @@
 
 // ---------- home ----------
 
+function categoryTile(cat) {
+  const btn = document.createElement('button');
+  btn.className = 'tile';
+  const name = document.createElement('span');
+  name.className = 'tile-name';
+  name.textContent = cat;
+  btn.append(categoryIcon(cat, 26), name);
+  onHoldRelease(btn, () => openEditor(cat));
+  btn.addEventListener('click', () => {
+    if (btn.held) return; // the click that ends a long press
+    if (writeNext) openEditor(cat);
+    else go(cat === SCHEDULE ? { view: 'schedule', date: null } : { view: 'entries', cat });
+  });
+  return btn;
+}
+
+// Projects go in their own grid on top. The built-ins form a 3×3 "flower" with
+// Add note in the middle and Write in the last corner, where the thumb rests;
+// CSS pins those two, and the tiles fill the other cells in BUILT_IN order.
 function renderHome() {
   $('write-btn').classList.toggle('primary', writeNext);
-  fillCategories($('categories'), (cat) => {
-    const btn = document.createElement('button');
-    btn.className = 'tile';
-    const name = document.createElement('span');
-    name.className = 'tile-name';
-    name.textContent = cat;
-    btn.append(categoryIcon(cat, 26), name);
-    onHoldRelease(btn, () => openEditor(cat));
-    btn.addEventListener('click', () => {
-      if (btn.held) return; // the click that ends a long press
-      if (writeNext) openEditor(cat);
-      else go(cat === SCHEDULE ? { view: 'schedule', date: null } : { view: 'entries', cat });
-    });
-    return btn;
-  });
+  const cats = orderedCategories();
+  $('projects').replaceChildren(...cats.filter((c) => !BUILT_IN.includes(c)).map(categoryTile));
+  $('flower').querySelectorAll('.tile').forEach((t) => t.remove());
+  $('flower').prepend(...cats.filter((c) => BUILT_IN.includes(c)).map(categoryTile));
   renderSearch();
   showStatus();
 }

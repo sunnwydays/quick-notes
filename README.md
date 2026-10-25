@@ -16,7 +16,7 @@ Live: https://quick-notes-liart.vercel.app
 
 What you type is saved as you go. If the app is closed mid-note, it reopens on that note next time.
 
-**Add note** (the black button at the bottom of the home screen) opens the same text box without picking a category. Each note is filed by how it starts:
+**Add note** (the black button in the middle of the built-in categories, where the thumb rests) opens the same text box without picking a category. Each note is filed by how it starts:
 - A folder's name, or a word for it, goes there and is taken off the note: `bring blender` saves `- blender` in Bring. The words are in `FOLDER_WORDS` in `autofile.js`, including the ways Gboard mishears them (`brain` for bring, `yeah tutor` for ai-tutor). Add to that list when dictation gets one wrong.
 - A project's own name works too (`deer clear research` goes to deer; `ai tutor` to ai-tutor).
 - `I think …` / `I feel …` go to Thought and `today was …` to Journal, keeping those words (`FOLDER_CUES`).
@@ -26,7 +26,7 @@ Above the text box are the latest notes from every folder, each with its folder'
 
 **Menu:** the ☰ button at the top right of the home screen holds **New project**, **Export**, **Help** and **Log in**. Tapping anywhere else closes it without doing anything else.
 
-**Category buttons** show a line icon (projects get a folder), the name, and how many notes it has. The icons are SVG rather than emoji so they stay sharp on e-ink.
+**Category buttons** are square tiles, three to a row, each with a line icon (projects get a folder) over its name. The icons are SVG rather than emoji so they stay sharp on e-ink. The built-in categories form a 3×3 "flower" with **Add note** in the middle and **Write** in the bottom-right corner, so the main button sits where the thumb rests instead of at the bottom edge.
 
 **Projects:** open the ☰ menu and tap **New project** to add one. Projects get their own buttons above the built-in categories, with a line between the two groups. To remove one, tap the project and tap **Remove project**. That deletes its notes too.
 
