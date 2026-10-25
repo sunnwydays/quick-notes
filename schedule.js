@@ -105,16 +105,17 @@ function parseSchedule(text) {
       const last = plan.blocks[plan.blocks.length - 1];
       const start = readTime(part);
       const at = start && minutes(start, last && last.start);
-      // A bare number only starts a block if it comes after the one above
-      // (counting afternoon, so "1 lunch" after "10 brunch" is 13:00); otherwise
-      // it's a line of that block, like "5 sets" under "20:00 gym".
-      if (!start || (start.bare && last && at <= last.start)) {
+      let rest = start ? part.slice(start.length) : part;
+      const end = start && readTime(rest, TO_TIME);
+      // A bare number only starts a block if it's a range ("7-740 deer proj") or
+      // comes after the one above (counting afternoon, so "1 lunch" after
+      // "10 brunch" is 13:00); otherwise it's a line of that block, like "5 sets"
+      // under "20:00 gym".
+      if (!start || (start.bare && !end && last && at <= last.start)) {
         (last ? last.lines : plan.intro).push(part);
         continue;
       }
       const block = { start: at, end: null, lines: [] };
-      let rest = part.slice(start.length);
-      const end = readTime(rest, TO_TIME);
       if (end) {
         block.end = minutes(end, block.start);
         rest = rest.slice(end.length);
