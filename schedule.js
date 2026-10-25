@@ -91,7 +91,8 @@ function clock(min) {
 // {head, intro, blocks}. head is the day heading line, intro the lines before the
 // first time. Each block is {start, end, until, lines}: end is the end time as
 // written (or null), until is when it's over (end, else the next block's start,
-// else midnight). A line with no time joins the block above it.
+// else midnight). A line with no time joins the block above it. Blocks are in
+// order of start time, wherever they were written.
 function parseSchedule(text) {
   const plan = { head: null, intro: [], blocks: [] };
   for (const raw of text.split('\n')) {
@@ -124,6 +125,7 @@ function parseSchedule(text) {
       plan.blocks.push(block);
     }
   }
+  plan.blocks.sort((a, b) => a.start - b.start);
   plan.blocks.forEach((b, i) => {
     const next = plan.blocks[i + 1];
     b.until = b.end != null ? b.end : next && next.start > b.start ? next.start : DAY_END;
