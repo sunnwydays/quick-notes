@@ -26,7 +26,7 @@ What you type is saved as you go. If the app is closed mid-note, it reopens on t
 
 **Search:** type in the box under the sync icon and ☰ menu at the top of the home screen; it stays put while the results scroll below it. The category buttons are replaced by every note that contains all the words you typed (any order, any case), grouped under its category with a count. Tap a category's heading to open its notes. **Clear** puts the buttons back.
 
-**Read:** tap a category. Its notes open, newest first, each with a Delete button. **Show times** adds each note's time, and is remembered per category (e.g. on for Journal only). **Write** on the home screen only applies to the next tap; tap it again to cancel. Double-tap anywhere on the notes (not on a button) to go back, or hold a blank spot for a moment. Holding a note still selects its text.
+**Read:** tap a category. Its notes open, newest first, each with a Delete button and a Replace button (two arrows). Replace deletes the note and opens the text box for that category, so you can tick off a task and write the next one; the new note gets the current time, not the old note's. Back on the notes screen, Undo brings the old note back. **Show times** adds each note's time, and is remembered per category (e.g. on for Journal only). **Write** on the home screen only applies to the next tap; tap it again to cancel. Double-tap anywhere on the notes (not on a button) to go back, or hold a blank spot for a moment. Holding a note still selects its text.
 
 **Schedule:** tap Schedule to see today's plan. The block happening now is shown in black with "Now, until 11:30", a gap between blocks shows "Free until 15:00", and finished blocks fold into a **See 5 done** row (each tap shows 3 more, newest first; **Hide done** folds them again). To write one, hold Schedule (or tap **New**/**Edit** on its screen) and paste a plan or type a line per block:
 
@@ -64,7 +64,7 @@ Plain HTML, CSS and JS. There's no framework and no build step. The JS files are
 | `home.js` | The home screen: category buttons, the ☰ menu, New project, Write. |
 | `editor.js` | The note editor: Enter to add, drafts, Save and Discard. |
 | `search.js` | The search box on the home screen: notes that match, grouped by category. |
-| `entries.js` | The notes screen: list, times, delete, remove project. |
+| `entries.js` | The notes screen: list, times, delete, replace, remove project. |
 | `schedule.js` | The schedule screen: reads times and day headings out of a Schedule note, highlights the block on now, folds finished ones, and splits a multi-day paste on save. Redraws only when a block starts or ends, since each redraw flashes an e-ink screen. |
 | `export.js` | Export and Copy all. |
 | `sync.js` | Supabase sync: push, pull, merge and the status line. |

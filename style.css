@@ -66,8 +66,9 @@ body.still-held * { user-select: none !important; -webkit-user-select: none !imp
    empty tools row stands in for its one so the notes start at the same height.
    They take up to half the height and scroll; the text box fills the rest. */
 #editor-recent { flex: 0 1 auto; max-height: 50%; min-height: 0; overflow-y: auto; margin-bottom: 8px; }
-/* Stands in for the Delete button, so each note wraps and spaces as it does on the notes screen. */
-#editor-recent .entry::after { content: ''; flex: none; width: 44px; height: 44px; }
+/* Stands in for the Replace and Delete buttons (and the gap between them), so each
+   note wraps and spaces as it does on the notes screen. */
+#editor-recent .entry::after { content: ''; flex: none; width: 100px; height: 44px; }
 #editor textarea {
   flex: 1 1 0;
   min-height: 120px;
@@ -93,7 +94,7 @@ body.still-held * { user-select: none !important; -webkit-user-select: none !imp
 .tools { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-bottom: 16px; }
 .tools button { min-height: 44px; padding: 4px 12px; font-size: 16px; }
 
-/* Text on the left, Delete on the right; the time (if shown) sits above the text.
+/* Text on the left, Replace and Delete on the right; the time (if shown) sits above the text.
    Divider lines between notes only appear when times are shown.
    Every other note gets a grey band so neighbours are easy to tell apart. */
 .entry { display: flex; align-items: center; gap: 12px; padding: 4px 4px 4px 8px; }
@@ -102,11 +103,11 @@ body.still-held * { user-select: none !important; -webkit-user-select: none !imp
 .entry-body { flex: 1; min-width: 0; }
 .entry time { display: block; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .entry p { margin: 0; font-family: Literata, Georgia, serif; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
-.entry .delete {
+.entry .entry-btn {
   display: flex; align-items: center; justify-content: center; flex: none;
   width: 44px; height: 44px; min-height: 0; padding: 0;
 }
-.delete svg { display: block; }
+.entry-btn svg { display: block; }
 
 /* Pinned to the bottom of the screen; the page gets extra room so the banner never covers the last thing on it. */
 #undo-bar {

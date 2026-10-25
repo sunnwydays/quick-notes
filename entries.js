@@ -14,6 +14,10 @@ const TRASH_ICON =
   '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
   '<path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 10v6M14 10v6"/></svg>';
 
+const REPLACE_ICON =
+  '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+  '<path d="M4 8h15M15 4l4 4-4 4M20 16H5M9 12l-4 4 4 4"/></svg>';
+
 function formatShort(iso) {
   return new Date(iso).toLocaleString(undefined, {
     weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
@@ -57,27 +61,49 @@ function renderEntries(cat) {
     const div = document.createElement('div');
     div.className = 'entry';
     const body = entryBody(entry);
-    const del = document.createElement('button');
-    del.className = 'delete quiet';
-    del.setAttribute('aria-label', 'Delete');
-    del.innerHTML = TRASH_ICON;
-    // Look the note up again: `data` may have been reloaded since this list was drawn.
     const { id } = entry;
+    const del = iconButton('Delete', TRASH_ICON);
     del.addEventListener('click', () => {
-      const entry = data.entries.find((e) => e.id === id);
+      const entry = deleteEntry(id);
       if (!entry) return;
-      touch(entry, { deletedAt: new Date().toISOString() });
-      persist();
       showUndo('Note deleted.', () => restoreEntry(entry));
       renderEntries(cat);
       sync();
     });
-    div.append(body, del);
+    // Replace deletes the note and opens the editor for the next one (tick off a
+    // task, write the one after it). Undo, back on this screen, brings the old one back.
+    const replace = iconButton('Replace', REPLACE_ICON);
+    replace.addEventListener('click', () => {
+      const entry = deleteEntry(id);
+      if (!entry) return;
+      pendingUndo = ['Old note deleted.', () => restoreEntry(entry)];
+      openEditor(cat);
+      sync();
+    });
+    div.append(body, replace, del);
     box.append(div);
   }
   box.classList.toggle('with-times', timesShown(cat));
   $('times-btn').textContent = timesShown(cat) ? 'Hide times' : 'Show times';
   $('remove-project-btn').hidden = BUILT_IN.includes(cat);
+}
+
+function iconButton(label, icon) {
+  const btn = document.createElement('button');
+  btn.className = 'entry-btn quiet';
+  btn.setAttribute('aria-label', label);
+  btn.innerHTML = icon;
+  return btn;
+}
+
+// Looks the note up again, since `data` may have been reloaded since the list
+// was drawn. Returns the deleted note, or null if it's already gone.
+function deleteEntry(id) {
+  const entry = data.entries.find((e) => e.id === id);
+  if (!entry) return null;
+  touch(entry, { deletedAt: new Date().toISOString() });
+  persist();
+  return entry;
 }
 
 // The server treats a delete as final, so Undo brings the note back as a copy
