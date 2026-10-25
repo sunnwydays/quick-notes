@@ -330,8 +330,9 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // ---------- on the home screen ----------
-// Beside the to-dos: today's block on now, with the one before and the one after.
-// Between blocks, "Free until 15:00" takes the middle line. Hidden when there's
+// Beside the to-dos: today's block on now, with the one before it and as many of
+// the ones after as there are lines for (glanceLines, home.js). Between blocks,
+// "Free until 15:00" takes the place of the one on now. Hidden when there's
 // no schedule for today. Like the schedule screen, it only redraws when a block
 // starts or ends.
 let homeScheduleTimer = 0;
@@ -363,11 +364,11 @@ function renderHomeSchedule() {
     box.replaceChildren(head);
     const i = blocks.findIndex((b) => b.start <= nowMin && nowMin < b.until);
     const prev = (i >= 0 ? blocks.slice(0, i) : blocks.filter((b) => b.until <= nowMin)).pop();
-    const next = i >= 0 ? blocks[i + 1] : blocks.find((b) => b.start > nowMin);
+    const later = i >= 0 ? blocks.slice(i + 1) : blocks.filter((b) => b.start > nowMin);
     if (prev) box.append(homeBlockLine(prev, 'done'));
     if (i >= 0) box.append(homeBlockLine(blocks[i], 'now'));
-    else box.append(textLine('glance-free', next ? `Free until ${clock(next.start)}` : 'Done for today.'));
-    if (next) box.append(homeBlockLine(next, ''));
+    else box.append(textLine('glance-free', later.length ? `Free until ${clock(later[0].start)}` : 'Done for today.'));
+    for (const b of later.slice(0, glanceLines - (prev ? 2 : 1))) box.append(homeBlockLine(b, ''));
   }
   const marks = blocks.flatMap((b) => [b.start, b.until]).filter((m) => m > nowMin);
   const at = Math.min(DAY_END, ...marks);

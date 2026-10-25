@@ -14,8 +14,8 @@ function render(state) {
   if (state) writeNext = false;
   hideUndo();
   if (!state) {
+    show('home'); // first, so renderHome can measure the free height (fitGlance)
     renderHome();
-    show('home');
   } else if (state.view === 'edit') {
     setLabel($('editor-title'), state.cat);
     // Enter adds the note, except in a schedule, where it starts a new line.

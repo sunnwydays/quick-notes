@@ -29,8 +29,7 @@ function renderHome() {
   for (const box of [$('flower'), $('flower-row')]) box.querySelectorAll('.tile').forEach((t) => t.remove());
   $('flower').prepend(...builtIns.slice(0, 7).map(categoryTile));
   $('flower-row').prepend(...builtIns.slice(7).map(categoryTile));
-  renderTodos();
-  renderHomeSchedule();
+  fitGlance();
   renderSearch();
   showStatus();
 }
@@ -39,12 +38,39 @@ function renderHome() {
 // rather than tapped. The newest, except that the last line is the oldest, with
 // its age, so an old one can't stay out of sight. Hidden when there are none.
 // Tapping opens Todo; holding a line until it turns black ticks it off.
-const HOME_TODOS = 3;
+// Both columns get glanceLines lines: three, or more when there's room (fitGlance).
+const HOME_LINES = 3;
+let glanceLines = HOME_LINES;
+
+// On a phone the category buttons sit at the bottom, which leaves a gap under the
+// columns. Draw them with three lines each, then add as many lines as fit in that
+// gap, keeping GLANCE_ROOM px of it. Every line is the same height, so one
+// measurement is enough. Elsewhere there's no gap and they stay at three.
+const GLANCE_ROOM = 32;
+
+function fitGlance() {
+  glanceLines = HOME_LINES;
+  renderTodos();
+  renderHomeSchedule();
+  const line = $('glance').querySelector('.todo-line, .glance-block');
+  if (!line || !line.offsetHeight) return; // nothing to show, or hidden while searching
+  const gap = $('categories').getBoundingClientRect().top - $('glance').getBoundingClientRect().bottom;
+  const extra = Math.floor((gap - GLANCE_ROOM) / line.offsetHeight);
+  if (extra <= 0) return;
+  glanceLines += extra;
+  renderTodos();
+  renderHomeSchedule();
+}
+
+// The free height changes when the keyboard closes or the phone turns.
+window.addEventListener('resize', () => {
+  if (!current) fitGlance();
+});
 
 function renderTodos() {
   const todos = entriesFor('Todo');
-  const oldest = todos.length > HOME_TODOS ? todos[todos.length - 1] : null;
-  const shown = oldest ? [...todos.slice(0, HOME_TODOS - 1), oldest] : todos;
+  const oldest = todos.length > glanceLines ? todos[todos.length - 1] : null;
+  const shown = oldest ? [...todos.slice(0, glanceLines - 1), oldest] : todos;
   const box = $('home-todos');
   box.hidden = !todos.length;
   const head = document.createElement('span');
