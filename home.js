@@ -48,7 +48,7 @@ let glanceLines = HOME_LINES;
 // sits unused between the columns and the buttons. Elsewhere there's no gap and they
 // stay at three, at the usual size.
 const GLANCE_ROOM = 4;
-const GLANCE_SIZES = [[21, 10], [20, 8], [19, 6], [18, 0]];
+const GLANCE_SIZES = [[21, 10], [20, 8], [19, 0]];
 const GLANCE_PAD_MAX = 10;
 
 function fitGlance() {
@@ -57,7 +57,7 @@ function fitGlance() {
     glance.style.setProperty('--glance-font', `${font}px`);
     glance.style.setProperty('--glance-pad', `${pad}px`);
   };
-  size(18, 0);
+  size(19, 0);
   glanceLines = HOME_LINES;
   renderTodos();
   renderHomeSchedule();
@@ -82,7 +82,7 @@ function fitGlance() {
     size(font, Math.max(pad, Math.min(GLANCE_PAD_MAX, pad + more)));
     return;
   }
-  size(18, 0);
+  size(19, 0);
 }
 
 // The free height changes when the keyboard closes or the phone turns.

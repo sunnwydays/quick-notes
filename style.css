@@ -179,7 +179,7 @@ body:has(#undo-bar:not([hidden])) > section { padding-bottom: 88px; }
 .todo-line {
   display: flex; align-items: baseline; gap: 6px; width: 100%; min-height: 0; padding: 0 4px;
   border: 0; border-radius: 6px; text-align: left;
-  font-family: Literata, Georgia, serif; font-size: 18px; font-weight: 400; line-height: 1.4;
+  font-family: Literata, Georgia, serif; font-size: 19px; font-weight: 400; line-height: 1.4;
   user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
 }
 button.todo-line.primary .todo-age { color: #fff; }
@@ -191,12 +191,12 @@ button.todo-line.primary .todo-age { color: #fff; }
    is black, like on the schedule screen, and the one before it grey. */
 .glance-block, .glance-free { display: flex; align-items: baseline; gap: 6px; margin: 0; padding: 0 4px; border-radius: 6px; line-height: 1.4; }
 .glance-block time { flex: none; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.glance-text { flex: 1; min-width: 0; font-family: Literata, Georgia, serif; font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.glance-text { flex: 1; min-width: 0; font-family: Literata, Georgia, serif; font-size: 19px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .glance-block.now { background: #000; color: #fff; }
 .glance-block.done { color: #555; }
 .glance-free { font-size: 15px; font-weight: 700; }
 /* Bigger and more spaced out when there's spare height on a phone (fitGlance in home.js). */
-.todo-line, .glance-text { font-size: var(--glance-font, 18px); }
+.todo-line, .glance-text { font-size: var(--glance-font, 19px); }
 .todo-line, .glance-block, .glance-free { padding-top: var(--glance-pad, 0); padding-bottom: var(--glance-pad, 0); }
 .group-head {
   display: flex; align-items: center; gap: 10px; width: 100%; margin: 12px 0 4px; min-height: 48px; padding: 6px 12px;
