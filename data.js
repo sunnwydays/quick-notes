@@ -9,8 +9,8 @@ const SCHEDULE = 'Schedule';
 // The editor opened by Add note on the home screen. Not a category: each note
 // goes to the folder its first words name (autofile.js).
 const AUTO = 'Add note';
-// In button order: left to right, then down.
-const BUILT_IN = ['Todo', 'Working on', SCHEDULE, 'Thought', 'Random projs', 'Bring', 'Journal'];
+// In button order: clockwise round the flower from the top.
+const BUILT_IN = ['Todo', SCHEDULE, 'Working on', 'Random projs', 'Thought', 'Bring', 'Journal'];
 // Line icons (SVG path data, 24x24), drawn in the text colour so they stay crisp
 // on e-ink and turn white on a black button. Display only; the stored (and
 // synced) category name stays plain text. Projects all share the folder.
