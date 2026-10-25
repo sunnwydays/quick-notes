@@ -18,15 +18,17 @@ function categoryTile(cat) {
   return btn;
 }
 
-// Projects go in their own grid on top. The built-ins form a 3×3 "flower" with
-// Add note in the middle and Write in the last corner, where the thumb rests;
-// CSS pins those two, and the tiles fill the other cells in BUILT_IN order.
+// Projects go in their own grid on top. The first six built-ins are the petals of a
+// "flower" around Add note, where the thumb rests (CSS places them in BUILT_IN order);
+// any after that sit beside Write under it.
 function renderHome() {
   $('write-btn').classList.toggle('primary', writeNext);
   const cats = orderedCategories();
+  const builtIns = cats.filter((c) => BUILT_IN.includes(c));
   $('projects').replaceChildren(...cats.filter((c) => !BUILT_IN.includes(c)).map(categoryTile));
-  $('flower').querySelectorAll('.tile').forEach((t) => t.remove());
-  $('flower').prepend(...cats.filter((c) => BUILT_IN.includes(c)).map(categoryTile));
+  for (const box of [$('flower'), $('flower-row')]) box.querySelectorAll('.tile').forEach((t) => t.remove());
+  $('flower').prepend(...builtIns.slice(0, 6).map(categoryTile));
+  $('flower-row').prepend(...builtIns.slice(6).map(categoryTile));
   renderSearch();
   showStatus();
 }

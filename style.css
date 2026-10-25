@@ -35,10 +35,10 @@ button {
 button.primary { background: #000; color: #fff; font-weight: 700; }
 button.quiet { border-color: transparent; background: transparent; font-weight: 700; }
 
-/* Three round tiles a row, capped so they don't balloon on a wide screen. */
+/* Projects: three round tiles a row, capped so they don't balloon on a wide screen. */
 .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 150px)); justify-content: center; gap: 12px; }
-/* Each tile: the icon, then the name under it, centred, with enough padding to keep it off the curve. */
-.grid button {
+/* Each round tile: the icon, then the name under it, centred, with enough padding to keep it off the curve. */
+.grid button, #flower button {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
   aspect-ratio: 1; min-height: 0; padding: 12px; border-radius: 50%; text-align: center; overflow-wrap: anywhere;
 }
@@ -46,7 +46,29 @@ button.quiet { border-color: transparent; background: transparent; font-weight: 
 .icon { display: flex; flex: none; }
 .icon svg { display: block; }
 /* Holding a category opens its editor, so don't select its label or show a callout. */
-.grid button { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.tile { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+
+/* The built-ins: six petals in a hexagon around a larger Add note, two above it, one
+   each side and two below. Petals are 29% of the width, Add note 38%, with 2% between
+   it and each petal. Lefts are % of the width; tops are % of the height, which is
+   0.905 of the width. */
+#flower { position: relative; width: 100%; max-width: 420px; margin: 0 auto; aspect-ratio: 1 / 0.905; }
+#flower .tile { position: absolute; width: 29%; padding: 8px; }
+#flower .tile-name { font-size: 16px; }
+#flower .tile:nth-child(1) { left: 17.75%; top: 0; }
+#flower .tile:nth-child(2) { left: 53.25%; top: 0; }
+#flower .tile:nth-child(3) { left: 0; top: 33.98%; }
+#flower .tile:nth-child(4) { left: 71%; top: 33.98%; }
+#flower .tile:nth-child(5) { left: 17.75%; top: 67.95%; }
+#flower .tile:nth-child(6) { left: 53.25%; top: 67.95%; }
+#flower #add-any-btn { position: absolute; left: 31%; top: 29%; width: 38%; gap: 6px; font-size: 19px; }
+
+/* Under the flower: the built-in that doesn't fit in it (Journal) and Write, as ordinary buttons. */
+#flower-row { display: flex; gap: 12px; margin-top: 12px; }
+#flower-row button { flex: 1; display: flex; align-items: center; justify-content: center; gap: 10px; }
+/* Grey so it doesn't look like another category; black while waiting for a category tap. */
+#write-btn { font-weight: 700; background: #b4b4b4; }
+#write-btn.primary { background: #000; }
 /* Same for the whole page while the finger from that long press is still down. */
 body.still-held * { user-select: none !important; -webkit-user-select: none !important; -webkit-touch-callout: none !important; }
 
@@ -164,13 +186,7 @@ body:has(#undo-bar:not([hidden])) > section { padding-bottom: 88px; }
 #remove-project-btn { margin-right: auto; }
 .empty { font-style: italic; }
 
-/* Add note (files itself) is the main action, in the middle of the built-ins; Write
-   (pick a category) takes the last corner. The tiles flow around both. */
-#add-any-btn { grid-area: 2 / 2; font-size: 17px; }
 #add-any-btn svg { display: block; flex: none; }
-/* Grey so it doesn't look like another category; black while waiting for a category tap. */
-#write-btn { grid-area: 3 / 3; font-size: 17px; font-weight: 700; background: #b4b4b4; }
-#write-btn.primary { background: #000; }
 
 /* Sync icon and the ☰ menu button together on the right. The menu drops down
    over the page below them. */
