@@ -43,13 +43,14 @@ const HOME_LINES = 3;
 let glanceLines = HOME_LINES;
 
 // On a phone the category buttons sit at the bottom, which leaves a gap under the
-// columns. Draw them with three lines each, then add as many lines as fit in that
-// gap, keeping GLANCE_ROOM px of it. Every line is the same height, so one
+// columns: the auto margin above #categories, which is 0 once nothing's spare.
+// Draw them with three lines each, then add as many lines as fit in that gap,
+// keeping GLANCE_ROOM px of it on top of #glance's own margin. Every line is the same height, so one
 // measurement is enough. What's still left (less than a line, or more when there
 // are no more to show) goes to the biggest of GLANCE_SIZES that fits: the text's
 // size and the space above and below each line. Elsewhere there's no gap and they
 // stay at three, at the usual size.
-const GLANCE_ROOM = 24;
+const GLANCE_ROOM = 4;
 const GLANCE_SIZES = [[21, 10], [20, 8], [19, 6], [18, 4], [18, 2]];
 
 function fitGlance() {
@@ -64,7 +65,7 @@ function fitGlance() {
   renderHomeSchedule();
   const line = glance.querySelector('.todo-line, .glance-block');
   if (!line || !line.offsetHeight) return; // nothing to show, or hidden while searching
-  const room = () => $('categories').getBoundingClientRect().top - glance.getBoundingClientRect().bottom - GLANCE_ROOM;
+  const room = () => parseFloat(getComputedStyle($('categories')).marginTop) - GLANCE_ROOM;
   const extra = Math.floor(room() / line.offsetHeight);
   if (extra > 0) {
     glanceLines += extra;
