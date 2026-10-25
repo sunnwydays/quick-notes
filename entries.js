@@ -27,6 +27,10 @@ const REPLACE_ICON =
   '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
   '<path d="M4 8h15M15 4l4 4-4 4M20 16H5M9 12l-4 4 4 4"/></svg>';
 
+// Notes here aren't tasks to swap for the next one, so they get no Replace button.
+const NO_REPLACE = ['Journal', 'Thought', 'Random projs'];
+const replaces = (cat) => !NO_REPLACE.includes(cat);
+
 function formatShort(iso) {
   return new Date(iso).toLocaleString(undefined, {
     weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
@@ -87,15 +91,19 @@ function renderEntries(cat) {
     }
     // Replace deletes the note and opens the editor for the next one (tick off a
     // task, write the one after it). Undo, back on this screen, brings the old one back.
-    const replace = iconButton('Replace', REPLACE_ICON);
-    replace.addEventListener('click', () => {
-      const entry = deleteEntry(id, 'replaced');
-      if (!entry) return;
-      pendingUndo = ['Old note deleted.', () => restoreEntry(entry)];
-      openEditor(cat);
-      sync();
-    });
-    div.append(body, replace, del);
+    div.append(body);
+    if (replaces(cat)) {
+      const replace = iconButton('Replace', REPLACE_ICON);
+      replace.addEventListener('click', () => {
+        const entry = deleteEntry(id, 'replaced');
+        if (!entry) return;
+        pendingUndo = ['Old note deleted.', () => restoreEntry(entry)];
+        openEditor(cat);
+        sync();
+      });
+      div.append(replace);
+    }
+    div.append(del);
     box.append(div);
   }
   box.classList.toggle('with-times', timesShown(cat));
