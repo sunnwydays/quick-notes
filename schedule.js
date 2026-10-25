@@ -92,7 +92,9 @@ function clock(min) {
 // first time. Each block is {start, end, until, lines}: end is the end time as
 // written (or null), until is when it's over (end, else the next block's start,
 // else midnight). A line with no time joins the block above it. Blocks are in
-// order of start time, wherever they were written.
+// order of start time, wherever they were written, and ones that overlap are
+// merged into one: "18:50–19:50 Foosball" and "19:45–19:55 break" make
+// "18:50–19:55 Foosball + break".
 function parseSchedule(text) {
   const plan = { head: null, intro: [], blocks: [] };
   for (const raw of text.split('\n')) {
@@ -126,6 +128,18 @@ function parseSchedule(text) {
     }
   }
   plan.blocks.sort((a, b) => a.start - b.start);
+  plan.blocks = plan.blocks.reduce((kept, b) => {
+    const prev = kept[kept.length - 1];
+    if (!prev || (b.start > prev.start && (prev.end == null || b.start >= prev.end))) {
+      kept.push(b);
+      return kept;
+    }
+    if (b.end != null) prev.end = prev.end == null ? b.end : Math.max(prev.end, b.end);
+    const [first = '', ...more] = b.lines;
+    prev.lines[0] = [prev.lines[0], first].filter(Boolean).join(' + ');
+    prev.lines.push(...more);
+    return kept;
+  }, []);
   plan.blocks.forEach((b, i) => {
     const next = plan.blocks[i + 1];
     b.until = b.end != null ? b.end : next && next.start > b.start ? next.start : DAY_END;
