@@ -110,12 +110,6 @@ function renderTodos() {
     }
     box.append(line);
   }
-  if (todos.length > shown.length) {
-    const more = document.createElement('span');
-    more.className = 'todos-more';
-    more.textContent = `+${todos.length - shown.length} more`;
-    box.append(more);
-  }
 }
 
 $('home-todos').addEventListener('click', (e) => {
