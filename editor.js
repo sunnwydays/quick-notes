@@ -126,11 +126,11 @@ function commitEditor() {
 }
 
 // Enter adds the note and starts the next one, with the keyboard still up. A
-// schedule is one note, so there it starts a new "- " line instead.
+// schedule is one note, so there it starts a new plain line instead.
 function enter() {
   if (current.cat === SCHEDULE) {
     const { selectionStart, selectionEnd } = textarea;
-    textarea.setRangeText('\n' + BULLET, selectionStart, selectionEnd, 'end');
+    textarea.setRangeText('\n', selectionStart, selectionEnd, 'end');
   } else {
     if (saveNotes()) {
       renderRecent(current.cat);
@@ -163,8 +163,7 @@ textarea.addEventListener('beforeinput', (e) => {
 textarea.addEventListener('input', (e) => {
   // Fallback: the line break got through uncancelled.
   if (e.inputType === 'insertLineBreak' || e.inputType === 'insertParagraph') {
-    if (current.cat === SCHEDULE) textarea.setRangeText(BULLET, textarea.selectionStart, textarea.selectionEnd, 'end');
-    else enter();
+    if (current.cat !== SCHEDULE) enter();
   }
   fitText();
   saveDraft();

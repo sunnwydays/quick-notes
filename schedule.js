@@ -393,7 +393,7 @@ for (const id of ['day-prev', 'day-next']) {
 // blank line at the end, ready for another block.
 $('schedule-edit-btn').addEventListener('click', () => {
   const key = current.date || dayKey(new Date());
-  openEditor(SCHEDULE, `${editText(scheduleOn(key), key)}\n${BULLET}`);
+  openEditor(SCHEDULE, `${editText(scheduleOn(key), key)}\n`);
 });
 
 // The first day from `key` on that has no schedule yet. A weekday heading only
@@ -412,7 +412,7 @@ $('schedule-new-btn').addEventListener('click', () => {
   const today = dayKey(new Date());
   const key = freeDay(current.date || today);
   const head = key !== today ? `${keyDate(key).toLocaleDateString('en-US', { weekday: 'short' })}\n` : '';
-  openEditor(SCHEDULE, head + BULLET);
+  openEditor(SCHEDULE, head);
 });
 
 $('schedule-past-btn').addEventListener('click', () => go({ view: 'entries', cat: SCHEDULE }));
