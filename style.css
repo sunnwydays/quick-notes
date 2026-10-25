@@ -162,19 +162,19 @@ body:has(#undo-bar:not([hidden])) > section { padding-bottom: 88px; }
 /* A pill with a magnifier inside it. */
 .search-row input {
   flex: 1; min-width: 0; -webkit-appearance: none; appearance: none;
-  min-height: 44px; padding: 4px 12px 4px 40px; font-size: 17px; border-radius: 999px;
+  min-height: 38px; padding: 2px 12px 2px 40px; font-size: 17px; border-radius: 999px;
   background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.5' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-4-4'/%3E%3C/svg%3E") no-repeat 12px center / 20px;
 }
 .search-row input::placeholder { color: #555; opacity: 1; }
 .search-row input::-webkit-search-cancel-button { -webkit-appearance: none; display: none; }
-#search-clear { min-height: 44px; padding: 4px 8px; font-size: 17px; }
+#search-clear { min-height: 38px; padding: 4px 8px; font-size: 17px; }
 #search-results { margin-bottom: 12px; }
 
 /* The newest to-dos under the top row: plain lines in the notes' font, not boxes,
    so they read as something to look at rather than more buttons. */
 /* Two columns, to-dos and today's schedule, or one when either is empty. */
 #glance { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; }
-#glance > * { flex: 1 1 0; min-width: 0; padding: 4px 0 8px; }
+#glance > * { flex: 1 1 0; min-width: 0; padding: 0 0 8px; }
 #home.searching #glance { display: none; }
 #home-todos:not([hidden]) + #home-schedule { border-left: 2px solid #000; padding-left: 10px; }
 .glance-head { display: flex; align-items: center; gap: 6px; padding-left: 4px; font-size: 15px; font-weight: 700; margin-bottom: 2px; }
@@ -239,11 +239,11 @@ button.todo-line.primary .todo-age { color: #fff; }
    top while search results scroll. The menu drops down over the page below. */
 .sync-row {
   position: sticky; top: 0; z-index: 1; background: #fff;
-  display: flex; align-items: center; justify-content: flex-end; gap: 4px; margin-bottom: 16px;
+  display: flex; align-items: center; justify-content: flex-end; gap: 4px; margin-bottom: 6px;
 }
-#sync-status { display: flex; align-items: center; justify-content: center; min-width: 48px; min-height: 56px; }
+#sync-status { display: flex; align-items: center; justify-content: center; min-width: 48px; min-height: 48px; }
 #sync-status svg, #menu-btn svg { display: block; }
-#menu-btn { display: flex; align-items: center; justify-content: center; width: 56px; padding: 0; border: 0; }
+#menu-btn { display: flex; align-items: center; justify-content: center; width: 56px; min-height: 48px; padding: 0; border: 0; }
 #menu-btn[aria-expanded='true'] { background: #000; color: #fff; }
 #menu {
   position: absolute; top: 100%; right: 0; z-index: 2; min-width: 240px;
