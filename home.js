@@ -30,6 +30,7 @@ function renderHome() {
   $('flower').prepend(...builtIns.slice(0, 7).map(categoryTile));
   $('flower-row').prepend(...builtIns.slice(7).map(categoryTile));
   renderTodos();
+  renderHomeSchedule();
   renderSearch();
   showStatus();
 }
@@ -47,7 +48,7 @@ function renderTodos() {
   const box = $('home-todos');
   box.hidden = !todos.length;
   const head = document.createElement('span');
-  head.className = 'todos-head';
+  head.className = 'glance-head';
   head.append(categoryIcon('Todo', 18), 'Todo');
   box.replaceChildren(head);
   for (const e of shown) {

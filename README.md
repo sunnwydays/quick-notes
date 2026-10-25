@@ -30,6 +30,8 @@ Above the text box are the latest notes from every folder, each with its folder'
 
 **To-dos on the home screen:** three to-dos show as plain lines under the top row, so they can be seen without opening anything, with "+5 more" when there are others. They're the two newest and then the oldest, with its age ("9d"), so an old to-do can't stay out of sight. Tap them to open Todo. Hold one until it turns black and let go to mark it done, the same as its tick (`HOLD_TO_DONE_MS`, longer than the hold to write so it doesn't happen by accident), with an Undo. They're hidden when there are no to-dos, or while searching.
 
+**Schedule on the home screen:** beside the to-dos, in a second column, are three lines from today's schedule: the block on now (in black), the one before it (grey) and the one after, each as its start time and first line. Between blocks the middle line says "Free until 15:00", and after the last one "Done for today.". It redraws when a block starts or ends. Tap it to open Schedule. With no schedule for today it's hidden and the to-dos take the full width.
+
 **Projects:** open the ☰ menu and tap **New project** to add one. Projects get their own circles above the built-in categories, with a line between the two groups. They zigzag up and down four to a row, each a slightly different size, and a short last row is centred. To remove one, tap the project and tap **Remove project**. That deletes its notes too.
 
 **Help:** **Help** in the ☰ menu opens a short list of the non-obvious things (holding a category, going back, search, Undo). If you change how something works, update that text in `index.html` too.
@@ -71,12 +73,12 @@ Plain HTML, CSS and JS. There's no framework and no build step. The JS files are
 | `data.js` | Constants, the saved data (`data`) and helpers for reading it. |
 | `views.js` | Switching screens, the history/back button and the Undo banner. |
 | `gestures.js` | Hold-and-release on a category; double-tap or hold blank space to leave the notes or schedule screen. |
-| `home.js` | The home screen: category buttons, the ☰ menu, New project, Add note, Write. |
+| `home.js` | The home screen: category buttons, the to-dos at the top, the ☰ menu, New project, Add note, Write. |
 | `editor.js` | The note editor: Enter to add, drafts, Save and Discard. |
 | `autofile.js` | Add note: picks each note's folder from its first words. |
 | `search.js` | The search box on the home screen: notes that match, grouped by category. |
-| `entries.js` | The notes screen: list, times, delete, replace, remove project. |
-| `schedule.js` | The schedule screen: reads times and day headings out of a Schedule note, highlights the block on now, folds finished ones, and splits a multi-day paste on save. Redraws only when a block starts or ends, since each redraw flashes an e-ink screen. |
+| `entries.js` | The notes screen: list, times, delete or tick off, replace, remove project. |
+| `schedule.js` | The schedule screen: reads times and day headings out of a Schedule note, highlights the block on now, folds finished ones, and splits a multi-day paste on save. Also the schedule column on the home screen. Both redraw only when a block starts or ends, since each redraw flashes an e-ink screen. |
 | `export.js` | Export and Copy all. |
 | `sync.js` | Supabase sync: push, pull, merge and the status line. |
 | `login.js` | Email-code login. |

@@ -324,8 +324,60 @@ function renderSchedule(state, fresh = false) {
 
 // Timers stall while the app is in the background, so catch up on return.
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && current && current.view === 'schedule') renderSchedule(current);
+  if (document.hidden) return;
+  if (!current) renderHomeSchedule();
+  else if (current.view === 'schedule') renderSchedule(current);
 });
+
+// ---------- on the home screen ----------
+// Beside the to-dos: today's block on now, with the one before and the one after.
+// Between blocks, "Free until 15:00" takes the middle line. Hidden when there's
+// no schedule for today. Like the schedule screen, it only redraws when a block
+// starts or ends.
+let homeScheduleTimer = 0;
+
+function homeBlockLine(b, state) {
+  const line = document.createElement('span');
+  line.className = state ? `glance-block ${state}` : 'glance-block';
+  const time = document.createElement('time');
+  time.textContent = clock(b.start);
+  const text = document.createElement('span');
+  text.className = 'glance-text';
+  text.textContent = b.lines.find(Boolean) || '';
+  line.append(time, text);
+  return line;
+}
+
+function renderHomeSchedule() {
+  clearTimeout(homeScheduleTimer);
+  const now = new Date();
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const entry = scheduleOn(dayKey(now));
+  const blocks = entry ? parseSchedule(entry.text).blocks : [];
+  const box = $('home-schedule');
+  box.hidden = !blocks.length;
+  if (blocks.length) {
+    const head = document.createElement('span');
+    head.className = 'glance-head';
+    head.append(categoryIcon(SCHEDULE, 18), 'Schedule');
+    box.replaceChildren(head);
+    const i = blocks.findIndex((b) => b.start <= nowMin && nowMin < b.until);
+    const prev = (i >= 0 ? blocks.slice(0, i) : blocks.filter((b) => b.until <= nowMin)).pop();
+    const next = i >= 0 ? blocks[i + 1] : blocks.find((b) => b.start > nowMin);
+    if (prev) box.append(homeBlockLine(prev, 'done'));
+    if (i >= 0) box.append(homeBlockLine(blocks[i], 'now'));
+    else box.append(textLine('glance-free', next ? `Free until ${clock(next.start)}` : 'Done for today.'));
+    if (next) box.append(homeBlockLine(next, ''));
+  }
+  const marks = blocks.flatMap((b) => [b.start, b.until]).filter((m) => m > nowMin);
+  const at = Math.min(DAY_END, ...marks);
+  const ms = (at - nowMin) * 60000 - now.getSeconds() * 1000 - now.getMilliseconds() + 1000;
+  homeScheduleTimer = setTimeout(() => {
+    if (!current) renderHomeSchedule();
+  }, ms);
+}
+
+$('home-schedule').addEventListener('click', () => go({ view: 'schedule', date: null }));
 
 for (const id of ['day-prev', 'day-next']) {
   $(id).addEventListener('click', () => {
