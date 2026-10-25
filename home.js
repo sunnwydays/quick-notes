@@ -1,4 +1,4 @@
-// The home screen: category buttons, the ☰ menu, New project and Write.
+// The home screen: category buttons, the ☰ menu and New project.
 
 // ---------- home ----------
 
@@ -12,23 +12,18 @@ function categoryTile(cat) {
   onHoldRelease(btn, () => openEditor(cat));
   btn.addEventListener('click', () => {
     if (btn.held) return; // the click that ends a long press
-    if (writeNext) openEditor(cat);
-    else go(cat === SCHEDULE ? { view: 'schedule', date: null } : { view: 'entries', cat });
+    go(cat === SCHEDULE ? { view: 'schedule', date: null } : { view: 'entries', cat });
   });
   return btn;
 }
 
-// Projects go in their own zigzag on top. The first seven built-ins are the petals of a
-// "flower" around Add note, where the thumb rests (CSS places them in BUILT_IN order);
-// any after that sit beside Write under it.
+// Projects go in their own zigzag on top. The seven built-ins are the petals of a
+// "flower" around Add note, where the thumb rests (CSS places them in BUILT_IN order).
 function renderHome() {
-  $('write-btn').classList.toggle('primary', writeNext);
   const cats = orderedCategories();
-  const builtIns = cats.filter((c) => BUILT_IN.includes(c));
   $('projects').replaceChildren(...cats.filter((c) => !BUILT_IN.includes(c)).map(categoryTile));
-  for (const box of [$('flower'), $('flower-row')]) box.querySelectorAll('.tile').forEach((t) => t.remove());
-  $('flower').prepend(...builtIns.slice(0, 7).map(categoryTile));
-  $('flower-row').prepend(...builtIns.slice(7).map(categoryTile));
+  $('flower').querySelectorAll('.tile').forEach((t) => t.remove());
+  $('flower').prepend(...cats.filter((c) => BUILT_IN.includes(c)).map(categoryTile));
   fitGlance();
   renderSearch();
   showStatus();
@@ -157,9 +152,3 @@ document.addEventListener('click', (e) => {
 
 // Add note skips picking a category: each note is filed by its first words (autofile.js).
 $('add-any-btn').addEventListener('click', () => openEditor(AUTO));
-
-// Tapping Write again cancels it.
-$('write-btn').addEventListener('click', () => {
-  writeNext = !writeNext;
-  $('write-btn').classList.toggle('primary', writeNext);
-});

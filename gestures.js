@@ -42,8 +42,7 @@ document.addEventListener('pointerdown', () => {
   if (!stillHeld) endingHold = false;
 }, true);
 
-// Holding a category and letting go opens its editor, the same as tapping Write
-// and then it. The button turns black once held long enough, as the cue to let
+// Holding a category and letting go opens its editor. The button turns black once held long enough, as the cue to let
 // go. It opens on the lift rather than when the timer runs, because Android only
 // raises the keyboard for a focus() inside a real touch event. Android also
 // fires contextmenu on a long press, which counts too. If the browser cancels

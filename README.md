@@ -9,7 +9,7 @@ Live: https://quick-notes-liart.vercel.app
 **Install:** open the link in Chrome, tap ⋮ and then **Add to Home screen** (or **Install app**). On a Boox, use Chrome rather than the built-in browser.
 
 **Write a note**
-1. Hold a category until it turns black, then let go (or tap **Write**, then the category): a project, Todo, Working on, Schedule, Thought, Random projs, Bring or Journal.
+1. Hold a category until it turns black, then let go: a project, Todo, Working on, Schedule, Thought, Random projs, Bring or Journal.
 2. The text box opens with `- ` in it and the keyboard up, under that category's latest notes. Tap the Gboard mic and talk. Once the text is longer than the box (a long schedule, say), the latest notes are hidden and the box takes the whole screen.
 3. Press Enter to add the note. The box goes back to `- ` with the keyboard still up, ready for the next one. There's no way to type a line break in a note (except in a Schedule, where Enter starts a new `- ` line). A note that's already in its category (ignoring case, spacing and a full stop at the end) isn't added again; the banner at the bottom says "Already in Bring." instead.
 4. Tap **Save**, or use Android's back button. Both save what's in the box and go home. **Discard** throws it away.
@@ -26,7 +26,7 @@ Above the text box are the latest notes from every folder, each with its folder'
 
 **Menu:** the ☰ button at the top right of the home screen holds **New project**, **Export**, **Help** and **Log in**. Tapping anywhere else closes it without doing anything else.
 
-**Category buttons** are circles, three to a row, each with a line icon (projects get a folder) over its name. The icons are SVG rather than emoji so they stay sharp on e-ink. The built-in categories form a "flower": seven smaller circles evenly round a larger **Add note** (Todo at the top, then clockwise), so the main button sits where the thumb rests instead of at the bottom edge. **Write** is an ordinary button under it.
+**Category buttons** are circles, three to a row, each with a line icon (projects get a folder) over its name. The icons are SVG rather than emoji so they stay sharp on e-ink. The built-in categories form a "flower": seven smaller circles evenly round a larger **Add note** (Todo at the top, then clockwise), so the main button sits where the thumb rests instead of at the bottom edge.
 
 **To-dos on the home screen:** a few to-dos show as plain lines under the top row, so they can be seen without opening anything: three, or as many as fit above the category buttons, with bigger, roomier lines when there's space to spare. They're the newest and then the oldest, with its age ("9d"), so an old to-do can't stay out of sight. Tap them to open Todo. Hold one until it turns black and let go to mark it done, the same as its tick (`HOLD_TO_DONE_MS`, longer than the hold to write so it doesn't happen by accident), with an Undo. They're hidden when there are no to-dos, or while searching.
 
@@ -38,7 +38,7 @@ Above the text box are the latest notes from every folder, each with its folder'
 
 **Search:** type in the small box beside the sync icon and ☰ menu at the top of the home screen; that row stays put while the results scroll below it. The category buttons are replaced by every note that contains all the words you typed (any order, any case), grouped under its category with a count. Tap a category's heading to open its notes. **Clear** puts the buttons back.
 
-**Read:** tap a category. Its notes open, newest first, each with a Delete button and a Replace button (two arrows). Replace deletes the note and opens the text box for that category, so you can tick off a task and write the next one; the new note gets the current time, not the old note's. Back on the notes screen, Undo brings the old note back. In **Todo**, **Bring**, **Working on**, **Random projs** and every project, a tick takes the place of Delete and marks the note done; to delete one without it counting as done, swipe it sideways (it follows the finger and springs back if let go early). Either way it's gone from the list, with an Undo. **Show times** adds each note's time, and is remembered per category (e.g. on for Journal only). **Write** on the home screen only applies to the next tap; tap it again to cancel. Double-tap anywhere on the notes (not on a button) to go back, or hold a blank spot for a moment. Holding a note still selects its text.
+**Read:** tap a category. Its notes open, newest first, each with a Delete button and a Replace button (two arrows). Replace deletes the note and opens the text box for that category, so you can tick off a task and write the next one; the new note gets the current time, not the old note's. Back on the notes screen, Undo brings the old note back. In **Todo**, **Bring**, **Working on**, **Random projs** and every project, a tick takes the place of Delete and marks the note done; to delete one without it counting as done, swipe it sideways (it follows the finger and springs back if let go early). Either way it's gone from the list, with an Undo. **Show times** adds each note's time, and is remembered per category (e.g. on for Journal only). Double-tap anywhere on the notes (not on a button) to go back, or hold a blank spot for a moment. Holding a note still selects its text.
 
 **Schedule:** tap Schedule to see today's plan. The block happening now is shown in black with "Now, until 11:30", a gap between blocks shows "Free until 15:00", and finished blocks fold into a **See 5 done** row (each tap shows 3 more, newest first; **Hide done** folds them again). To write one, hold Schedule (or tap **New**/**Edit** on its screen) and paste a plan or type a line per block:
 
@@ -73,7 +73,7 @@ Plain HTML, CSS and JS. There's no framework and no build step. The JS files are
 | `data.js` | Constants, the saved data (`data`) and helpers for reading it. |
 | `views.js` | Switching screens, the history/back button and the Undo banner. |
 | `gestures.js` | Hold-and-release on a category; double-tap or hold blank space to leave the notes or schedule screen. |
-| `home.js` | The home screen: category buttons, the to-dos at the top, the ☰ menu, New project, Add note, Write. |
+| `home.js` | The home screen: category buttons, the to-dos at the top, the ☰ menu, New project, Add note. |
 | `editor.js` | The note editor: Enter to add, drafts, Save and Discard. |
 | `autofile.js` | Add note: picks each note's folder from its first words. |
 | `search.js` | The search box on the home screen: notes that match, grouped by category. |
