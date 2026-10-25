@@ -45,21 +45,37 @@ let glanceLines = HOME_LINES;
 // On a phone the category buttons sit at the bottom, which leaves a gap under the
 // columns. Draw them with three lines each, then add as many lines as fit in that
 // gap, keeping GLANCE_ROOM px of it. Every line is the same height, so one
-// measurement is enough. Elsewhere there's no gap and they stay at three.
-const GLANCE_ROOM = 32;
+// measurement is enough. What's still left (less than a line, or more when there
+// are no more to show) goes to the biggest of GLANCE_SIZES that fits: the text's
+// size and the space above and below each line. Elsewhere there's no gap and they
+// stay at three, at the usual size.
+const GLANCE_ROOM = 24;
+const GLANCE_SIZES = [[21, 10], [20, 8], [19, 6], [18, 4], [18, 2]];
 
 function fitGlance() {
+  const glance = $('glance');
+  const size = (font, pad) => {
+    glance.style.setProperty('--glance-font', `${font}px`);
+    glance.style.setProperty('--glance-pad', `${pad}px`);
+  };
+  size(18, 0);
   glanceLines = HOME_LINES;
   renderTodos();
   renderHomeSchedule();
-  const line = $('glance').querySelector('.todo-line, .glance-block');
+  const line = glance.querySelector('.todo-line, .glance-block');
   if (!line || !line.offsetHeight) return; // nothing to show, or hidden while searching
-  const gap = $('categories').getBoundingClientRect().top - $('glance').getBoundingClientRect().bottom;
-  const extra = Math.floor((gap - GLANCE_ROOM) / line.offsetHeight);
-  if (extra <= 0) return;
-  glanceLines += extra;
-  renderTodos();
-  renderHomeSchedule();
+  const room = () => $('categories').getBoundingClientRect().top - glance.getBoundingClientRect().bottom - GLANCE_ROOM;
+  const extra = Math.floor(room() / line.offsetHeight);
+  if (extra > 0) {
+    glanceLines += extra;
+    renderTodos();
+    renderHomeSchedule();
+  }
+  for (const [font, pad] of GLANCE_SIZES) {
+    size(font, pad);
+    if (room() >= 0) return;
+  }
+  size(18, 0);
 }
 
 // The free height changes when the keyboard closes or the phone turns.
