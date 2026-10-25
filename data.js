@@ -37,9 +37,11 @@ const EPOCH = '1970-01-01T00:00:00.000Z';
 const $ = (id) => document.getElementById(id);
 // ---------- storage ----------
 // Categories are {name, updatedAt, deletedAt, dirty} and entries are
-// {id, category, text, createdAt, updatedAt, deletedAt, dirty}.
+// {id, category, text, createdAt, updatedAt, deletedAt, deletedHow, dirty}.
 // Deleting sets deletedAt instead of removing the row, so the delete can sync
-// to other devices. dirty = changed here and not yet uploaded.
+// to other devices. deletedHow says what removed it ('deleted', 'replaced',
+// 'undone' or 'project_removed'; missing on older notes). dirty = changed here
+// and not yet uploaded.
 
 function readJSON(key) {
   try {

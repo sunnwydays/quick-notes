@@ -71,7 +71,7 @@ function renderEntries(cat) {
     const { id } = entry;
     const del = iconButton('Delete', TRASH_ICON);
     del.addEventListener('click', () => {
-      const entry = deleteEntry(id);
+      const entry = deleteEntry(id, 'deleted');
       if (!entry) return;
       showUndo('Note deleted.', () => restoreEntry(entry));
       renderEntries(cat);
@@ -81,7 +81,7 @@ function renderEntries(cat) {
     // task, write the one after it). Undo, back on this screen, brings the old one back.
     const replace = iconButton('Replace', REPLACE_ICON);
     replace.addEventListener('click', () => {
-      const entry = deleteEntry(id);
+      const entry = deleteEntry(id, 'replaced');
       if (!entry) return;
       pendingUndo = ['Old note deleted.', () => restoreEntry(entry)];
       openEditor(cat);
@@ -105,19 +105,24 @@ function iconButton(label, icon) {
 
 // Looks the note up again, since `data` may have been reloaded since the list
 // was drawn. Returns the deleted note, or null if it's already gone.
-function deleteEntry(id) {
+// `how` records which button removed it ('deleted' or 'replaced'), for looking
+// back at how notes get dealt with; the app itself doesn't use it.
+function deleteEntry(id, how) {
   const entry = data.entries.find((e) => e.id === id);
   if (!entry) return null;
-  touch(entry, { deletedAt: new Date().toISOString() });
+  touch(entry, { deletedAt: new Date().toISOString(), deletedHow: how });
   persist();
   return entry;
 }
 
 // The server treats a delete as final, so Undo brings the note back as a copy
 // with a new id. It keeps the original createdAt, so it sorts where it was.
+// The old row stays deleted, tagged 'undone'.
 function restoreEntry(entry) {
   const now = new Date().toISOString();
-  data.entries.push({ ...entry, id: newId(), updatedAt: now, deletedAt: null, dirty: true });
+  const old = data.entries.find((e) => e.id === entry.id);
+  if (old) touch(old, { deletedHow: 'undone' });
+  data.entries.push({ ...entry, id: newId(), updatedAt: now, deletedAt: null, deletedHow: null, dirty: true });
   persist();
   renderEntries(current.cat);
   sync();
@@ -138,7 +143,7 @@ $('remove-project-btn').addEventListener('click', () => {
     : `Remove "${cat}"?`;
   if (!confirm(msg)) return;
   const now = new Date().toISOString();
-  for (const e of entries) touch(e, { deletedAt: now });
+  for (const e of entries) touch(e, { deletedAt: now, deletedHow: 'project_removed' });
   touch(data.categories.find((c) => c.name === cat), { deletedAt: now });
   persist();
   history.back();

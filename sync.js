@@ -50,14 +50,20 @@ const TABLES = {
     toRow: (e) => ({
       id: e.id, user_id: auth.user.id, category: e.category, text: e.text,
       created_at: e.createdAt, updated_at: e.updatedAt, deleted_at: e.deletedAt,
+      deleted_how: e.deletedHow ?? null,
     }),
     fromRow: (r) => ({
       id: r.id, category: r.category, text: r.text, createdAt: iso(r.created_at),
-      updatedAt: iso(r.updated_at), deletedAt: iso(r.deleted_at),
+      updatedAt: iso(r.updated_at), deletedAt: iso(r.deleted_at), deletedHow: r.deleted_how,
     }),
+    // A delete always wins. How it was deleted follows the delete, and can later
+    // become 'undone' (the server allows only that change).
     merge(local, remote) {
-      if (!remote.deletedAt || local.deletedAt) return false;
-      Object.assign(local, { deletedAt: remote.deletedAt, updatedAt: remote.updatedAt });
+      if (!remote.deletedAt) return false;
+      if (local.deletedAt && (remote.deletedHow !== 'undone' || local.deletedHow === 'undone')) return false;
+      Object.assign(local, {
+        deletedAt: local.deletedAt || remote.deletedAt, deletedHow: remote.deletedHow, updatedAt: remote.updatedAt,
+      });
       return true;
     },
   },

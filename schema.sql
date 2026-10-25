@@ -9,6 +9,9 @@ create table public.qn_entries (
   created_at timestamptz not null,
   updated_at timestamptz not null,
   deleted_at timestamptz,
+  -- What removed the note: 'deleted', 'replaced', 'undone' or 'project_removed'.
+  -- Null for live notes and for notes deleted before this was recorded.
+  deleted_how text,
   -- Set by the server on every write; clients pull rows with synced_at past their cursor.
   synced_at timestamptz not null default clock_timestamp()
 );
@@ -34,11 +37,16 @@ create policy "own categories" on public.qn_categories for all to authenticated
   using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 
 -- Notes never change after saving, except to be deleted, and a delete is final.
+-- So is how it was deleted, except that Undo re-tags the old row 'undone' (the
+-- restored note is a new row).
 create function public.qn_entries_touch() returns trigger
 language plpgsql set search_path = '' as $$
 begin
   if tg_op = 'UPDATE' then
     new.deleted_at := coalesce(old.deleted_at, new.deleted_at);
+    if new.deleted_how is distinct from 'undone' then
+      new.deleted_how := coalesce(old.deleted_how, new.deleted_how);
+    end if;
   end if;
   new.synced_at := clock_timestamp();
   return new;
