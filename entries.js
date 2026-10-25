@@ -18,9 +18,10 @@ const CHECK_ICON =
   '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
   '<path d="M4 12l5 5L20 6"/></svg>';
 
-// Lists of things to get done. Their notes get a tick, which marks one done,
-// instead of the trash button; swiping a note sideways deletes it instead.
-const CHECK_OFF = ['Todo', 'Bring'];
+// Lists of things to get done, and every project. Their notes get a tick, which
+// marks one done, instead of the trash button; swiping a note sideways deletes it instead.
+const CHECK_OFF = ['Todo', 'Bring', 'Working on', 'Random projs'];
+const checksOff = (cat) => CHECK_OFF.includes(cat) || !BUILT_IN.includes(cat);
 
 const REPLACE_ICON =
   '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
@@ -77,7 +78,7 @@ function renderEntries(cat) {
     div.className = 'entry';
     const body = entryBody(entry);
     const { id } = entry;
-    const checkOff = CHECK_OFF.includes(cat);
+    const checkOff = checksOff(cat);
     const del = checkOff ? iconButton('Done', CHECK_ICON) : iconButton('Delete', TRASH_ICON);
     del.addEventListener('click', () => removeEntry(id, checkOff ? 'done' : 'deleted'));
     if (checkOff) {
