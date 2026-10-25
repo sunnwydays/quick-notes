@@ -176,11 +176,11 @@ body:has(#undo-bar:not([hidden])) > section { padding-bottom: 88px; }
 }
 #home.searching #home-todos { display: none; }
 .todos-head { display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 700; margin-bottom: 2px; }
-.todo-line {
-  display: block; font-family: Literata, Georgia, serif; font-size: 18px; line-height: 1.4;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.todo-line::before { content: '• '; }
+.todo-line { display: flex; align-items: baseline; gap: 6px; font-family: Literata, Georgia, serif; font-size: 18px; line-height: 1.4; }
+.todo-text { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.todo-text::before { content: '• '; }
+/* How old the oldest to-do is, as "9d". */
+.todo-age { flex: none; font-family: Atkinson, system-ui, sans-serif; font-size: 14px; font-weight: 700; color: #555; }
 .todos-more { display: block; font-size: 15px; color: #555; margin-top: 2px; }
 .group-head {
   display: flex; align-items: center; gap: 10px; width: 100%; margin: 12px 0 4px; min-height: 48px; padding: 6px 12px;

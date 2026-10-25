@@ -34,28 +34,41 @@ function renderHome() {
   showStatus();
 }
 
-// The newest few to-dos, one line each, at the top of the screen where they're
-// read rather than tapped. Hidden when there are none.
+// A few to-dos, one line each, at the top of the screen where they're read
+// rather than tapped. The newest, except that the last line is the oldest, with
+// its age, so an old one can't stay out of sight. Hidden when there are none.
 const HOME_TODOS = 3;
 
 function renderTodos() {
   const todos = entriesFor('Todo');
+  const oldest = todos.length > HOME_TODOS ? todos[todos.length - 1] : null;
+  const shown = oldest ? [...todos.slice(0, HOME_TODOS - 1), oldest] : todos;
   const box = $('home-todos');
   box.hidden = !todos.length;
   const head = document.createElement('span');
   head.className = 'todos-head';
   head.append(categoryIcon('Todo', 18), 'Todo');
   box.replaceChildren(head);
-  for (const e of todos.slice(0, HOME_TODOS)) {
+  for (const e of shown) {
     const line = document.createElement('span');
     line.className = 'todo-line';
-    line.textContent = e.text.replace(/^-\s*/, '');
+    const text = document.createElement('span');
+    text.className = 'todo-text';
+    text.textContent = e.text.replace(/^-\s*/, '');
+    line.append(text);
+    const days = Math.floor((Date.now() - Date.parse(e.createdAt)) / 864e5);
+    if (e === oldest && days > 0) {
+      const age = document.createElement('span');
+      age.className = 'todo-age';
+      age.textContent = `${days}d`;
+      line.append(age);
+    }
     box.append(line);
   }
-  if (todos.length > HOME_TODOS) {
+  if (todos.length > shown.length) {
     const more = document.createElement('span');
     more.className = 'todos-more';
-    more.textContent = `+${todos.length - HOME_TODOS} more`;
+    more.textContent = `+${todos.length - shown.length} more`;
     box.append(more);
   }
 }
