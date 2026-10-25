@@ -18,7 +18,7 @@ function categoryTile(cat) {
   return btn;
 }
 
-// Projects go in their own grid on top. The first six built-ins are the petals of a
+// Projects go in their own zigzag on top. The first seven built-ins are the petals of a
 // "flower" around Add note, where the thumb rests (CSS places them in BUILT_IN order);
 // any after that sit beside Write under it.
 function renderHome() {
@@ -27,8 +27,8 @@ function renderHome() {
   const builtIns = cats.filter((c) => BUILT_IN.includes(c));
   $('projects').replaceChildren(...cats.filter((c) => !BUILT_IN.includes(c)).map(categoryTile));
   for (const box of [$('flower'), $('flower-row')]) box.querySelectorAll('.tile').forEach((t) => t.remove());
-  $('flower').prepend(...builtIns.slice(0, 6).map(categoryTile));
-  $('flower-row').prepend(...builtIns.slice(6).map(categoryTile));
+  $('flower').prepend(...builtIns.slice(0, 7).map(categoryTile));
+  $('flower-row').prepend(...builtIns.slice(7).map(categoryTile));
   renderSearch();
   showStatus();
 }

@@ -46,22 +46,23 @@ button.quiet { border-color: transparent; background: transparent; font-weight: 
 /* Holding a category opens its editor, so don't select its label or show a callout. */
 .tile { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 
-/* The built-ins: six petals in a hexagon around a larger Add note, two above it, one
-   each side and two below. Petals are 29% of the width, Add note 38%, with 2% between
-   it and each petal. Lefts are % of the width; tops are % of the height, which is
-   0.905 of the width. */
-#flower { position: relative; width: 100%; max-width: 420px; margin: 0 auto; aspect-ratio: 1 / 0.905; }
-#flower .tile { position: absolute; width: 29%; padding: 8px; }
-#flower .tile-name { font-size: 16px; }
-#flower .tile:nth-child(1) { left: 17.75%; top: 0; }
-#flower .tile:nth-child(2) { left: 53.25%; top: 0; }
-#flower .tile:nth-child(3) { left: 0; top: 33.98%; }
-#flower .tile:nth-child(4) { left: 71%; top: 33.98%; }
-#flower .tile:nth-child(5) { left: 17.75%; top: 67.95%; }
-#flower .tile:nth-child(6) { left: 53.25%; top: 67.95%; }
-#flower #add-any-btn { position: absolute; left: 31%; top: 29%; width: 38%; gap: 6px; font-size: 19px; }
+/* The built-ins: seven petals evenly round a larger Add note, the first at the top and
+   the rest clockwise. Petals are 27% of the width and Add note 40%; the petals' centres
+   are 37.4% of the width from its centre. Lefts are % of the width; tops are % of the
+   height, which is 0.981 of the width. */
+#flower { position: relative; width: 100%; max-width: 420px; margin: 0 auto; aspect-ratio: 1 / 0.981; }
+#flower .tile { position: absolute; width: 27%; padding: 8px; }
+#flower .tile-name { font-size: 15px; }
+#flower .tile:nth-child(1) { left: 36.5%; top: 0; }
+#flower .tile:nth-child(2) { left: 65.74%; top: 14.35%; }
+#flower .tile:nth-child(3) { left: 72.96%; top: 46.61%; }
+#flower .tile:nth-child(4) { left: 52.73%; top: 72.48%; }
+#flower .tile:nth-child(5) { left: 20.27%; top: 72.48%; }
+#flower .tile:nth-child(6) { left: 0; top: 46.61%; }
+#flower .tile:nth-child(7) { left: 7.26%; top: 14.35%; }
+#flower #add-any-btn { position: absolute; left: 30%; top: 31.5%; width: 40%; gap: 6px; font-size: 19px; }
 
-/* Under the flower: the built-in that doesn't fit in it (Journal) and Write, as ordinary buttons. */
+/* Under the flower: Write, as an ordinary button, and any built-in past the seventh. */
 #flower-row { display: flex; gap: 12px; margin-top: 12px; }
 #flower-row button { flex: 1; display: flex; align-items: center; justify-content: center; gap: 10px; }
 /* Grey so it doesn't look like another category; black while waiting for a category tap. */
