@@ -238,7 +238,7 @@ button.todo-line.primary .todo-age { color: #fff; }
    top while search results scroll. The menu drops down over the page below. */
 .sync-row {
   position: sticky; top: 0; z-index: 1; background: #fff;
-  display: flex; align-items: center; justify-content: flex-end; gap: 4px; margin-bottom: 6px;
+  display: flex; align-items: center; justify-content: flex-end; gap: 4px; margin-bottom: 12px;
 }
 #sync-status { display: flex; align-items: center; justify-content: center; min-width: 48px; min-height: 48px; }
 #sync-status svg, #menu-btn svg { display: block; }
