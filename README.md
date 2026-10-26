@@ -2,7 +2,7 @@
 
 One-tap dictation notes for Android phones and Boox e-readers. Tap a category to read its notes; hold it and let go to open the text box with the keyboard up, ready for Gboard voice typing.
 
-Live: https://quick-notes-liart.vercel.app
+Live: https://dash-notes.vercel.app
 
 ## Using it
 
