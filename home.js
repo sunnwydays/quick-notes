@@ -12,9 +12,13 @@ function categoryTile(cat) {
   onHoldRelease(btn, () => openEditor(cat));
   btn.addEventListener('click', () => {
     if (btn.held) return; // the click that ends a long press
-    go(cat === SCHEDULE ? { view: 'schedule', date: null } : { view: 'entries', cat });
+    openCategory(cat);
   });
   return btn;
+}
+
+function openCategory(cat) {
+  go(cat === SCHEDULE ? { view: 'schedule', date: null } : { view: 'entries', cat });
 }
 
 // Projects go in their own zigzag on top. The seven built-ins are the petals of a

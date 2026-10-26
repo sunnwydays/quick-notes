@@ -58,6 +58,10 @@ No new material after that, early night
 **On a computer:** keyboard shortcuts, also listed under "On a computer" in Help.
 - **Esc** goes back from any screen. In the text box it saves first, like Save. On the home screen it closes the menu or clears the search.
 - **Ctrl+Enter** or **Ctrl+S** saves the text box and goes back, even in a Schedule, where Enter starts a new line.
+- **A** or **E** opens the text box: Add note on the home screen, or the category on screen. On the schedule screen **E** is Edit (or New when the day has none), **N** (or **A**) is New, **S** is All saved, and **←** **→** step through the days like the ‹ › arrows.
+- On the home screen, **1** to **7** open the built-in categories clockwise from Todo (Todo, Schedule, Working on, Random projs, Thought, Bring, Journal), and **/** jumps to the search box.
+- **T** is Show/Hide times, **U** or **Ctrl+Z** is Undo while the banner shows it, and **?** opens Help.
+- Single keys don't fire while typing in a box, so they never end up in a note.
 
 **Back up**
 - **Export** in the home screen's ☰ menu downloads every note as a `.txt` file.
