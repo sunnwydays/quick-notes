@@ -98,7 +98,7 @@ Plain HTML, CSS and JS. There's no framework and no build step. The JS files are
 | `style.css` | E-ink friendly: black on white, large tap targets, no shadows or animations. Main actions are solid black, others a 2px outline, minor ones (`.quiet`) plain bold text or an icon. |
 | `sw.js` | Service worker: a background script that caches the app files so the app opens offline. |
 | `manifest.json` | Tells Android the app's name and icon, and to open full-screen without the browser bar. |
-| `icons/` | App icons, 192 px and 512 px. |
+| `icons/` | App icons, 192 px and 512 px with rounded corners, plus a full-bleed 512 px maskable copy for Android to crop itself. |
 | `fonts/` | Atkinson Hyperlegible (interface) and Literata (note text), Latin subset, with their Open Font License files. |
 
 **Data** is kept in `localStorage` under the key `quicknotes`:
