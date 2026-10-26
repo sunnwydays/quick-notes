@@ -152,6 +152,35 @@ function onSwipe(el, action) {
     if (sideways && Math.abs(dx) >= SWIPE_DELETE_PX) action();
   });
   el.addEventListener('touchcancel', reset);
+
+  // The same drag with a mouse. The text is only kept from being selected once the
+  // drag turns sideways, so selecting a note's words by dragging still works.
+  el.addEventListener('mousedown', (e) => {
+    if (e.button !== 0 || e.target.closest('button')) return;
+    const from = { x: e.clientX, y: e.clientY };
+    let dx = 0;
+    let dragging = false;
+    const move = (m) => {
+      dx = m.clientX - from.x;
+      const dy = m.clientY - from.y;
+      if (!dragging && Math.abs(dx) > 10 && Math.abs(dx) > 2 * Math.abs(dy)) {
+        dragging = true;
+        getSelection().removeAllRanges();
+      }
+      if (dragging) {
+        m.preventDefault();
+        el.style.transform = `translateX(${dx}px)`;
+      }
+    };
+    const up = () => {
+      document.removeEventListener('mousemove', move);
+      document.removeEventListener('mouseup', up);
+      el.style.transform = '';
+      if (dragging && Math.abs(dx) >= SWIPE_DELETE_PX) action();
+    };
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', up);
+  });
 }
 
 // Swiping sideways on the schedule steps through the days, the same as the ‹ ›
