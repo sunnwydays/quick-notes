@@ -14,7 +14,7 @@ function downloadExport() {
   const blob = new Blob([exportText()], { type: 'text/plain' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `quick-notes-${formatFull(new Date().toISOString()).slice(0, 10)}.txt`;
+  a.download = `dash-${formatFull(new Date().toISOString()).slice(0, 10)}.txt`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }

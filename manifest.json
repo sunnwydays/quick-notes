@@ -1,6 +1,6 @@
 {
-  "name": "Quick Notes",
-  "short_name": "Notes",
+  "name": "Dash",
+  "short_name": "Dash",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

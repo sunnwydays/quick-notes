@@ -1,4 +1,4 @@
-# Working on Quick Notes
+# Working on Dash
 
 See README.md for how the app works and how it deploys (every push to `main` goes live).
 
