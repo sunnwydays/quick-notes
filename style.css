@@ -51,7 +51,7 @@ button.quiet { border-color: transparent; background: transparent; font-weight: 
 #flower, #projects { margin: 0 max(-8px, (100% - 440px) / 2); }
 
 /* The built-ins: eight petals evenly round a larger Add note, the first at the top and
-   the rest clockwise. Petals are 26% of the width and Add note 42%; the petals' centres
+   the rest clockwise. Petals are 26% of the width and Add note 39%; the petals' centres
    are 36% of the width from its centre. Lefts and tops are % of the width, which is
    also the height. */
 #flower { position: relative; aspect-ratio: 1; }
@@ -65,7 +65,7 @@ button.quiet { border-color: transparent; background: transparent; font-weight: 
 #flower .tile:nth-child(6) { left: 11.54%; top: 62.46%; }
 #flower .tile:nth-child(7) { left: 1%; top: 37%; }
 #flower .tile:nth-child(8) { left: 11.54%; top: 11.54%; }
-#flower #add-any-btn { position: absolute; left: 29%; top: 29%; width: 42%; gap: 6px; font-size: 22px; }
+#flower #add-any-btn { position: absolute; left: 30.5%; top: 30.5%; width: 39%; gap: 6px; font-size: 20px; }
 
 /* Like the tiles, the whole page can't be selected while the finger from a long press is still down. */
 body.still-held * { user-select: none !important; -webkit-user-select: none !important; -webkit-touch-callout: none !important; }
