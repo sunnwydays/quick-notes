@@ -50,21 +50,22 @@ button.quiet { border-color: transparent; background: transparent; font-weight: 
    bigger circles; on a wide screen they're 440px, centred. */
 #flower, #projects { margin: 0 max(-8px, (100% - 440px) / 2); }
 
-/* The built-ins: seven petals evenly round a larger Add note, the first at the top and
-   the rest clockwise. Petals are 28% of the width and Add note 40%; the petals' centres
-   are 36.93% of the width from its centre. Lefts are % of the width; tops are % of the
-   height, which is 0.982 of the width. */
-#flower { position: relative; aspect-ratio: 1 / 0.982; }
-#flower .tile { position: absolute; width: 28%; padding: 8px; }
+/* The built-ins: eight petals evenly round a larger Add note, the first at the top and
+   the rest clockwise. Petals are 26% of the width and Add note 36%; the petals' centres
+   are 36% of the width from its centre. Lefts and tops are % of the width, which is
+   also the height. */
+#flower { position: relative; aspect-ratio: 1; }
+#flower .tile { position: absolute; width: 26%; padding: 8px; }
 #flower .tile-name { font-size: 15px; }
-#flower .tile:nth-child(1) { left: 36%; top: 0; }
-#flower .tile:nth-child(2) { left: 64.87%; top: 14.16%; }
-#flower .tile:nth-child(3) { left: 72%; top: 45.97%; }
-#flower .tile:nth-child(4) { left: 52.02%; top: 71.49%; }
-#flower .tile:nth-child(5) { left: 19.98%; top: 71.49%; }
-#flower .tile:nth-child(6) { left: 0; top: 45.97%; }
-#flower .tile:nth-child(7) { left: 7.13%; top: 14.16%; }
-#flower #add-any-btn { position: absolute; left: 30%; top: 31.49%; width: 40%; gap: 6px; font-size: 19px; }
+#flower .tile:nth-child(1) { left: 37%; top: 1%; }
+#flower .tile:nth-child(2) { left: 62.46%; top: 11.54%; }
+#flower .tile:nth-child(3) { left: 73%; top: 37%; }
+#flower .tile:nth-child(4) { left: 62.46%; top: 62.46%; }
+#flower .tile:nth-child(5) { left: 37%; top: 73%; }
+#flower .tile:nth-child(6) { left: 11.54%; top: 62.46%; }
+#flower .tile:nth-child(7) { left: 1%; top: 37%; }
+#flower .tile:nth-child(8) { left: 11.54%; top: 11.54%; }
+#flower #add-any-btn { position: absolute; left: 32%; top: 32%; width: 36%; gap: 6px; font-size: 19px; }
 
 /* Like the tiles, the whole page can't be selected while the finger from a long press is still down. */
 body.still-held * { user-select: none !important; -webkit-user-select: none !important; -webkit-touch-callout: none !important; }

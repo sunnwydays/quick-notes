@@ -10,6 +10,7 @@ const DEFAULT_FOLDER = 'Todo';
 // projects are only here for mishearings.
 const FOLDER_WORDS = {
   Todo: ['todo', 'todos', 'to do', 'to dos', 'two do', 'too do', 'task'],
+  Buy: ['buy', 'shopping', 'shop'],
   Bring: ['bring', 'brain', 'bring home', 'bring from home', 'pack'],
   Thought: ['thought', 'thoughts', 'thot'],
   Journal: ['journal', 'journal entry', 'diary', 'dear diary'],

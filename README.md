@@ -9,7 +9,7 @@ Live: https://dash-notes.vercel.app
 **Install:** open the link in Chrome, tap ⋮ and then **Add to Home screen** (or **Install app**). On a Boox, use Chrome rather than the built-in browser.
 
 **Write a note**
-1. Hold a category until it turns black, then let go: a project, Todo, Schedule, Working on, Random projs, Thought, Bring or Journal.
+1. Hold a category until it turns black, then let go: a project, Todo, Schedule, Working on, Random projs, Thought, Buy, Bring or Journal.
 2. The text box opens with `- ` in it and the keyboard up, under that category's latest notes. Tap the Gboard mic and talk. Once the text is longer than the box (a long schedule, say), the latest notes are hidden and the box takes the whole screen.
 3. Press Enter to add the note. The box goes back to `- ` with the keyboard still up, ready for the next one. There's no way to type a line break in a note (except in a Schedule, where Enter starts a new `- ` line). A note that's already in its category (ignoring case, spacing and a full stop at the end) isn't added again; the banner at the bottom says "Already in Bring." instead.
 4. Tap **Save**, or use Android's back button. Both save what's in the box and go home. **Discard** throws it away.
@@ -59,7 +59,7 @@ No new material after that, early night
 - **Esc** goes back from any screen. In the text box it saves first, like Save. On the home screen it closes the menu or clears the search.
 - **Ctrl+Enter** or **Ctrl+S** saves the text box and goes back, even in a Schedule, where Enter starts a new line.
 - **A** or **E** opens the text box: Add note on the home screen, or the category on screen. On the schedule screen **E** is Edit (or New when the day has none), **N** (or **A**) is New, **S** is All saved, and **←** **→** step through the days like the ‹ › arrows.
-- On the home screen, **1** to **7** open the built-in categories clockwise from Todo (Todo, Schedule, Working on, Random projs, Thought, Bring, Journal), and **/** jumps to the search box.
+- On the home screen, **1** to **8** open the built-in categories clockwise from Todo (Todo, Schedule, Working on, Random projs, Thought, Buy, Bring, Journal), and **/** jumps to the search box.
 - On the notes screen, **↓** **↑** (or **J** **K**) outline a note. **X** does what its tick or Delete button does, **Delete** or **Backspace** deletes it without counting it as done (the keyboard's swipe), and **R** is Replace. After one goes, the outline moves onto the next note, so a run of them can be ticked off in a row.
 - **T** is Show/Hide times, **U** or **Ctrl+Z** is Undo while the banner shows it, and **?** opens Help.
 - Single keys don't fire while typing in a box, so they never end up in a note.

@@ -20,7 +20,7 @@ const CHECK_ICON =
 
 // Lists of things to get done, and every project. Their notes get a tick, which
 // marks one done, instead of the trash button; swiping a note sideways deletes it instead.
-const CHECK_OFF = ['Todo', 'Bring', 'Working on', 'Random projs'];
+const CHECK_OFF = ['Todo', 'Buy', 'Bring', 'Working on', 'Random projs'];
 const checksOff = (cat) => CHECK_OFF.includes(cat) || !BUILT_IN.includes(cat);
 
 const REPLACE_ICON =

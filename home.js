@@ -21,7 +21,7 @@ function openCategory(cat) {
   go(cat === SCHEDULE ? { view: 'schedule', date: null } : { view: 'entries', cat });
 }
 
-// Projects go in their own zigzag on top. The seven built-ins are the petals of a
+// Projects go in their own zigzag on top. The eight built-ins are the petals of a
 // "flower" around Add note, where the thumb rests (CSS places them in BUILT_IN order).
 function renderHome() {
   const cats = orderedCategories();

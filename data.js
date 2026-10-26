@@ -10,7 +10,7 @@ const SCHEDULE = 'Schedule';
 // goes to the folder its first words name (autofile.js).
 const AUTO = 'Add note';
 // In button order: clockwise round the flower from the top.
-const BUILT_IN = ['Todo', SCHEDULE, 'Working on', 'Random projs', 'Thought', 'Bring', 'Journal'];
+const BUILT_IN = ['Todo', SCHEDULE, 'Working on', 'Random projs', 'Thought', 'Buy', 'Bring', 'Journal'];
 // Line icons (SVG path data, 24x24), drawn in the text colour so they stay crisp
 // on e-ink and turn white on a black button. Display only; the stored (and
 // synced) category name stays plain text. Projects all share the folder.
@@ -19,6 +19,7 @@ const ICONS = {
   'Working on': 'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z',
   Thought: 'M7.9 20A9 9 0 1 0 4 16.1L2 22z',
   'Random projs': 'M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5M9 18h6M10 22h4',
+  Buy: 'M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0',
   Bring: 'M3 10l9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z',
   Journal: 'M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z',
   [SCHEDULE]: 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z',
