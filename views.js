@@ -23,7 +23,7 @@ function render(state) {
     show('editor');
     fitText(true);
   } else if (state.view === 'entries') {
-    renderEntries(state.cat);
+    renderEntries(state.cat, true);
     show('entries');
   } else if (state.view === 'schedule') {
     renderSchedule(state, true);

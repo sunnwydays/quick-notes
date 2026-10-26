@@ -66,7 +66,9 @@ function entryBody(entry, withFolder = false) {
   return body;
 }
 
-function renderEntries(cat) {
+// fresh = just opened, so no note is picked yet.
+function renderEntries(cat, fresh = false) {
+  if (fresh) picked = -1;
   setLabel($('entries-title'), cat);
   const box = $('entries-list');
   box.replaceChildren();
@@ -80,6 +82,7 @@ function renderEntries(cat) {
   for (const entry of entries) {
     const div = document.createElement('div');
     div.className = 'entry';
+    div.dataset.id = entry.id;
     const body = entryBody(entry);
     const { id } = entry;
     const checkOff = checksOff(cat);
@@ -109,6 +112,29 @@ function renderEntries(cat) {
   box.classList.toggle('with-times', timesShown(cat));
   $('times-btn').textContent = timesShown(cat) ? 'Hide times' : 'Show times';
   $('remove-project-btn').hidden = BUILT_IN.includes(cat);
+  showPicked();
+}
+
+// ---------- picking a note from the keyboard ----------
+// On a computer, ↓ and ↑ outline a note for keys.js to tick off, delete or
+// replace. After one goes, the outline stays at the same place in the list,
+// on the note that took its place, so a run of them can be ticked off in a row.
+let picked = -1; // index in the list, or -1 for none
+
+function showPicked(scroll = false) {
+  const notes = $('entries-list').querySelectorAll('.entry');
+  picked = Math.min(picked, notes.length - 1);
+  notes.forEach((n, i) => n.classList.toggle('picked', i === picked));
+  if (scroll && picked >= 0) notes[picked].scrollIntoView({ block: 'nearest' });
+}
+
+function movePick(step) {
+  picked = Math.max(0, picked + step);
+  showPicked(true);
+}
+
+function pickedNote() {
+  return $('entries-list').querySelector('.entry.picked');
 }
 
 function iconButton(label, icon) {

@@ -144,6 +144,8 @@ body.still-held * { user-select: none !important; -webkit-user-select: none !imp
   width: 44px; height: 44px; min-height: 0; padding: 0;
 }
 .entry-btn svg { display: block; }
+/* Picked with the arrow keys on a computer (entries.js). */
+.entry.picked { outline: 3px solid #000; outline-offset: -3px; }
 
 /* Pinned to the bottom of the screen; the page gets extra room so the banner never covers the last thing on it. */
 #undo-bar {

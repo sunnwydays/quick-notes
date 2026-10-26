@@ -49,8 +49,16 @@ function shortcut(key) {
     else if (key >= '1' && key <= String(BUILT_IN.length)) openCategory(BUILT_IN[key - 1]);
     else return false;
   } else if (view === 'entries') {
+    // ↓ ↑ (or J K) pick a note (entries.js). X does what its tick or trash button
+    // does; Delete deletes it without counting it as done, like a swipe.
+    const note = pickedNote();
     if (key === 'a' || key === 'e') openEditor(current.cat);
     else if (key === 't') $('times-btn').click();
+    else if (key === 'arrowdown' || key === 'j') movePick(1);
+    else if (key === 'arrowup' || key === 'k') movePick(-1);
+    else if (note && key === 'x') removeEntry(note.dataset.id, checksOff(current.cat) ? 'done' : 'deleted');
+    else if (note && (key === 'delete' || key === 'backspace')) removeEntry(note.dataset.id, 'deleted');
+    else if (note && key === 'r' && replaces(current.cat)) note.querySelector('[aria-label="Replace"]').click();
     else return false;
   } else if (view === 'schedule') {
     if (key === 'e') return press('schedule-edit-btn') || press('schedule-new-btn');
