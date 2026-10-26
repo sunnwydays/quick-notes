@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "app.vercel.dash_notes.twa",
+    "sha256_cert_fingerprints": ["22:C0:5D:CC:D3:0D:3D:29:50:61:97:51:E7:48:7E:4A:61:B0:58:38:1B:F4:F4:64:34:8A:C0:FF:49:94:1F:1A"]
+  }
+}]
