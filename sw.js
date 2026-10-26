@@ -5,7 +5,7 @@
 // Only the app's own files are handled. Sync requests to Supabase go straight
 // to the network, so the app never sees stale notes from the cache.
 
-const CACHE = 'quick-notes-v9';
+const CACHE = 'quick-notes-v10';
 const FILES = [
   './',
   'index.html',
@@ -23,6 +23,7 @@ const FILES = [
   'sync.js',
   'login.js',
   'help.js',
+  'keys.js',
   'main.js',
   'manifest.json',
   'icons/icon-192.png',

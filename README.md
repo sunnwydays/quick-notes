@@ -55,6 +55,10 @@ No new material after that, early night
 - A line starting with a day (`Sun`, `Monday:`, `Tue 27 Oct`, `Tomorrow`) starts that day's schedule, so a paste covering several days is saved as one note per day. Without one, it's today's. A day means the next one on or after the day it was saved, so `Sun` saved on a Saturday is tomorrow's. After saving from the schedule screen, it shows the day the schedule was saved for, and an empty today links to the next day that has one.
 - **New** opens a blank schedule for the first day without one, starting from the day on screen: with Saturday and Sunday planned, New on Saturday opens Monday's. A later day's starts with its weekday, so it's saved for that day. If the whole coming week is planned, it opens the day on screen. **Edit** opens the day's schedule in the editor with a new line at the end. Neither shows on a past day. Saving it adds a new version; the newest one for a day is the one shown. A day that comes out the same as its current version isn't saved again, so saving Edit without changes, or pasting the same plan twice, adds nothing. **All saved** lists every version, for any day, as plain notes (with Delete, Show times and Copy all). The ‹ › arrows step through the days that have a schedule; swiping left or right on the screen does the same.
 
+**On a computer:** keyboard shortcuts, also listed under "On a computer" in Help.
+- **Esc** goes back from any screen. In the text box it saves first, like Save. On the home screen it closes the menu or clears the search.
+- **Ctrl+Enter** or **Ctrl+S** saves the text box and goes back, even in a Schedule, where Enter starts a new line.
+
 **Back up**
 - **Export** in the home screen's ☰ menu downloads every note as a `.txt` file.
 - **Copy all** on a category's notes screen copies the same text to the clipboard.
@@ -83,6 +87,7 @@ Plain HTML, CSS and JS. There's no framework and no build step. The JS files are
 | `sync.js` | Supabase sync: push, pull, merge and the status line. |
 | `login.js` | Email-code login. |
 | `help.js` | Opens the Help screen (its text is in `index.html`). |
+| `keys.js` | Keyboard shortcuts for using the app on a computer. |
 | `main.js` | Startup. Loaded last. |
 | `schema.sql` | The Supabase tables, row-level security and triggers that sync uses. |
 | `style.css` | E-ink friendly: black on white, large tap targets, no shadows or animations. Main actions are solid black, others a 2px outline, minor ones (`.quiet`) plain bold text or an icon. |
