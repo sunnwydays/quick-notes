@@ -157,3 +157,20 @@ Test in Chrome DevTools' device emulator. To check the keyboard and Gboard behav
 ## Deploying
 
 The Vercel project `quick-notes` is linked to this GitHub repo. Every push to `main` deploys to production. Pushes to other branches get preview URLs.
+
+## Android app (Boox)
+
+The Android app is a thin wrapper (a Trusted Web Activity) that opens https://dash-notes.vercel.app full-screen. It holds no app code, so every deploy updates it and the APK never needs rebuilding unless the name, icon or start URL changes.
+
+**Build the APK**
+1. Go to pwabuilder.com, paste the live URL, then Package for Stores → Android.
+2. Set the signing key to "New" and download the zip. Keep `signing.keystore` and `signing-key-info.txt` safe; they're needed to rebuild or update the app.
+3. Extract the zip on a PC. The file to install is the signed `.apk`; ignore the `.aab`.
+
+**Install on the Boox**
+1. Copy the `.apk` to the device (USB, Google Drive or email).
+2. Open it from the file manager, not Neo Reader, and allow installs from that source.
+3. Map the side button to the app in the Boox settings.
+
+**Hiding the URL bar**
+[.well-known/assetlinks.json](.well-known/assetlinks.json) tells Android the site belongs to the app (package `app.vercel.dash_notes.twa`, plus the SHA-256 fingerprint of the signing key). Android checks it at install time, so if the bar shows, reinstall the app after the file is live. If you rebuild with a new signing key, update the fingerprint in that file.
