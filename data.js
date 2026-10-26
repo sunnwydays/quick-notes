@@ -10,7 +10,7 @@ const SCHEDULE = 'Schedule';
 // goes to the folder its first words name (autofile.js).
 const AUTO = 'Add note';
 // In button order: clockwise round the flower from the top.
-const BUILT_IN = ['Todo', SCHEDULE, 'Working on', 'Random projs', 'Thought', 'Buy', 'Bring', 'Journal'];
+const BUILT_IN = ['Todo', SCHEDULE, 'Working on', 'Random projs', 'Thought', 'Journal', 'Buy', 'Bring'];
 // Line icons (SVG path data, 24x24), drawn in the text colour so they stay crisp
 // on e-ink and turn white on a black button. Display only; the stored (and
 // synced) category name stays plain text. Projects all share the folder.
