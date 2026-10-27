@@ -6,7 +6,7 @@
 // Only the app's own files are handled. Sync requests to Supabase go straight
 // to the network, so the app never sees stale notes from the cache.
 
-const CACHE = 'quick-notes-v15';
+const CACHE = 'quick-notes-v16';
 const FILES = [
   './',
   'index.html',
