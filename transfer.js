@@ -4,7 +4,9 @@
 // each save adds the pad's text as a new note and deletes the old one (blanking
 // its text so old versions don't pile up on the server); the newest note in the
 // pad's category is the pad. It saves after a pause in typing, on switching pads,
-// on leaving the screen and when the app is hidden.
+// on leaving the screen and when the app is hidden. Each pad has its own address
+// (#transfer/1 to #transfer/3) to open or bookmark; a hash is never sent to the
+// server, so it's the same cached page and costs nothing extra to load.
 
 const PAD_SAVE_MS = 1000;
 const padBox = $('pad');
@@ -16,15 +18,41 @@ for (const [i] of PADS.entries()) {
   const tab = document.createElement('button');
   tab.textContent = i + 1;
   tab.setAttribute('aria-label', `Pad ${i + 1}`);
-  tab.addEventListener('click', () => {
-    savePad();
-    padIndex = i;
-    renderTransfer();
-  });
+  tab.addEventListener('click', () => showPad(i));
   $('pad-tabs').append(tab);
 }
 
-$('transfer-btn').addEventListener('click', () => go({ view: 'transfer' }));
+$('transfer-btn').addEventListener('click', () => go({ view: 'transfer', pad: padIndex }, padHash(padIndex)));
+
+function padHash(i) {
+  return `#transfer/${i + 1}`;
+}
+
+// The pad (0-based) the address names, or -1.
+function padFromHash() {
+  const m = /^#transfer\/(\d+)$/.exec(location.hash);
+  return m && m[1] >= 1 && m[1] <= PADS.length ? m[1] - 1 : -1;
+}
+
+// Switch pads on the Transfer screen, keeping the address in step.
+function showPad(i) {
+  savePad();
+  padIndex = i;
+  current = { view: 'transfer', pad: i };
+  history.replaceState(current, '', padHash(i));
+  renderTransfer();
+}
+
+// An address typed into the same tab.
+window.addEventListener('hashchange', () => {
+  const i = padFromHash();
+  if (i < 0 || (current && current.view === 'transfer' && padIndex === i)) return;
+  if (current && current.view === 'transfer') return showPad(i);
+  padIndex = i;
+  current = { view: 'transfer', pad: i };
+  history.replaceState(current, '', padHash(i));
+  render(current);
+});
 
 function renderTransfer() {
   setLabel($('transfer-title'), TRANSFER);

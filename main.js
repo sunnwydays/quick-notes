@@ -1,7 +1,9 @@
 // ---------- startup ----------
 
-// A reload can leave us on an old history entry; always start from home.
-history.replaceState(null, '');
+// A reload can leave us on an old history entry; always start from home, with
+// the address cleaned, so a Transfer address opens on top of home.
+const hashPad = padFromHash();
+history.replaceState(null, '', location.pathname + location.search);
 render(null);
 
 // Reopen an unsaved draft if the app was closed mid-note.
@@ -13,6 +15,8 @@ try {
     go({ view: 'edit', cat });
   }
 } catch {}
+
+if (hashPad >= 0) go({ view: 'transfer', pad: hashPad }, padHash(hashPad));
 
 sync();
 

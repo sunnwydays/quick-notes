@@ -29,6 +29,7 @@ function render(state) {
     renderSchedule(state, true);
     show('schedule');
   } else if (state.view === 'transfer') {
+    if (state.pad !== undefined) padIndex = state.pad;
     renderTransfer();
     show('transfer');
   } else if (state.view === 'login') {
@@ -49,8 +50,9 @@ function refreshView() {
   else if (current.view === 'transfer') renderTransfer();
 }
 
-function go(state) {
-  history.pushState(state, '');
+// url is optional: a screen with an address of its own, like #transfer/2.
+function go(state, url) {
+  history.pushState(state, '', url);
   render(state);
 }
 
