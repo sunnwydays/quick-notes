@@ -3,7 +3,8 @@
 // dirty, then downloads rows the server has received since the last download.
 // Notes are only ever added or deleted, never edited, so combining both sides
 // is a union by id, and a delete always wins. Categories can be removed and
-// re-added, so for those the newer change wins.
+// re-added, so for those the newer change wins. Block marks (ticks on schedule
+// blocks) are only ever added, so they upload as inserts and never merge.
 // Everything is plain fetch() calls to Supabase's REST and Auth endpoints, so
 // there's no library to load and nothing breaks offline.
 
@@ -67,7 +68,25 @@ const TABLES = {
       return true;
     },
   },
+  // Ticks on schedule blocks. Rows are only ever added: the server skips an id it
+  // already has instead of updating it, and there is nothing to merge.
+  marks: {
+    table: 'qn_block_marks',
+    conflict: 'id',
+    prefer: 'resolution=ignore-duplicates,return=minimal',
+    key: (x) => x.id,
+    toRow: (m) => ({
+      id: m.id, user_id: auth.user.id, day: m.day, block_start: m.blockStart,
+      block_text: m.blockText, status: m.status, marked_at: m.markedAt,
+    }),
+    fromRow: (r) => ({
+      id: r.id, day: r.day, blockStart: r.block_start, blockText: r.block_text,
+      status: r.status, markedAt: iso(r.marked_at),
+    }),
+    merge: () => false,
+  },
 };
+const KINDS = Object.keys(TABLES);
 
 class HttpError extends Error {
   constructor(message, status) {
@@ -112,35 +131,35 @@ async function accessToken() {
   return auth.access_token;
 }
 
-async function rest(method, path, body, retried = false) {
+async function rest(method, path, body, prefer = 'resolution=merge-duplicates,return=minimal', retried = false) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     method,
     headers: {
       apikey: SUPABASE_KEY,
       Authorization: `Bearer ${await accessToken()}`,
       'Content-Type': 'application/json',
-      Prefer: 'resolution=merge-duplicates,return=minimal',
+      Prefer: prefer,
     },
     body: body && JSON.stringify(body),
   });
   // A wrong device clock can make an expired token look fresh: refresh and retry once.
   if (res.status === 401 && !retried && auth) {
     auth.expires_at = 0;
-    return rest(method, path, body, true);
+    return rest(method, path, body, prefer, true);
   }
   if (!res.ok) throw new HttpError(`Sync error ${res.status}`, res.status);
   return method === 'GET' ? res.json() : null;
 }
 
 async function pushChanges() {
-  for (const kind of ['categories', 'entries']) {
+  for (const kind of KINDS) {
     const t = TABLES[kind];
     const sent = data[kind]
       .filter((x) => x.dirty)
       .map((x) => ({ key: t.key(x), row: t.toRow(x), updatedAt: x.updatedAt, deletedAt: x.deletedAt }));
     for (let i = 0; i < sent.length; i += PAGE) {
       const chunk = sent.slice(i, i + PAGE);
-      await rest('POST', `${t.table}?on_conflict=${t.conflict}`, chunk.map((s) => s.row));
+      await rest('POST', `${t.table}?on_conflict=${t.conflict}`, chunk.map((s) => s.row), t.prefer);
       // Only clear rows that weren't changed again while the upload was running.
       reload();
       const byKey = new Map(data[kind].map((x) => [t.key(x), x]));
@@ -156,7 +175,7 @@ async function pushChanges() {
 async function pullChanges() {
   const cursors = readJSON(SYNC_KEY) || {};
   const fetched = {};
-  for (const kind of ['categories', 'entries']) {
+  for (const kind of KINDS) {
     const t = TABLES[kind];
     fetched[kind] = [];
     // Re-read the last minute as well, in case a slow write landed with an
@@ -179,7 +198,7 @@ async function pullChanges() {
   // between, so the cursor can never move past rows that weren't saved.
   reload();
   let changed = false;
-  for (const kind of ['categories', 'entries']) {
+  for (const kind of KINDS) {
     const t = TABLES[kind];
     const byKey = new Map(data[kind].map((x) => [t.key(x), x]));
     for (const remote of fetched[kind]) {
@@ -247,7 +266,7 @@ async function sync() {
 }
 
 function waitingCount() {
-  return data.entries.filter((e) => e.dirty).length + data.categories.filter((c) => c.dirty).length;
+  return KINDS.reduce((n, kind) => n + data[kind].filter((x) => x.dirty).length, 0);
 }
 
 // The status shows as a cloud icon: a tick when synced, dots while syncing and

@@ -130,12 +130,14 @@ The note in progress is kept separately under `quicknotes-draft` as `{ cat, text
 
 **Offline and updates:** `sw.js` answers each request from its cache right away, then fetches a fresh copy in the background. So after a deploy, the new version is cached the first time you open the app. The worker compares each text file it fetched with the cached copy and, if one differs (or `CACHE` in `sw.js` changed), messages the open pages, which reload by themselves two seconds later (`reloadForUpdate` in `views.js`). They only do it on the home screen with nothing typed in search, or on Transfer once its text is saved; anywhere else they wait until you're back on home, so a note being written is never lost. It only handles the app's own files; requests to Supabase always go to the network.
 
-**Sync:** the tables `qn_entries` and `qn_categories` live in the Supabase project `job-tracker` (see `schema.sql`). Row-level security limits each account to its own rows, which is why the publishable key in `sync.js` is safe to ship. Sync uses plain `fetch` calls to Supabase's REST and Auth endpoints, with no library. One sync:
+**Sync:** the tables `qn_entries`, `qn_categories` and `qn_block_marks` live in the Supabase project `job-tracker` (see `schema.sql`). Row-level security limits each account to its own rows, which is why the publishable key in `sync.js` is safe to ship. Sync uses plain `fetch` calls to Supabase's REST and Auth endpoints, with no library. One sync:
 
 1. **Push:** upload every `dirty` row (an upsert).
 2. **Pull:** download rows whose server-set `synced_at` is after the last pull. The cursor is in `quicknotes-sync`.
 3. **Merge:** notes are never edited, only added or deleted, so merging is a union by id, and a delete always wins. For categories, the newer `updatedAt` wins, since a project can be removed and re-added. The database triggers apply the same rules, so an out-of-date device can't undo a newer change.
 4. If a note was written offline into a project that the other device removed, the project comes back so the note isn't hidden.
+
+**Block marks:** ticks on schedule blocks (`data.marks` in the saved data) sync through `qn_block_marks` the same way, except that rows are only ever added. Each tap inserts a row `{id, day, block_start, block_text, status, marked_at}` with `status` `done`, `skipped` or `cleared` (unticking), and the newest `marked_at` for a `(day, block_start)` wins. Upload uses `resolution=ignore-duplicates`, so a row is never rewritten, and nothing is merged on download. A block is identified by its day and start time (`HH:MM`), so a mark still applies when a new version of the day's schedule keeps that start time; marks that match no block just stay in the table. Claude reads this table through the Supabase MCP at the evening review.
 
 Each open tab keeps its own copy of the notes in memory but shares `localStorage`, so the app re-reads storage before saving after any network wait and follows other tabs' saves. Why: [docs/two-tabs-sync-bug.md](docs/two-tabs-sync-bug.md).
 

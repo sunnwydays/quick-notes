@@ -48,7 +48,8 @@ const $ = (id) => document.getElementById(id);
 // Deleting sets deletedAt instead of removing the row, so the delete can sync
 // to other devices. deletedHow says what removed it ('deleted', 'done',
 // 'replaced', 'undone' or 'project_removed'; missing on older notes). dirty = changed here
-// and not yet uploaded.
+// and not yet uploaded. Marks (ticks on schedule blocks) are
+// {id, day, blockStart, blockText, status, markedAt, dirty}: only ever added, never changed.
 
 function readJSON(key) {
   try {
@@ -63,6 +64,7 @@ function load() {
   if (!saved || !Array.isArray(saved.categories) || !Array.isArray(saved.entries)) {
     saved = { categories: [], entries: [] };
   }
+  if (!Array.isArray(saved.marks)) saved.marks = [];
   return migrate(saved);
 }
 

@@ -67,3 +67,36 @@ create trigger qn_entries_touch before insert or update on public.qn_entries
   for each row execute function public.qn_entries_touch();
 create trigger qn_categories_touch before insert or update on public.qn_categories
   for each row execute function public.qn_categories_touch();
+
+-- Ticks on schedule blocks (schedule.js). Append-only: every tap inserts a new
+-- row and, for each (day, block_start), the newest marked_at wins. Unticking
+-- inserts 'cleared'. A block is identified by its day and start time, so a mark
+-- still applies after the day's schedule is replaced by a version that keeps
+-- that start time; marks that match no block simply stay here.
+create table public.qn_block_marks (
+  id text primary key,
+  user_id uuid not null default auth.uid() references auth.users on delete cascade,
+  day date not null,            -- local date of the schedule day
+  block_start text not null,    -- 'HH:MM' 24h, the block's start time
+  block_text text not null,     -- first line of the block, copied at mark time
+  status text not null check (status in ('done','skipped','cleared')),
+  marked_at timestamptz not null,
+  synced_at timestamptz not null default clock_timestamp()
+);
+
+create index qn_block_marks_user_synced on public.qn_block_marks (user_id, synced_at);
+
+alter table public.qn_block_marks enable row level security;
+
+create policy "own block marks" on public.qn_block_marks for all to authenticated
+  using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+
+create function public.qn_block_marks_touch() returns trigger
+language plpgsql set search_path = '' as $$
+begin
+  new.synced_at := clock_timestamp();
+  return new;
+end $$;
+
+create trigger qn_block_marks_touch before insert on public.qn_block_marks
+  for each row execute function public.qn_block_marks_touch();
