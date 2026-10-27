@@ -90,8 +90,10 @@ function saveNotes() {
   skipped = [];
   const text = cleanText(textarea.value);
   if (!text) return false;
-  // Each line is its own note (a pasted list, say); a schedule is split by day instead.
+  // Each line is its own note (a pasted list, say); a schedule is split by day
+  // instead, and a journal entry stays whole.
   const notes = current.cat === SCHEDULE ? splitDays(text).filter(changesSchedule)
+    : current.cat === 'Journal' ? [text]
     : text.split('\n').filter((line) => line.trim());
   // Split notes are a millisecond apart, first line newest, so the list
   // (newest first) shows them in the order they were typed.
