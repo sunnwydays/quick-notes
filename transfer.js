@@ -1,9 +1,10 @@
 // ---------- transfer ----------
 // Three blank text boxes for carrying text between computers: paste into one,
 // open the app on the other computer and copy it out. Notes are never edited, so
-// each save adds the pad's text as a new note and deletes the old one (blanking
-// its text so old versions don't pile up on the server); the newest note in the
-// pad's category is the pad. It saves after a pause in typing, on switching pads,
+// each save adds the pad's text as a new note and deletes the old one (keeping the
+// last PAD_KEEP overwritten texts for the Previous button and blanking older ones
+// so they don't pile up on the server); the newest note in the pad's category is
+// the pad. It saves after a pause in typing, on switching pads,
 // on leaving the screen and when the app is hidden. Each pad has its own address
 // (#transfer/1 to #transfer/3) to open or bookmark; a hash is never sent to the
 // server, so it's the same cached page and costs nothing extra to load. While the
@@ -13,6 +14,7 @@
 
 const PAD_SAVE_MS = 1000;
 const PAD_POLL_MS = 5000;
+const PAD_KEEP = 2; // overwritten versions kept per pad
 const padBox = $('pad');
 let padIndex = 0;
 let padTimer = null;
@@ -61,6 +63,7 @@ window.addEventListener('hashchange', () => {
 function renderTransfer() {
   setLabel($('transfer-title'), TRANSFER);
   showPadStatus();
+  showPadPrevious();
   [...$('pad-tabs').children].forEach((tab, i) => tab.setAttribute('aria-pressed', i === padIndex));
   // Text typed here and not saved yet is newer than anything a sync brought in.
   if (padBox.value !== padSaved) return;
@@ -82,23 +85,51 @@ function showPadStatus() {
   if ($('pad-status').textContent !== text) $('pad-status').textContent = text;
 }
 
+// The pad's overwritten texts that are still kept, newest first, skipping any equal to `now`.
+function padVersions(cat, now) {
+  const seen = new Set([now]);
+  return data.entries
+    .filter((e) => e.category === cat && e.deletedAt && e.deletedHow === 'replaced' && e.text)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .filter((e) => !seen.has(e.text) && seen.add(e.text));
+}
+
 function savePad() {
   clearTimeout(padTimer);
   if (padBox.value === padSaved) return;
   const cat = PADS[padIndex];
   const now = new Date().toISOString();
-  for (const e of entriesFor(cat)) touch(e, { text: '', deletedAt: now, deletedHow: 'replaced' });
+  for (const e of entriesFor(cat)) touch(e, { deletedAt: now, deletedHow: 'replaced' });
   if (padBox.value) {
     data.entries.push({
       id: newId(), category: cat, text: padBox.value,
       createdAt: now, updatedAt: now, deletedAt: null, dirty: true,
     });
   }
+  // Keep the last PAD_KEEP overwritten texts; blank the rest so they don't pile up on the server.
+  const keep = new Set(padVersions(cat, padBox.value).slice(0, PAD_KEEP));
+  for (const e of data.entries) {
+    if (e.category === cat && e.deletedHow === 'replaced' && e.text && !keep.has(e)) touch(e, { text: '' });
+  }
   padSaved = padBox.value;
   persist();
   sync();
   showPadStatus();
+  showPadPrevious();
 }
+
+function showPadPrevious() {
+  $('pad-prev-btn').disabled = !padVersions(PADS[padIndex], padBox.value).length;
+}
+
+// Swap the box with the newest overwritten text, so a second tap swaps back.
+$('pad-prev-btn').addEventListener('click', () => {
+  savePad();
+  const [prev] = padVersions(PADS[padIndex], padBox.value);
+  if (!prev) return;
+  padBox.value = prev.text;
+  savePad();
+});
 
 padBox.addEventListener('input', () => {
   showPadStatus();
