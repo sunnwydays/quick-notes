@@ -89,6 +89,6 @@ function fileNote(line) {
 // each one can be seen landing in its folder.
 function latestNotes() {
   return data.entries
-    .filter((e) => !e.deletedAt && e.category !== SCHEDULE)
+    .filter((e) => !e.deletedAt && e.category !== SCHEDULE && !PADS.includes(e.category))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }

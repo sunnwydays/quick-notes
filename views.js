@@ -28,6 +28,9 @@ function render(state) {
   } else if (state.view === 'schedule') {
     renderSchedule(state, true);
     show('schedule');
+  } else if (state.view === 'transfer') {
+    renderTransfer();
+    show('transfer');
   } else if (state.view === 'login') {
     show('login');
   } else if (state.view === 'help') {
@@ -43,6 +46,7 @@ function refreshView() {
   else if (current.view === 'entries') renderEntries(current.cat);
   else if (current.view === 'schedule') renderSchedule(current);
   else if (current.view === 'edit') renderRecent(current.cat);
+  else if (current.view === 'transfer') renderTransfer();
 }
 
 function go(state) {
@@ -51,6 +55,7 @@ function go(state) {
 }
 
 window.addEventListener('popstate', (e) => {
+  if (current && current.view === 'transfer') savePad();
   if (current && current.view === 'edit') {
     if (commitEditor()) sync();
     // Saved notes that were already there: say so on the screen we go back to.

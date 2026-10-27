@@ -24,7 +24,9 @@ What you type is saved as you go. If the app is closed mid-note, it reopens on t
 
 Above the text box are the latest notes from every folder, each with its folder's name, so you can see where the one you just added went.
 
-**Menu:** the ☰ button at the top right of the home screen holds **New project**, **Export**, **Help** and **Log in**. Tapping anywhere else closes it without doing anything else.
+**Menu:** the ☰ button at the top right of the home screen holds **New project**, **Transfer**, **Export**, **Help** and **Log in**. Tapping anywhere else closes it without doing anything else.
+
+**Transfer:** three blank text boxes (tabs 1 to 3) for copying text between computers. Paste into one, then on the other computer open Transfer and tap **Copy**. **Clear** empties the box, with an Undo. They sync like notes, so it needs a login on both devices, and the text stays until cleared. A box saves a second after typing stops, on switching boxes, and on leaving the screen. Files aren't supported: they'd need a Supabase Storage bucket, which this app doesn't use.
 
 **Category buttons** are circles, three to a row, each with a line icon (projects get a folder) over its name. The icons are SVG rather than emoji so they stay sharp on e-ink. The built-in categories form a "flower": seven smaller circles evenly round a larger **Add note** (Todo at the top, then clockwise), so the main button sits where the thumb rests instead of at the bottom edge.
 
@@ -78,7 +80,7 @@ Plain HTML, CSS and JS. There's no framework and no build step. The JS files are
 
 | File | What it does |
 | --- | --- |
-| `index.html` | The six screens (home, editor, entries, schedule, login, help) as `<section>`s. Only one is shown at a time. |
+| `index.html` | The seven screens (home, editor, entries, transfer, schedule, login, help) as `<section>`s. Only one is shown at a time. |
 | `data.js` | Constants, the saved data (`data`) and helpers for reading it. |
 | `views.js` | Switching screens, the history/back button and the Undo banner. |
 | `gestures.js` | Hold-and-release on a category; double-tap or hold blank space to leave the notes or schedule screen. |
@@ -87,6 +89,7 @@ Plain HTML, CSS and JS. There's no framework and no build step. The JS files are
 | `autofile.js` | Add note: picks each note's folder from its first words. |
 | `search.js` | The search box on the home screen: notes that match, grouped by category. |
 | `entries.js` | The notes screen: list, times, delete or tick off, replace, remove project. |
+| `transfer.js` | The Transfer screen. Each pad is one note in a category named `Transfer 1` to `3` (`PADS`) that never gets a category row, so it stays out of the home screen, search and Export. A save adds the new text as a note and deletes the old one with its text blanked. |
 | `schedule.js` | The schedule screen: reads times and day headings out of a Schedule note, highlights the block on now, folds finished ones, and splits a multi-day paste on save. Also the schedule column on the home screen. Both redraw only when a block starts or ends, since each redraw flashes an e-ink screen. |
 | `export.js` | Export and Copy all. |
 | `sync.js` | Supabase sync: push, pull, merge and the status line. |

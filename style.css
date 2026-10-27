@@ -93,7 +93,7 @@ body.still-held * { user-select: none !important; -webkit-user-select: none !imp
 .back { display: flex; align-items: center; justify-content: center; width: 56px; padding: 0; flex: none; }
 .back svg { display: block; }
 
-#editor { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+#editor, #transfer { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
 /* Recent notes read from the top, newest first, laid out like the notes screen; an
    empty tools row stands in for its one so the notes start at the same height.
    They take up to half the height and scroll; the text box fills the rest. */
@@ -102,7 +102,7 @@ body.still-held * { user-select: none !important; -webkit-user-select: none !imp
    note wraps and spaces as it does on the notes screen. */
 #editor-recent .entry::after { content: ''; flex: none; width: 100px; height: 44px; }
 #editor-recent.no-replace .entry::after { width: 44px; }
-#editor textarea {
+#editor textarea, #pad {
   flex: 1 1 0;
   min-height: 120px;
   width: 100%;
@@ -126,6 +126,10 @@ body.still-held * { user-select: none !important; -webkit-user-select: none !imp
 
 .tools { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-bottom: 16px; }
 .tools button { min-height: 44px; padding: 4px 12px; font-size: 16px; }
+/* The Transfer screen's pad numbers, on the left; the chosen one is solid black. */
+#pad-tabs { display: flex; gap: 8px; margin-right: auto; }
+#pad-tabs button { min-width: 48px; font-weight: 700; }
+#pad-tabs button[aria-pressed='true'] { background: #000; color: #fff; }
 
 /* Text on the left, Replace and Delete on the right; the time (if shown) sits above the text.
    Divider lines between notes only appear when times are shown.
@@ -290,8 +294,8 @@ input {
   #home.searching { justify-content: flex-start; }
   /* The gap under the bar is its own padding, not the page's, so it sits at the
      same height whether the page is short or long enough to scroll behind it. */
-  section:where(#entries, #schedule, #help, #editor) { padding-bottom: 0; }
-  #entries .bar, #schedule .bar, #help .bar, #editor .bar {
+  section:where(#entries, #schedule, #help, #editor, #transfer) { padding-bottom: 0; }
+  #entries .bar, #schedule .bar, #help .bar, #editor .bar, #transfer .bar {
     order: 1; position: sticky; bottom: 0; margin: auto 0 0; padding: 12px 0 16px;
     background: #fff;
   }
@@ -301,5 +305,5 @@ input {
      gets room under it instead, so its last note can scroll clear of the banner. */
   body:has(#undo-bar:not([hidden])) > :is(#entries, #schedule) { padding-bottom: 0; }
   body:has(#undo-bar:not([hidden])) :is(#entries-list, #schedule-list) { padding-bottom: 76px; }
-  body:has(:is(#entries, #schedule, #editor):not([hidden])) #undo-bar { bottom: 94px; }
+  body:has(:is(#entries, #schedule, #editor, #transfer):not([hidden])) #undo-bar { bottom: 94px; }
 }

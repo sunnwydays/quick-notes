@@ -207,7 +207,7 @@ function reviveOrphans() {
   const live = new Set(categoryNames());
   let revived = false;
   for (const e of data.entries) {
-    if (e.deletedAt || live.has(e.category)) continue;
+    if (e.deletedAt || live.has(e.category) || PADS.includes(e.category)) continue;
     const cat = data.categories.find((c) => c.name === e.category);
     if (cat) touch(cat, { deletedAt: null });
     else data.categories.push({ name: e.category, updatedAt: new Date().toISOString(), deletedAt: null, dirty: true });

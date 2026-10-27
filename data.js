@@ -11,6 +11,11 @@ const SCHEDULE = 'Schedule';
 const AUTO = 'Add note';
 // In button order: clockwise round the flower from the top.
 const BUILT_IN = ['Todo', SCHEDULE, 'Working on', 'Random projs', 'Thought', 'Journal', 'Buy', 'Bring'];
+// The Transfer screen's pads (transfer.js). Each is kept as a note in a category
+// of this name that never gets a category row, so no pad shows up as a project,
+// in search or in Export.
+const TRANSFER = 'Transfer';
+const PADS = [1, 2, 3].map((n) => `${TRANSFER} ${n}`);
 // Line icons (SVG path data, 24x24), drawn in the text colour so they stay crisp
 // on e-ink and turn white on a black button. Display only; the stored (and
 // synced) category name stays plain text. Projects all share the folder.
@@ -24,6 +29,7 @@ const ICONS = {
   Journal: 'M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z',
   [SCHEDULE]: 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z',
   [AUTO]: 'M22 12h-6l-2 3h-4l-2-3H2M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z',
+  [TRANSFER]: 'M17 3l4 4-4 4M21 7H3M7 21l-4-4 4-4M3 17h18',
 };
 const PROJECT_ICON = 'M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2z';
 // Built-in categories that were renamed: old name -> new name.
