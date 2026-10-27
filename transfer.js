@@ -76,9 +76,10 @@ function showPadStatus() {
   else if (!auth) text = 'Saved on this device only. Log in to sync.';
   else if (syncFailed) text = statusText;
   else if (waitingCount()) text = 'Saved on this device, syncing…';
-  else if (lastSynced) text = `Saved and synced ${lastSynced.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', second: '2-digit' })}.`;
+  else if (lastSynced) text = `Saved and synced ${lastSynced.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}.`;
   else text = 'Syncing…';
-  $('pad-status').textContent = text;
+  // Only when it changed: each write redraws that line, which flashes an e-ink screen.
+  if ($('pad-status').textContent !== text) $('pad-status').textContent = text;
 }
 
 function savePad() {
