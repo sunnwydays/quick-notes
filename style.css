@@ -296,6 +296,10 @@ input {
   /* The gap under the bar is its own padding, not the page's, so it sits at the
      same height whether the page is short or long enough to scroll behind it. */
   section:where(#entries, #schedule, #help, #editor, #transfer) { padding-bottom: 0; }
+  /* Pinned to the visible screen rather than sized with dvh, which can stay at the
+     keyboard-up height after the keyboard closes and leave a gap under the bar (and
+     the fixed Undo banner then sits over the text). */
+  #editor, #transfer { position: fixed; inset: 0; height: auto; }
   #entries .bar, #schedule .bar, #help .bar, #editor .bar, #transfer .bar {
     order: 1; position: sticky; bottom: 0; margin: auto 0 0; padding: 12px 0 16px;
     background: #fff;
