@@ -251,7 +251,6 @@ button.todo-line.primary .todo-age { color: #fff; }
   background: #fff; border: 2px solid #000; border-radius: 12px;
 }
 #menu button { border: 0; border-radius: 0; text-align: left; padding: 10px 20px; }
-#menu a { display: flex; align-items: center; min-height: 56px; padding: 10px 20px; border-top: 2px solid #000; color: #000; text-decoration: none; }
 #menu button + button { border-top: 2px solid #000; }
 
 #help h2 { margin: 20px 0 6px; font-size: 22px; }
