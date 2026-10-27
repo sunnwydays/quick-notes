@@ -284,6 +284,7 @@ function showStatus() {
     `<path d="${CLOUD}"/><path d="${SYNC_MARKS[mark]}"/></svg>`;
   el.setAttribute('aria-label', statusText);
   el.title = statusText;
+  showPadStatus();
 }
 
 $('sync-status').addEventListener('click', () => alert(statusText));

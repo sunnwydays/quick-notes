@@ -6,9 +6,13 @@
 // pad's category is the pad. It saves after a pause in typing, on switching pads,
 // on leaving the screen and when the app is hidden. Each pad has its own address
 // (#transfer/1 to #transfer/3) to open or bookmark; a hash is never sent to the
-// server, so it's the same cached page and costs nothing extra to load.
+// server, so it's the same cached page and costs nothing extra to load. While the
+// screen is open it also syncs every PAD_POLL_MS, so a box edited on another
+// computer shows up without reloading, and a line above the box says where
+// the text has got to.
 
 const PAD_SAVE_MS = 1000;
+const PAD_POLL_MS = 5000;
 const padBox = $('pad');
 let padIndex = 0;
 let padTimer = null;
@@ -56,6 +60,7 @@ window.addEventListener('hashchange', () => {
 
 function renderTransfer() {
   setLabel($('transfer-title'), TRANSFER);
+  showPadStatus();
   [...$('pad-tabs').children].forEach((tab, i) => tab.setAttribute('aria-pressed', i === padIndex));
   // Text typed here and not saved yet is newer than anything a sync brought in.
   if (padBox.value !== padSaved) return;
@@ -63,6 +68,17 @@ function renderTransfer() {
   const text = note ? note.text : '';
   if (padBox.value !== text) padBox.value = text;
   padSaved = text;
+}
+
+function showPadStatus() {
+  let text;
+  if (padBox.value !== padSaved) text = 'Not saved yet…';
+  else if (!auth) text = 'Saved on this device only. Log in to sync.';
+  else if (syncFailed) text = statusText;
+  else if (waitingCount()) text = 'Saved on this device, syncing…';
+  else if (lastSynced) text = `Saved and synced ${lastSynced.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', second: '2-digit' })}.`;
+  else text = 'Syncing…';
+  $('pad-status').textContent = text;
 }
 
 function savePad() {
@@ -80,9 +96,11 @@ function savePad() {
   padSaved = padBox.value;
   persist();
   sync();
+  showPadStatus();
 }
 
 padBox.addEventListener('input', () => {
+  showPadStatus();
   clearTimeout(padTimer);
   padTimer = setTimeout(savePad, PAD_SAVE_MS);
 });
@@ -90,6 +108,12 @@ padBox.addEventListener('blur', savePad);
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden' && current && current.view === 'transfer') savePad();
 });
+
+function pollPads() {
+  if (current && current.view === 'transfer' && document.visibilityState === 'visible') sync();
+}
+setInterval(pollPads, PAD_POLL_MS);
+window.addEventListener('focus', pollPads);
 
 $('pad-copy-btn').addEventListener('click', () => {
   navigator.clipboard

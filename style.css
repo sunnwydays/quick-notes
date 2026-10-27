@@ -127,6 +127,7 @@ body.still-held * { user-select: none !important; -webkit-user-select: none !imp
 .tools { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-bottom: 16px; }
 .tools button { min-height: 44px; padding: 4px 12px; font-size: 16px; }
 /* The Transfer screen's pad numbers, on the left; the chosen one is solid black. */
+#pad-status { margin: 0 0 8px; font-size: 16px; }
 #pad-tabs { display: flex; gap: 8px; margin-right: auto; }
 #pad-tabs button { min-width: 48px; font-weight: 700; }
 #pad-tabs button[aria-pressed='true'] { background: #000; color: #fff; }
