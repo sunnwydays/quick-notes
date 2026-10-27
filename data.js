@@ -10,7 +10,7 @@ const SCHEDULE = 'Schedule';
 // goes to the folder its first words name (autofile.js).
 const AUTO = 'Add note';
 // In button order: clockwise round the flower from the top.
-const BUILT_IN = ['Todo', SCHEDULE, 'Working on', 'Random projs', 'Thought', 'Journal', 'Buy', 'Bring'];
+const BUILT_IN = ['Todo', SCHEDULE, 'Journal', 'Working on', 'Random projs', 'Thought', 'Buy', 'Bring'];
 // The Transfer screen's pads (transfer.js). Each is kept as a note in a category
 // of this name that never gets a category row, so no pad shows up as a project,
 // in search or in Export.
