@@ -4,6 +4,23 @@
 
 let current = null; // null = home, or {view, cat}
 
+// sw.js says when it has fetched a newer copy of the app than the one this page
+// loaded. Reload to pick it up, but only where nothing is lost: on home with no
+// search typed, or on Transfer once its text is saved. Elsewhere it waits for
+// the next time we're home.
+let updateReady = false;
+let reloadTimer = null;
+
+function reloadForUpdate(delay = 2000) {
+  updateReady = true;
+  clearTimeout(reloadTimer);
+  reloadTimer = setTimeout(() => {
+    const onTransfer = current && current.view === 'transfer';
+    if (onTransfer ? padBox.value === padSaved : !current && !$('search').value) location.reload();
+    else if (onTransfer || !current) reloadForUpdate(5000);
+  }, delay);
+}
+
 function show(id) {
   for (const s of document.querySelectorAll('body > section')) s.hidden = s.id !== id;
 }
@@ -14,6 +31,7 @@ function render(state) {
   if (!state) {
     show('home'); // first, so renderHome can measure the free height (fitGlance)
     renderHome();
+    if (updateReady) reloadForUpdate();
   } else if (state.view === 'edit') {
     setLabel($('editor-title'), state.cat);
     // Enter adds the note, except in a schedule, where it starts a new line.

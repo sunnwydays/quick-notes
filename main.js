@@ -23,4 +23,7 @@ sync();
 // Ask the browser not to auto-clear our storage when space runs low.
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
 
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', () => reloadForUpdate());
+  navigator.serviceWorker.register('sw.js');
+}
