@@ -152,7 +152,7 @@ function setLabel(el, cat, text = cat) {
 }
 
 function categoryNames() {
-  return data.categories.filter((c) => !c.deletedAt).map((c) => c.name);
+  return data.categories.filter((c) => !c.deletedAt && !PADS.includes(c.name)).map((c) => c.name);
 }
 
 // Projects first (each is its own button), then the built-in categories in BUILT_IN order.
