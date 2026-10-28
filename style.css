@@ -237,12 +237,16 @@ button.glance-block.now.primary { background: #fff; color: #000; outline: 2px so
 .block.done { color: #555; }
 /* Ticked blocks (schedule.js): the label and the box say which, so it never rests on grey alone. Done is struck
    through, skipped is italic. On the black block the text stays white, since grey wouldn't show. */
-.block-mark { display: block; font-size: 15px; }
-.block.marked-done p, .glance-block.marked-done .glance-text { text-decoration: line-through; text-decoration-thickness: 2px; }
+.block-mark { display: block; font-size: 15px; overflow-wrap: anywhere; }
+.block.marked-done p, .glance-block.marked-done .glance-text,
+.block.marked-over p, .glance-block.marked-over .glance-text { text-decoration: line-through; text-decoration-thickness: 2px; }
 .block.marked-skipped p, .glance-block.marked-skipped .glance-text { font-style: italic; }
-.block.marked-done:not(.now), .block.marked-skipped:not(.now) { color: #555; }
+.block.marked-done:not(.now), .block.marked-over:not(.now), .block.marked-skipped:not(.now) { color: #555; }
 .block .mark-btn { display: flex; align-items: center; justify-content: center; flex: none; width: 44px; height: 44px; min-height: 0; padding: 0; }
 .block.now .mark-btn { color: #fff; }
+/* Held long enough to mark it ran over (gestures.js onHoldRelease). */
+.block .mark-btn.primary { background: #000; color: #fff; }
+.block.now .mark-btn.primary { background: #fff; color: #000; }
 .free { margin: 8px 0; padding: 8px; border: 2px dashed #000; border-radius: 12px; font-weight: 700; }
 .fold { display: flex; justify-content: space-between; gap: 8px; }
 .fold button { min-height: 44px; padding: 4px 12px; font-size: 16px; }
