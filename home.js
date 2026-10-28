@@ -165,5 +165,16 @@ document.addEventListener('click', (e) => {
   setMenu(false);
 }, true);
 
+// Hard refresh: drop the service worker and every cached file, then reload from
+// the network. Notes live in localStorage, so they are untouched.
+$('refresh-btn').addEventListener('click', async () => {
+  try {
+    const regs = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(regs.map((r) => r.unregister()));
+    await Promise.all((await caches.keys()).map((k) => caches.delete(k)));
+  } catch {}
+  location.reload();
+});
+
 // Add note skips picking a category: each note is filed by its first words (autofile.js).
 $('add-any-btn').addEventListener('click', () => openEditor(AUTO));
