@@ -49,7 +49,8 @@ const $ = (id) => document.getElementById(id);
 // to other devices. deletedHow says what removed it ('deleted', 'done',
 // 'replaced', 'undone' or 'project_removed'; missing on older notes). dirty = changed here
 // and not yet uploaded. Marks (ticks on schedule blocks) are
-// {id, day, blockStart, blockText, status, markedAt, dirty}: only ever added, never changed.
+// {id, day, blockStart, blockText, status, markedAt, endedAt, reason, dirty}: only ever
+// added, never changed. endedAt and reason are only on 'over' marks.
 
 function readJSON(key) {
   try {

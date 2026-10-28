@@ -78,10 +78,11 @@ const TABLES = {
     toRow: (m) => ({
       id: m.id, user_id: auth.user.id, day: m.day, block_start: m.blockStart,
       block_text: m.blockText, status: m.status, marked_at: m.markedAt,
+      ended_at: m.endedAt || null, reason: m.reason || null,
     }),
     fromRow: (r) => ({
       id: r.id, day: r.day, blockStart: r.block_start, blockText: r.block_text,
-      status: r.status, markedAt: iso(r.marked_at),
+      status: r.status, markedAt: iso(r.marked_at), endedAt: r.ended_at, reason: r.reason,
     }),
     merge: () => false,
   },

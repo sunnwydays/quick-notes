@@ -79,8 +79,10 @@ create table public.qn_block_marks (
   day date not null,            -- local date of the schedule day
   block_start text not null,    -- 'HH:MM' 24h, the block's start time
   block_text text not null,     -- first line of the block, copied at mark time
-  status text not null check (status in ('done','skipped','cleared')),
+  status text not null check (status in ('done','skipped','over','cleared')),
   marked_at timestamptz not null,
+  ended_at text,                -- 'HH:MM' 24h, when an 'over' block actually ended
+  reason text,                  -- optional one line on why it ran over
   synced_at timestamptz not null default clock_timestamp()
 );
 
