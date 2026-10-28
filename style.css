@@ -201,7 +201,12 @@ button.todo-line.primary .todo-age { color: #fff; }
 .glance-block, .glance-free { display: flex; align-items: baseline; gap: 6px; margin: 0; padding: 0 4px; border-radius: 6px; line-height: 1.4; }
 .glance-block time { flex: none; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .glance-text { flex: 1; min-width: 0; font-family: Literata, Georgia, serif; font-size: 19px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* A button only so it can be held to tick the block; it turns black (.primary) when held long enough. */
+button.glance-block { width: 100%; min-height: 0; border: 0; text-align: left; font-weight: 400; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.glance-block .icon { align-self: center; }
 .glance-block.now { background: #000; color: #fff; }
+button.glance-block.primary { background: #000; color: #fff; }
+button.glance-block.now.primary { background: #fff; color: #000; outline: 2px solid #000; outline-offset: -2px; }
 .glance-block.done { color: #555; }
 .glance-free { font-size: 15px; font-weight: 700; }
 /* Bigger and more spaced out when there's spare height on a phone (fitGlance in home.js). */
@@ -224,11 +229,20 @@ button.todo-line.primary .todo-age { color: #fff; }
 #day-next { justify-self: end; }
 .day-nav button { min-height: 44px; padding: 4px 8px; font-size: 16px; white-space: nowrap; }
 .schedule-note { margin: 0 0 8px; font-style: italic; white-space: pre-wrap; overflow-wrap: anywhere; }
-.block { padding: 8px; border-bottom: 2px solid #000; }
+.block { display: flex; align-items: center; gap: 12px; padding: 8px; border-bottom: 2px solid #000; }
+.block-body { flex: 1; min-width: 0; }
 .block time, .block-now { display: block; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .block p { margin: 0; font-family: Literata, Georgia, serif; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
 .block.now { background: #000; color: #fff; border-radius: 12px; }
 .block.done { color: #555; }
+/* Ticked blocks (schedule.js): the label and the box say which, so it never rests on grey alone. Done is struck
+   through, skipped is italic. On the black block the text stays white, since grey wouldn't show. */
+.block-mark { display: block; font-size: 15px; }
+.block.marked-done p, .glance-block.marked-done .glance-text { text-decoration: line-through; text-decoration-thickness: 2px; }
+.block.marked-skipped p, .glance-block.marked-skipped .glance-text { font-style: italic; }
+.block.marked-done:not(.now), .block.marked-skipped:not(.now) { color: #555; }
+.block .mark-btn { display: flex; align-items: center; justify-content: center; flex: none; width: 44px; height: 44px; min-height: 0; padding: 0; }
+.block.now .mark-btn { color: #fff; }
 .free { margin: 8px 0; padding: 8px; border: 2px dashed #000; border-radius: 12px; font-weight: 700; }
 .fold { display: flex; justify-content: space-between; gap: 8px; }
 .fold button { min-height: 44px; padding: 4px 12px; font-size: 16px; }

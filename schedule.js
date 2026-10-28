@@ -230,19 +230,88 @@ function textLine(className, text) {
   return p;
 }
 
-function blockRow(b, state) {
+// ---------- ticks ----------
+// A block can be ticked done or skipped; tapping cycles unmarked -> done ->
+// skipped -> unmarked. Each tap adds a row to data.marks and never changes one:
+// the newest mark for a day and start time wins, and unticking adds 'cleared'.
+// A block is its day and start time, so a mark carries over to a new version of
+// that day's schedule wherever the start time still matches.
+const MARK_NEXT = { done: 'skipped', skipped: 'cleared' };
+const MARK_LABEL = { done: 'Done', skipped: 'Skipped' };
+const MARK_BOX = 'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z';
+
+// 'HH:MM', 24 hours, as stored in qn_block_marks.
+function blockKey(start) {
+  const p = (n) => String(n).padStart(2, '0');
+  return `${p(Math.floor(start / 60))}:${p(start % 60)}`;
+}
+
+// The mark each block of a day currently has: a Map of 'HH:MM' -> 'done' | 'skipped'.
+function marksOn(day) {
+  const newest = new Map();
+  for (const m of data.marks) {
+    if (m.day !== day) continue;
+    const prev = newest.get(m.blockStart);
+    if (!prev || m.markedAt > prev.markedAt || (m.markedAt === prev.markedAt && m.id > prev.id)) newest.set(m.blockStart, m);
+  }
+  return new Map([...newest].filter(([, m]) => m.status !== 'cleared').map(([k, m]) => [k, m.status]));
+}
+
+function cycleMark(day, b) {
+  const key = blockKey(b.start);
+  data.marks.push({
+    id: newId(), day, blockStart: key, blockText: b.lines.find(Boolean) || '',
+    status: MARK_NEXT[marksOn(day).get(key)] || 'done', markedAt: new Date().toISOString(), dirty: true,
+  });
+  persist();
+  refreshView();
+  sync();
+}
+
+// An empty box, a ticked one (done) or one with a dash through a dashed outline
+// (skipped), so the three states differ in shape and not only in shade.
+function markIcon(status, size) {
+  const span = document.createElement('span');
+  span.className = 'icon';
+  const dash = status === 'skipped' ? ' stroke-dasharray="4 3"' : '';
+  const inner = { done: '<path d="M8 12l3 3 5-6"/>', skipped: '<path d="M8 12h8"/>' }[status] || '';
+  span.innerHTML =
+    `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">` +
+    `<path d="${MARK_BOX}"${dash}/>${inner}</svg>`;
+  return span;
+}
+
+// onMark is null on a day that hasn't come yet, where there's nothing to tick.
+function blockRow(b, state, mark, onMark) {
   const div = document.createElement('div');
-  div.className = state ? `block ${state}` : 'block';
+  div.className = ['block', state, mark && `marked-${mark}`].filter(Boolean).join(' ');
+  const body = document.createElement('div');
+  body.className = 'block-body';
   const time = document.createElement('time');
   time.textContent = b.end != null ? timeRange(b.start, b.end) : clock(b.start);
-  div.append(time);
+  body.append(time);
   if (state === 'now') {
     const now = document.createElement('b');
     now.className = 'block-now';
     now.textContent = b.until < DAY_END ? `Now, until ${clock(b.until)}` : 'Now';
-    div.append(now);
+    body.append(now);
   }
-  div.append(textLine('', b.lines.filter(Boolean).join('\n')));
+  if (mark) {
+    const label = document.createElement('b');
+    label.className = 'block-mark';
+    label.textContent = MARK_LABEL[mark];
+    body.append(label);
+  }
+  body.append(textLine('', b.lines.filter(Boolean).join('\n')));
+  div.append(body);
+  if (onMark) {
+    const btn = document.createElement('button');
+    btn.className = 'mark-btn quiet';
+    btn.setAttribute('aria-label', { done: 'Mark skipped', skipped: 'Clear mark' }[mark] || 'Mark done');
+    btn.append(markIcon(mark, 26));
+    btn.addEventListener('click', onMark);
+    div.append(btn);
+  }
   return div;
 }
 
@@ -328,11 +397,12 @@ function renderSchedule(state, fresh = false) {
     const nextBlock = isToday && !nowBlock ? plan.blocks.find((b) => b.start > nowMin) : null;
     const hidden = done.length - Math.min(doneShown, done.length);
     if (done.length) box.append(foldRow(hidden, done.length));
+    const marks = marksOn(key);
     for (const b of plan.blocks) {
       const d = done.indexOf(b);
       if (d >= 0 && d < hidden) continue;
       if (b === nextBlock) box.append(textLine('free', `Free until ${clock(b.start)}`));
-      box.append(blockRow(b, d >= 0 ? 'done' : b === nowBlock ? 'now' : ''));
+      box.append(blockRow(b, d >= 0 ? 'done' : b === nowBlock ? 'now' : '', marks.get(blockKey(b.start)), key <= today ? () => cycleMark(key, b) : null));
     }
     if (isToday && plan.blocks.length && !nowBlock && !nextBlock) box.append(textLine('empty', 'Done for today.'));
   }
@@ -364,15 +434,20 @@ document.addEventListener('visibilitychange', () => {
 // starts or ends.
 let homeScheduleTimer = 0;
 
-function homeBlockLine(b, state) {
-  const line = document.createElement('span');
-  line.className = state ? `glance-block ${state}` : 'glance-block';
+// Each line is a button so it can be held to tick the block (done, skipped, off
+// again), like holding a to-do. A ticked block shows its box before the time, and
+// the text struck through (done) or in italics (skipped).
+function homeBlockLine(b, state, mark, day) {
+  const line = document.createElement('button');
+  line.className = ['glance-block', state, mark && `marked-${mark}`].filter(Boolean).join(' ');
+  onHoldRelease(line, () => cycleMark(day, b), HOLD_TO_DONE_MS);
   const time = document.createElement('time');
   time.textContent = clock(b.start, true, true);
   const text = document.createElement('span');
   text.className = 'glance-text';
   text.textContent = b.lines.find(Boolean) || '';
   line.append(time, text);
+  if (mark) line.prepend(markIcon(mark, 15));
   return line;
 }
 
@@ -380,8 +455,11 @@ function renderHomeSchedule() {
   clearTimeout(homeScheduleTimer);
   const now = new Date();
   const nowMin = now.getHours() * 60 + now.getMinutes();
-  const entry = scheduleOn(dayKey(now));
+  const today = dayKey(now);
+  const entry = scheduleOn(today);
   const blocks = entry ? parseSchedule(entry.text).blocks : [];
+  const ticks = marksOn(today);
+  const line = (b, state) => homeBlockLine(b, state, ticks.get(blockKey(b.start)), today);
   const box = $('home-schedule');
   box.hidden = !blocks.length;
   if (blocks.length) {
@@ -392,10 +470,10 @@ function renderHomeSchedule() {
     const i = blocks.findIndex((b) => b.start <= nowMin && nowMin < b.until);
     const prev = (i >= 0 ? blocks.slice(0, i) : blocks.filter((b) => b.until <= nowMin)).pop();
     const later = i >= 0 ? blocks.slice(i + 1) : blocks.filter((b) => b.start > nowMin);
-    if (prev) box.append(homeBlockLine(prev, 'done'));
-    if (i >= 0) box.append(homeBlockLine(blocks[i], 'now'));
+    if (prev) box.append(line(prev, 'done'));
+    if (i >= 0) box.append(line(blocks[i], 'now'));
     else box.append(textLine('glance-free', later.length ? `Free until ${clock(later[0].start, true, true)}` : 'Done for today.'));
-    for (const b of later.slice(0, glanceLines - (prev ? 2 : 1))) box.append(homeBlockLine(b, ''));
+    for (const b of later.slice(0, glanceLines - (prev ? 2 : 1))) box.append(line(b, ''));
   }
   const marks = blocks.flatMap((b) => [b.start, b.until]).filter((m) => m > nowMin);
   const at = Math.min(DAY_END, ...marks);
@@ -405,7 +483,11 @@ function renderHomeSchedule() {
   }, ms);
 }
 
-$('home-schedule').addEventListener('click', () => go({ view: 'schedule', date: null }));
+$('home-schedule').addEventListener('click', (e) => {
+  const held = e.target.closest('.glance-block');
+  if (held && held.held) return; // the click that ends a hold
+  go({ view: 'schedule', date: null });
+});
 
 for (const id of ['day-prev', 'day-next']) {
   $(id).addEventListener('click', () => {
