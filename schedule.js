@@ -231,14 +231,13 @@ function textLine(className, text) {
 }
 
 // ---------- ticks ----------
-// A block can be ticked done or skipped; tapping cycles unmarked -> done ->
-// skipped -> unmarked. Each tap adds a row to data.marks and never changes one:
-// the newest mark for a day and start time wins, and unticking adds 'cleared'.
+// A block counts as done unless marked otherwise, so a tap just toggles skipped
+// on and off. Each tap adds a row to data.marks and never changes one:
+// the newest mark for a day and start time wins, and unskipping adds 'cleared'.
 // A block is its day and start time, so a mark carries over to a new version of
 // that day's schedule wherever the start time still matches.
 // Holding the box marks it 'over' (ran over) instead, asking when it ended and
-// why; a tap on an 'over' block goes on to skipped, like done.
-const MARK_NEXT = { done: 'skipped', over: 'skipped', skipped: 'cleared' };
+// why; a tap on an 'over' block skips it, like an unmarked one.
 const MARK_BOX = 'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z';
 
 // 'HH:MM', 24 hours, as stored in qn_block_marks.
@@ -276,7 +275,7 @@ function addMark(day, b, fields) {
 
 function cycleMark(day, b) {
   const mark = marksOn(day).get(blockKey(b.start));
-  addMark(day, b, { status: MARK_NEXT[mark && mark.status] || 'done' });
+  addMark(day, b, { status: mark && mark.status === 'skipped' ? 'cleared' : 'skipped' });
 }
 
 // One prompt for both: "11:40 chatted with coach". It starts at the time it's
@@ -302,15 +301,14 @@ function markLabel(mark) {
   return 'Ran over' + (mark.endedAt ? ` to ${clock(keyMinutes(mark.endedAt))}` : '') + (mark.reason ? `: ${mark.reason}` : '');
 }
 
-// An empty box, a ticked one (done), one with an arrow out of it (ran over) or
-// one with a dash through a dashed outline (skipped), so the states differ in
-// shape and not only in shade.
+// A ticked box (done), one with an arrow out of it (ran over) or a dashed one
+// with an X (skipped), so the states differ in shape and not only in shade.
 function markIcon(status, size) {
   const span = document.createElement('span');
   span.className = 'icon';
   const dash = status === 'skipped' ? ' stroke-dasharray="4 3"' : '';
   const inner = {
-    done: '<path d="M8 12l3 3 5-6"/>', over: '<path d="M7 12h10M13 8l4 4-4 4"/>', skipped: '<path d="M8 12h8"/>',
+    done: '<path d="M8 12l3 3 5-6"/>', over: '<path d="M7 12h10M13 8l4 4-4 4"/>', skipped: '<path d="M9 9l6 6M15 9l-6 6"/>',
   }[status] || '';
   span.innerHTML =
     `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">` +
@@ -343,11 +341,11 @@ function blockRow(b, state, mark, day) {
   body.append(textLine('', b.lines.filter(Boolean).join('\n')));
   div.append(body);
   if (day) {
-    // A tap cycles the mark; a hold, until the box turns black, marks it ran over.
+    // A tap toggles skipped; a hold, until the box turns black, marks it ran over.
     const btn = document.createElement('button');
     btn.className = 'mark-btn quiet';
-    btn.setAttribute('aria-label', { done: 'Mark skipped', over: 'Mark skipped', skipped: 'Clear mark' }[status] || 'Mark done');
-    btn.append(markIcon(status, 26));
+    btn.setAttribute('aria-label', status === 'skipped' ? 'Clear skipped' : 'Mark skipped');
+    btn.append(markIcon(status || 'done', 26));
     btn.addEventListener('click', () => {
       if (!btn.held) cycleMark(day, b);
     });
@@ -476,8 +474,8 @@ document.addEventListener('visibilitychange', () => {
 // starts or ends.
 let homeScheduleTimer = 0;
 
-// Each line is a button so it can be held to tick the block (done, skipped, off
-// again), like holding a to-do. A ticked block shows its box before the time, and
+// Each line is a button so it can be held to skip the block (and unskip it),
+// like holding a to-do. A marked block shows its box before the time, and
 // the text struck through (done, ran over) or in italics (skipped). Ran over is
 // only set from the Schedule screen.
 function homeBlockLine(b, state, mark, day) {
