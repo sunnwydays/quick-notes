@@ -345,7 +345,9 @@ function blockRow(b, state, mark, day) {
     const btn = document.createElement('button');
     btn.className = 'mark-btn quiet';
     btn.setAttribute('aria-label', status === 'skipped' ? 'Clear skipped' : 'Mark skipped');
-    btn.append(markIcon(status || 'done', 26));
+    // Unmarked counts as done, but only a block that's over gets the tick.
+    const past = state === 'done' || day < dayKey(new Date());
+    btn.append(markIcon(status || (past ? 'done' : ''), 26));
     btn.addEventListener('click', () => {
       if (!btn.held) cycleMark(day, b);
     });
