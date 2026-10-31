@@ -310,13 +310,19 @@ function showStatus() {
   const el = $('sync-status');
   el.innerHTML =
     '<svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-    `<path d="${CLOUD}"/><path d="${SYNC_MARKS[mark]}"/></svg>`;
+    `<path d="${CLOUD}"/><path d="${SYNC_MARKS[mark]}"/></svg>` +
+    // Logged out is easy to miss as just an icon, so spell it out.
+    (auth ? '' : '<span class="sync-login">Log in</span>');
   el.setAttribute('aria-label', statusText);
   el.title = statusText;
   showPadStatus();
 }
 
-$('sync-status').addEventListener('click', () => alert(statusText));
+// Logged out, tapping the cloud opens the login screen; otherwise it explains the icon.
+$('sync-status').addEventListener('click', () => {
+  if (auth) alert(statusText);
+  else $('login-btn').click();
+});
 
 function logOut(reason = null) {
   auth = null;

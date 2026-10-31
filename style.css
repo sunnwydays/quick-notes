@@ -264,7 +264,8 @@ button.glance-block.now.primary { background: #fff; color: #000; outline: 2px so
   position: sticky; top: 0; z-index: 1; background: #fff;
   display: flex; align-items: center; justify-content: flex-end; gap: 4px; margin-bottom: 12px;
 }
-#sync-status { display: flex; align-items: center; justify-content: center; min-width: 48px; min-height: 48px; }
+#sync-status { display: flex; align-items: center; justify-content: center; gap: 6px; min-width: 48px; min-height: 48px; }
+#sync-status .sync-login { font-weight: bold; text-decoration: underline; white-space: nowrap; }
 #sync-status svg, #menu-btn svg { display: block; }
 #menu-btn { display: flex; align-items: center; justify-content: center; width: 56px; min-height: 48px; padding: 0; border: 0; }
 #menu-btn[aria-expanded='true'] { background: #000; color: #fff; }

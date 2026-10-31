@@ -45,7 +45,7 @@ No new material after that, early night
 
 **Back up:** **Export** downloads every note as `.txt`; **Copy all** copies a category.
 
-**Sync:** ☰ → **Log in** with your email and the emailed code, once per device. Optional; without it notes stay on the device. The cloud icon shows sync state.
+**Sync:** ☰ → **Log in** with your email and the emailed code, once per device. Optional; without it notes stay on the device. The cloud icon shows sync state; logged out, it reads **Log in** and tapping it opens login.
 
 **Offline:** works with no internet after the first load; changes sync later. For offline voice typing, download Gboard's offline speech pack.
 
