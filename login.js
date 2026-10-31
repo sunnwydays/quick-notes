@@ -55,8 +55,15 @@ $('code-form').addEventListener('submit', async (e) => {
 });
 
 // Sync when the app opens, comes back to the foreground, or gets a connection.
+// A laptop tab can sit visible beside other windows and never fire
+// visibilitychange, so also sync on window focus and every minute while visible.
+const BACKGROUND_SYNC_MS = 60000;
 window.addEventListener('online', sync);
 window.addEventListener('offline', showStatus);
+window.addEventListener('focus', sync);
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') sync();
 });
+setInterval(() => {
+  if (document.visibilityState === 'visible') sync();
+}, BACKGROUND_SYNC_MS);
