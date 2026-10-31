@@ -121,11 +121,21 @@ function saveSession(s) {
 
 // The access token lasts about an hour; the refresh token swaps for a new one,
 // which is how the app stays logged in indefinitely.
-async function accessToken() {
-  if (auth.expires_at - 60 > Date.now() / 1000) return auth.access_token;
+// Another tab may already have swapped the refresh token (each one works only
+// once), so always start from the copy in localStorage, and never log out over
+// a token another tab has since replaced.
+async function accessToken(force = false) {
+  auth = readJSON(AUTH_KEY) || auth;
+  if (!force && auth.expires_at - 60 > Date.now() / 1000) return auth.access_token;
+  const used = auth.refresh_token;
   try {
-    saveSession(await authRequest('token?grant_type=refresh_token', { refresh_token: auth.refresh_token }));
+    saveSession(await authRequest('token?grant_type=refresh_token', { refresh_token: used }));
   } catch (err) {
+    const stored = readJSON(AUTH_KEY);
+    if (stored && stored.refresh_token !== used) {
+      auth = stored;
+      return auth.access_token;
+    }
     if ([400, 401, 403].includes(err.status)) logOut('Logged out. Log in again to sync.');
     throw err;
   }
@@ -137,7 +147,7 @@ async function rest(method, path, body, prefer = 'resolution=merge-duplicates,re
     method,
     headers: {
       apikey: SUPABASE_KEY,
-      Authorization: `Bearer ${await accessToken()}`,
+      Authorization: `Bearer ${await accessToken(retried)}`,
       'Content-Type': 'application/json',
       Prefer: prefer,
     },
@@ -145,7 +155,6 @@ async function rest(method, path, body, prefer = 'resolution=merge-duplicates,re
   });
   // A wrong device clock can make an expired token look fresh: refresh and retry once.
   if (res.status === 401 && !retried && auth) {
-    auth.expires_at = 0;
     return rest(method, path, body, prefer, true);
   }
   if (!res.ok) throw new HttpError(`Sync error ${res.status}`, res.status);
