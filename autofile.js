@@ -85,12 +85,15 @@ function fileNote(line) {
   return { cat: DEFAULT_FOLDER, text: prefix + text };
 }
 
-// In the Buy folder, a note that starts "buy a" or "buy an" loses those words
-// ("buy an apple" is saved as "apple"). Nothing is stripped if that leaves nothing.
-function stripBuyLead(cat, text) {
-  if (cat !== 'Buy') return text;
+// In the Buy and Bring folders, a note that starts "buy a"/"buy an" (or "bring a"/
+// "bring an") loses those words ("buy an apple" is saved as "apple"). Nothing is
+// stripped if that leaves nothing.
+const LEAD_VERBS = { Buy: 'buy', Bring: 'bring' };
+function stripLead(cat, text) {
+  const verb = LEAD_VERBS[cat];
+  if (!verb) return text;
   const [, bullet, body] = text.match(/^(-\s*)?(.*)$/s);
-  for (const phrase of ['buy an', 'buy a']) {
+  for (const phrase of [`${verb} an`, `${verb} a`]) {
     const match = body.match(phrasePattern(phrase));
     if (match && body.length > match[0].length) return (bullet ? BULLET : '') + body.slice(match[0].length);
   }
