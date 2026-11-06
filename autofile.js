@@ -85,6 +85,18 @@ function fileNote(line) {
   return { cat: DEFAULT_FOLDER, text: prefix + text };
 }
 
+// In the Buy folder, a note that starts "buy a" or "buy an" loses those words
+// ("buy an apple" is saved as "apple"). Nothing is stripped if that leaves nothing.
+function stripBuyLead(cat, text) {
+  if (cat !== 'Buy') return text;
+  const [, bullet, body] = text.match(/^(-\s*)?(.*)$/s);
+  for (const phrase of ['buy an', 'buy a']) {
+    const match = body.match(phrasePattern(phrase));
+    if (match && body.length > match[0].length) return (bullet ? BULLET : '') + body.slice(match[0].length);
+  }
+  return text;
+}
+
 // Shown above the text box while adding: the latest notes in any folder, so
 // each one can be seen landing in its folder.
 function latestNotes() {
