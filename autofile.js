@@ -11,7 +11,7 @@ const DEFAULT_FOLDER = 'Todo';
 const FOLDER_WORDS = {
   Todo: ['todo', 'todos', 'to do', 'to dos', 'two do', 'too do', 'task'],
   Buy: ['buy', 'bye', 'by', 'but', 'buy a', 'bye a', 'by a', 'but a', 'buy an', 'bye an', 'by an', 'but an', 'shopping', 'shop'],
-  Bring: ['bring', 'brain', 'ring', 'bring home', 'bring from home', 'pack'],
+  Bring: ['bring', 'brain', 'ring', 'bring a', 'brain a', 'ring a', 'bring an', 'brain an', 'ring an', 'bring home', 'bring from home', 'pack'],
   Thought: ['thought', 'thoughts', 'thot'],
   Journal: ['journal', 'journal entry', 'diary', 'dear diary'],
   'Working on': ['working on'],
