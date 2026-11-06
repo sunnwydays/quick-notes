@@ -100,7 +100,7 @@ function stripLead(cat, text) {
   return text;
 }
 
-// In the Buy and Bring folders, trailing periods come off ("milk." is saved as "milk").
+// For notes added from the home screen that land in Buy or Bring, trailing periods come off ("milk." is saved as "milk").
 function stripTrailingPeriods(cat, text) {
   if (!LEAD_VERBS[cat]) return text;
   const stripped = text.replace(/[\s.]+$/, '');

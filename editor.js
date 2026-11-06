@@ -102,7 +102,7 @@ function saveNotes() {
     const now = new Date(base - i).toISOString();
     const filed = current.cat === AUTO ? fileNote(note.trim()) : { cat: current.cat, text: stripLead(current.cat, note.trim()) };
     const cat = filed.cat;
-    const text = stripTrailingPeriods(cat, filed.text);
+    const text = current.cat === AUTO ? stripTrailingPeriods(cat, filed.text) : filed.text;
     if (alreadySaved(cat, text)) {
       skipped.push(cat);
       return;
