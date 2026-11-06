@@ -100,6 +100,13 @@ function stripLead(cat, text) {
   return text;
 }
 
+// In the Buy and Bring folders, trailing periods come off ("milk." is saved as "milk").
+function stripTrailingPeriods(cat, text) {
+  if (!LEAD_VERBS[cat]) return text;
+  const stripped = text.replace(/[\s.]+$/, '');
+  return /[\p{L}\p{N}]/u.test(stripped) ? stripped : text;
+}
+
 // Shown above the text box while adding: the latest notes in any folder, so
 // each one can be seen landing in its folder.
 function latestNotes() {

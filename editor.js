@@ -100,7 +100,9 @@ function saveNotes() {
   const base = Date.now();
   notes.forEach((note, i) => {
     const now = new Date(base - i).toISOString();
-    const { cat, text } = current.cat === AUTO ? fileNote(note.trim()) : { cat: current.cat, text: stripLead(current.cat, note.trim()) };
+    const filed = current.cat === AUTO ? fileNote(note.trim()) : { cat: current.cat, text: stripLead(current.cat, note.trim()) };
+    const cat = filed.cat;
+    const text = stripTrailingPeriods(cat, filed.text);
     if (alreadySaved(cat, text)) {
       skipped.push(cat);
       return;
