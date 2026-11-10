@@ -255,6 +255,10 @@ button.glance-block.now.primary { background: #fff; color: #000; outline: 2px so
 /* Kept on the far left, away from Copy all and Show times. */
 #remove-project-btn { margin-right: auto; }
 .empty { font-style: italic; }
+.sent-head { margin: 24px 0 8px; font-size: 18px; }
+.sent-item { margin: 0 0 8px; opacity: 0.7; }
+.sent-item time { display: block; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.sent-item p { margin: 0; }
 
 #add-any-btn svg { display: block; flex: none; }
 

@@ -109,10 +109,34 @@ function renderEntries(cat, fresh = false) {
     div.append(del);
     box.append(div);
   }
+  if (cat === 'Discord') renderSent(box);
   box.classList.toggle('with-times', timesShown(cat));
   $('times-btn').textContent = timesShown(cat) ? 'Hide times' : 'Show times';
   $('remove-project-btn').hidden = BUILT_IN.includes(cat);
   showPicked();
+}
+
+// Read-only history of messages the Discord plugin has sent (deletedHow 'sent').
+function renderSent(box) {
+  const sent = data.entries
+    .filter((e) => e.category === 'Discord' && e.deletedHow === 'sent' && e.deletedAt)
+    .sort((a, b) => b.deletedAt.localeCompare(a.deletedAt))
+    .slice(0, 15);
+  if (!sent.length) return;
+  const head = document.createElement('h3');
+  head.className = 'sent-head';
+  head.textContent = 'Sent';
+  box.append(head);
+  for (const e of sent) {
+    const div = document.createElement('div');
+    div.className = 'sent-item';
+    const time = document.createElement('time');
+    time.textContent = formatShort(e.deletedAt);
+    const p = document.createElement('p');
+    p.textContent = e.text;
+    div.append(time, p);
+    box.append(div);
+  }
 }
 
 // ---------- picking a note from the keyboard ----------
