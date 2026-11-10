@@ -176,10 +176,14 @@ module.exports = class DashSender {
 
   // Longest-first match of up to 3 leading words. Returns {target, message} or throws a reason.
   parse(text, aliases, cands) {
-    const words = text.split(/\s+/).filter(Boolean);
+    // Dictation and typing both put a break after the name: "test. Hey", "test, hey",
+    // "test: hey", "test - hey", "test — hey". Dashes become separate words, and the
+    // name can't run past a word that ends in punctuation ("test. Hey are" is not a name).
+    const words = text.replace(/\s*[—–]\s*/g, ' - ').split(/\s+/).filter(Boolean);
     for (let n = Math.min(3, words.length); n >= 1; n--) {
+      if (words.slice(0, n - 1).some((w) => /[.,:;!?]$/.test(w))) continue;
       const name = norm(words.slice(0, n).join(' '));
-      const message = words.slice(n).join(' ').replace(/^[:,]\s*/, '').trim();
+      const message = words.slice(n).join(' ').replace(/^[\s:;,.!?-]+/, '').trim();
       let target = null;
       if (aliases[name]) {
         target = { alias: aliases[name] };
