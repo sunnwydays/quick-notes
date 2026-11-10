@@ -105,6 +105,12 @@ Deletes set `deletedAt` (a tombstone) so they can sync; `dirty` means not upload
 
 **Login:** Supabase emails a one-time code (`/auth/v1/otp`, `create_user: false`; the Magic Link template must include `{{ .Token }}`), verified at `/auth/v1/verify`. The session is kept in `quicknotes-auth` and refreshed automatically. Sign-ups are off. Logging in marks every local row dirty so existing notes merge in.
 
+## Discord sender
+
+`discord/DashSender.plugin.js` is a [BetterDiscord](https://betterdiscord.app) plugin that sends the notes in the **Discord** category as DMs from your own account, so you never open Discord to write them. A note is `- alex see you at 6`: the first words are the recipient (friend nickname, display name or username; up to 3 words), the rest is the message. Only notes untouched for 2 minutes (the Undo window) go out, at most 10 per run, 3-6 s apart, on start and every 60 s while Discord is open. A sent note is ticked off with `deleted_how = 'sent'` and listed under **Sent** in Dash. A failed one is rewritten as `- ! alex see you at 6 (no friend called alex)` and skipped until you fix it.
+
+**Install:** install BetterDiscord, copy the file into `%APPDATA%\BetterDiscord\plugins\`, enable it in Settings > Plugins, then log in from its settings (email, then the code, same as Dash). After editing the repo copy, copy it over again. **Aliases** (one per line, `name = username | user id | channel id`) cover names that don't match anyone. The plugin only holds the publishable key and your login session, never a service key.
+
 ## Development
 
 Service workers need `https://` or `localhost`, so serve the folder:

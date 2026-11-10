@@ -49,7 +49,7 @@ const $ = (id) => document.getElementById(id);
 // {id, category, text, createdAt, updatedAt, deletedAt, deletedHow, dirty}.
 // Deleting sets deletedAt instead of removing the row, so the delete can sync
 // to other devices. deletedHow says what removed it ('deleted', 'done',
-// 'replaced', 'undone' or 'project_removed'; missing on older notes). dirty = changed here
+// 'replaced', 'sent', 'undone' or 'project_removed'; missing on older notes). dirty = changed here
 // and not yet uploaded. Marks (ticks on schedule blocks) are
 // {id, day, blockStart, blockText, status, markedAt, endedAt, reason, dirty}: only ever
 // added, never changed. endedAt and reason are only on 'over' marks.
