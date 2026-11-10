@@ -10,7 +10,7 @@ const SCHEDULE = 'Schedule';
 // goes to the folder its first words name (autofile.js).
 const AUTO = 'Add note';
 // In button order: clockwise round the flower from the top.
-const BUILT_IN = ['Todo', SCHEDULE, 'Journal', 'Working on', 'Random projs', 'Thought', 'Buy', 'Bring'];
+const BUILT_IN = ['Todo', SCHEDULE, 'Journal', 'Working on', 'Thought', 'Discord', 'Buy', 'Bring'];
 // The Transfer screen's pads (transfer.js). Each is kept as a note in a category
 // of this name that never gets a category row, so no pad shows up as a project,
 // in search or in Export.
@@ -23,7 +23,7 @@ const ICONS = {
   Todo: 'M6 3h12a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3zM8 12l3 3 5-6',
   'Working on': 'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z',
   Thought: 'M7.9 20A9 9 0 1 0 4 16.1L2 22z',
-  'Random projs': 'M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5M9 18h6M10 22h4',
+  Discord: 'M22 2L11 13M22 2l-7 20-4-9-9-4z',
   Buy: 'M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0',
   Bring: 'M3 10l9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z',
   Journal: 'M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z',
@@ -35,9 +35,11 @@ const PROJECT_ICON = 'M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69
 // Built-in categories that were renamed: old name -> new name.
 const RENAMED = {
   'Random thought': 'Thought',
-  'Random projects': 'Random projs',
   'Bring from home': 'Bring',
 };
+// Built-in categories that were dropped. Their category row is removed so they
+// don't turn into projects on devices that still have one.
+const REMOVED = ['Random projs', 'Random projects'];
 const BULLET = '- ';
 const EPOCH = '1970-01-01T00:00:00.000Z';
 
@@ -93,7 +95,8 @@ function migrate(d) {
   return d;
 }
 
-// Move notes under a renamed category's new name and remove the old category.
+// Move notes under a renamed category's new name and remove the old category,
+// and remove dropped categories.
 // Also runs after each download, in case a device on an older version still
 // saves notes under the old name.
 function applyRenames(d) {
@@ -105,7 +108,7 @@ function applyRenames(d) {
     }
   }
   for (const c of d.categories) {
-    if (RENAMED[c.name] && !c.deletedAt) {
+    if ((RENAMED[c.name] || REMOVED.includes(c.name)) && !c.deletedAt) {
       touch(c, { deletedAt: new Date().toISOString() });
       changed = true;
     }

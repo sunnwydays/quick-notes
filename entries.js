@@ -20,7 +20,7 @@ const CHECK_ICON =
 
 // Lists of things to get done, and every project. Their notes get a tick, which
 // marks one done, instead of the trash button; swiping a note sideways deletes it instead.
-const CHECK_OFF = ['Todo', 'Buy', 'Bring', 'Working on', 'Random projs'];
+const CHECK_OFF = ['Todo', 'Buy', 'Bring', 'Working on', 'Discord'];
 const checksOff = (cat) => CHECK_OFF.includes(cat) || !BUILT_IN.includes(cat);
 
 const REPLACE_ICON =
@@ -28,7 +28,7 @@ const REPLACE_ICON =
   '<path d="M4 8h15M15 4l4 4-4 4M20 16H5M9 12l-4 4 4 4"/></svg>';
 
 // Notes here aren't tasks to swap for the next one, so they get no Replace button.
-const NO_REPLACE = ['Journal', 'Thought', 'Random projs', 'Bring'];
+const NO_REPLACE = ['Journal', 'Thought', 'Bring'];
 const replaces = (cat) => !NO_REPLACE.includes(cat);
 
 function formatShort(iso) {

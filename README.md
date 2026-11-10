@@ -20,7 +20,7 @@ Live: https://dash-notes.vercel.app
 
 **Search:** the box at the top shows every note containing all the typed words, grouped by category.
 
-**Read:** tap a category to see its notes, newest first, with Delete and Replace (delete and write the next one). In Todo, Bring, Working on, Random projs and projects, a tick marks a note done; swipe to delete without counting it done. Everything has Undo. **Show times** is remembered per category. Double-tap or hold a blank spot to go back.
+**Read:** tap a category to see its notes, newest first, with Delete and Replace (delete and write the next one). In Todo, Bring, Working on, Discord and projects, a tick marks a note done; swipe to delete without counting it done. Everything has Undo. **Show times** is remembered per category. Double-tap or hold a blank spot to go back.
 
 **Projects:** ☰ → **New project**. To remove one, open it and tap **Remove project** (deletes its notes).
 

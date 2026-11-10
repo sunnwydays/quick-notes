@@ -15,7 +15,7 @@ const FOLDER_WORDS = {
   Thought: ['thought', 'thoughts', 'thot'],
   Journal: ['journal', 'journal entry', 'diary', 'dear diary'],
   'Working on': ['working on'],
-  'Random projs': ['random project', 'random projects', 'random projs', 'project idea', 'idea'],
+  Discord: ['discord', 'this cord', 'dis cord', 'discord message', 'dm'],
   'watch later': ['watch', 'watch later', 'to watch'],
   'ai-tutor': ['yeah tutor'],
 };
@@ -49,8 +49,8 @@ function folderRules() {
 
 // Folder words that also match with one typo in the first word ("brng", "bringg").
 // Only long, distinctive words, with real words that sit one letter away left out.
-const TYPO_WORDS = { Bring: 'bring', Thought: 'thought', Journal: 'journal', Buy: 'shopping' };
-const NOT_TYPOS = ['being', 'though', 'through', 'brine', 'bling', 'bringing'];
+const TYPO_WORDS = { Bring: 'bring', Thought: 'thought', Journal: 'journal', Buy: 'shopping', Discord: 'discord' };
+const NOT_TYPOS = ['being', 'though', 'through', 'brine', 'bling', 'bringing', 'discard'];
 
 // True when a and b differ by one insertion, deletion, substitution or swap.
 function oneTypoApart(a, b) {
