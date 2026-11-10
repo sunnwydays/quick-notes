@@ -200,3 +200,11 @@ $('remove-project-btn').addEventListener('click', () => {
   history.back();
   sync();
 });
+
+// Highlighting several notes and copying leaves blank lines between them; copy them line after line.
+document.addEventListener('copy', (e) => {
+  if (e.target.closest && e.target.closest('textarea, input')) return;
+  const text = String(getSelection()).replace(/\n\s*\n+/g, '\n');
+  e.clipboardData.setData('text/plain', text);
+  e.preventDefault();
+});
