@@ -90,9 +90,14 @@ function fileNote(line) {
 // stripped if that leaves nothing.
 const LEAD_VERBS = { Buy: 'buy', Bring: 'bring' };
 function stripLead(cat, text) {
+  const [, bullet, body] = text.match(/^(-\s*)?(.*)$/s);
+  // Added straight into Discord, a leading "discord" is the folder word said out of habit.
+  if (cat === 'Discord') {
+    const match = body.match(phrasePattern('discord'));
+    return match && body.length > match[0].length ? (bullet ? BULLET : '') + body.slice(match[0].length) : text;
+  }
   const verb = LEAD_VERBS[cat];
   if (!verb) return text;
-  const [, bullet, body] = text.match(/^(-\s*)?(.*)$/s);
   for (const phrase of [`${verb} an`, `${verb} a`]) {
     const match = body.match(phrasePattern(phrase));
     if (match && body.length > match[0].length) return (bullet ? BULLET : '') + body.slice(match[0].length);
