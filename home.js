@@ -17,17 +17,19 @@ function categoryTile(cat) {
   return btn;
 }
 
+// Back burner lives on the Working on screen.
 function openCategory(cat) {
+  if (cat === BACK_BURNER) cat = 'Working on';
   go(cat === SCHEDULE ? { view: 'schedule', date: null } : { view: 'entries', cat });
 }
 
 // Projects go in their own zigzag on top. The eight built-ins are the petals of a
-// "flower" around Add note, where the thumb rests (CSS places them in BUILT_IN order).
+// "flower" around Add note, where the thumb rests (CSS places them in FLOWER order).
 function renderHome() {
   const cats = orderedCategories();
   $('projects').replaceChildren(...cats.filter((c) => !BUILT_IN.includes(c)).map(categoryTile));
   $('flower').querySelectorAll('.tile').forEach((t) => t.remove());
-  $('flower').prepend(...cats.filter((c) => BUILT_IN.includes(c)).map(categoryTile));
+  $('flower').prepend(...cats.filter((c) => FLOWER.includes(c)).map(categoryTile));
   fitGlance();
   renderSearch();
   showStatus();

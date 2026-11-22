@@ -20,7 +20,7 @@ const CHECK_ICON =
 
 // Lists of things to get done, and every project. Their notes get a tick, which
 // marks one done, instead of the trash button; swiping a note sideways deletes it instead.
-const CHECK_OFF = ['Todo', 'Buy', 'Bring', 'Working on', 'Discord'];
+const CHECK_OFF = ['Todo', 'Buy', 'Bring', 'Working on', BACK_BURNER, 'Discord'];
 const checksOff = (cat) => CHECK_OFF.includes(cat) || !BUILT_IN.includes(cat);
 
 const REPLACE_ICON =
@@ -30,6 +30,17 @@ const REPLACE_ICON =
 // Notes here aren't tasks to swap for the next one, so they get no Replace button.
 const NO_REPLACE = ['Journal', 'Thought', 'Bring'];
 const replaces = (cat) => !NO_REPLACE.includes(cat);
+
+// One tap moves a note between Working on and Back burner, or from Todo to Back burner.
+const MOVES = { Todo: BACK_BURNER, 'Working on': BACK_BURNER, [BACK_BURNER]: 'Working on' };
+const arrowIcon = (d) =>
+  '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+  `<path d="${d}"/></svg>`;
+const DOWN_ICON = arrowIcon('M12 4v16M5 13l7 7 7-7');
+const UP_ICON = arrowIcon('M12 20V4M5 11l7-7 7 7');
+
+// Whether Back burner's notes show under Working on, remembered per device.
+const BURNER_KEY = 'quicknotes-back-burner-hidden';
 
 function formatShort(iso) {
   return new Date(iso).toLocaleString(undefined, {
@@ -72,48 +83,111 @@ function renderEntries(cat, fresh = false) {
   setLabel($('entries-title'), cat);
   const box = $('entries-list');
   box.replaceChildren();
-  const entries = entriesFor(cat);
-  if (!entries.length) {
-    const p = document.createElement('p');
-    p.className = 'empty';
-    p.textContent = 'No notes yet.';
-    box.append(p);
-  }
-  for (const entry of entries) {
-    const div = document.createElement('div');
-    div.className = 'entry';
-    div.dataset.id = entry.id;
-    const body = entryBody(entry);
-    const { id } = entry;
-    const checkOff = checksOff(cat);
-    const del = checkOff ? iconButton('Done', CHECK_ICON) : iconButton('Delete', TRASH_ICON);
-    del.addEventListener('click', () => removeEntry(id, checkOff ? 'done' : 'deleted'));
-    if (checkOff) {
-      div.classList.add('swipe');
-      onSwipe(div, () => removeEntry(id, 'deleted'));
-    }
-    // Replace deletes the note and opens the editor for the next one (tick off a
-    // task, write the one after it). Undo, back on this screen, brings the old one back.
-    div.append(body);
-    if (replaces(cat)) {
-      const replace = iconButton('Replace', REPLACE_ICON);
-      replace.addEventListener('click', () => {
-        const entry = deleteEntry(id, 'replaced');
-        if (!entry) return;
-        pendingUndo = ['Old note deleted.', () => restoreEntry(entry)];
-        openEditor(cat);
-        sync();
-      });
-      div.append(replace);
-    }
-    div.append(del);
-    box.append(div);
-  }
+  const list = document.createElement('div');
+  appendEntries(list, cat);
+  box.append(list);
+  if (cat === 'Working on') renderBackBurner(box);
   if (cat === 'Discord') renderSent(box);
   box.classList.toggle('with-times', timesShown(cat));
   $('times-btn').textContent = timesShown(cat) ? 'Hide times' : 'Show times';
   $('remove-project-btn').hidden = BUILT_IN.includes(cat);
   showPicked();
+}
+
+function appendEntries(list, cat) {
+  const entries = entriesFor(cat);
+  if (!entries.length) {
+    const p = document.createElement('p');
+    p.className = 'empty';
+    p.textContent = 'No notes yet.';
+    list.append(p);
+  }
+  for (const entry of entries) list.append(entryRow(entry, cat));
+}
+
+function entryRow(entry, cat) {
+  const div = document.createElement('div');
+  div.className = 'entry';
+  div.dataset.id = entry.id;
+  const body = entryBody(entry);
+  const { id } = entry;
+  const checkOff = checksOff(cat);
+  const del = checkOff ? iconButton('Done', CHECK_ICON) : iconButton('Delete', TRASH_ICON);
+  del.addEventListener('click', () => removeEntry(id, checkOff ? 'done' : 'deleted'));
+  if (checkOff) {
+    div.classList.add('swipe');
+    onSwipe(div, () => removeEntry(id, 'deleted'));
+  }
+  div.append(body);
+  const to = MOVES[cat];
+  if (to) {
+    div.dataset.moveTo = to;
+    const move = iconButton(`Move to ${to}`, to === BACK_BURNER ? DOWN_ICON : UP_ICON);
+    move.addEventListener('click', () => moveEntry(id));
+    div.append(move);
+  }
+  // Replace deletes the note and opens the editor for the next one (tick off a
+  // task, write the one after it). Undo, back on this screen, brings the old one back.
+  if (replaces(cat)) {
+    const replace = iconButton('Replace', REPLACE_ICON);
+    replace.addEventListener('click', () => {
+      const entry = deleteEntry(id, 'replaced');
+      if (!entry) return;
+      pendingUndo = ['Old note deleted.', () => restoreEntry(entry)];
+      openEditor(cat);
+      sync();
+    });
+    div.append(replace);
+  }
+  div.append(del);
+  return div;
+}
+
+// The lower half of the Working on screen. Tapping the heading folds it away;
+// Add writes straight into it.
+function renderBackBurner(box) {
+  const hidden = localStorage.getItem(BURNER_KEY) === '1';
+  const head = document.createElement('div');
+  head.className = 'burner-head';
+  const toggle = document.createElement('button');
+  toggle.className = 'quiet';
+  toggle.setAttribute('aria-expanded', !hidden);
+  setLabel(toggle, BACK_BURNER, `${BACK_BURNER} (${entriesFor(BACK_BURNER).length}) ${hidden ? '▸' : '▾'}`);
+  toggle.addEventListener('click', () => {
+    if (hidden) localStorage.removeItem(BURNER_KEY);
+    else localStorage.setItem(BURNER_KEY, '1');
+    renderEntries(current.cat);
+  });
+  const add = document.createElement('button');
+  add.className = 'quiet';
+  add.textContent = 'Add';
+  add.addEventListener('click', () => openEditor(BACK_BURNER));
+  head.append(toggle, add);
+  box.append(head);
+  if (hidden) return;
+  const list = document.createElement('div');
+  list.className = 'burner';
+  appendEntries(list, BACK_BURNER);
+  box.append(list);
+}
+
+// Moving is a delete plus a new copy in the other category, since sync only
+// carries new notes and deletes. The copy goes on top of its new list.
+function moveEntry(id) {
+  const old = data.entries.find((e) => e.id === id && !e.deletedAt);
+  const to = old && MOVES[old.category];
+  if (!to) return;
+  deleteEntry(id, 'moved');
+  const now = new Date().toISOString();
+  const moved = { id: newId(), category: to, text: old.text, createdAt: now, updatedAt: now, deletedAt: null, dirty: true };
+  data.entries.push(moved);
+  persist();
+  showUndo(`Moved to ${to}.`, () => {
+    deleteEntry(moved.id, 'undone');
+    restoreEntry(old);
+  });
+  refreshView();
+  sync();
 }
 
 // Read-only history of messages the Discord plugin has sent (deletedHow 'sent').

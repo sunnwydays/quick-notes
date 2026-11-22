@@ -20,7 +20,9 @@ Live: https://dash-notes.vercel.app
 
 **Search:** the box at the top shows every note containing all the typed words, grouped by category.
 
-**Read:** tap a category to see its notes, newest first, with Delete and Replace (delete and write the next one). In Todo, Bring, Working on, Discord and projects, a tick marks a note done; swipe to delete without counting it done. Everything has Undo. **Show times** is remembered per category. Double-tap or hold a blank spot to go back.
+**Read:** tap a category to see its notes, newest first, with Delete and Replace (delete and write the next one). In Todo, Bring, Working on, Back burner, Discord and projects, a tick marks a note done; swipe to delete without counting it done. Everything has Undo. **Show times** is remembered per category. Double-tap or hold a blank spot to go back.
+
+**Back burner:** the lower half of the Working on screen, for goals set aside for later (no button of its own). ↓ on a Working on or Todo note moves it there; ↑ moves it back up to Working on. Tap its heading to fold it away; its **Add** writes straight into it, and Add note files `back burner …` there. A move deletes the note (`deleted_how = 'moved'`) and saves a copy on top of the other list.
 
 **Projects:** ☰ → **New project**. To remove one, open it and tap **Remove project** (deletes its notes).
 
@@ -41,7 +43,7 @@ No new material after that, early night
 
 **Transfer:** three text boxes for copying text between computers, at `/#transfer/1` to `/#transfer/3`. They sync like notes (needs login on both sides), autosave a second after typing, and poll every 5 s (`PAD_POLL_MS`). **Previous** swaps in the last overwritten text (two kept, `PAD_KEEP`). No file support.
 
-**On a computer:** Esc goes back (saving in the editor); Ctrl+Enter/Ctrl+S saves; A/E opens the editor; 1–8 open the built-in categories; / searches; on the notes screen ↓↑ or J/K pick a note, X ticks, Delete deletes, R replaces; T toggles times, U/Ctrl+Z undoes, ? opens Help. Single keys don't fire while typing. Full list in Help.
+**On a computer:** Esc goes back (saving in the editor); Ctrl+Enter/Ctrl+S saves; A/E opens the editor; 1–8 open the built-in categories; / searches; on the notes screen ↓↑ or J/K pick a note, X ticks, Delete deletes, R replaces, B moves to or from Back burner; T toggles times, U/Ctrl+Z undoes, ? opens Help. Single keys don't fire while typing. Full list in Help.
 
 **Back up:** **Export** downloads every note as `.txt`; **Copy all** copies a category.
 

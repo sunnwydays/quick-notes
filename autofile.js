@@ -15,6 +15,7 @@ const FOLDER_WORDS = {
   Thought: ['thought', 'thoughts', 'thot'],
   Journal: ['journal', 'journal entry', 'diary', 'dear diary'],
   'Working on': ['working on'],
+  [BACK_BURNER]: ['back burner', 'backburner', 'back burn', 'back burners', 'back burning', 'bag burner', 'burner'],
   Discord: ['discord', 'this cord', 'dis cord', 'discord message', 'dm'],
   'watch later': ['watch', 'watch later', 'to watch'],
   'ai-tutor': ['yeah tutor'],

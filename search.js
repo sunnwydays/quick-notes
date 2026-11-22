@@ -32,7 +32,7 @@ function renderSearch() {
     const head = document.createElement('button');
     head.className = 'group-head';
     setLabel(head, cat, `${cat} (${hits.length})`);
-    head.addEventListener('click', () => go({ view: 'entries', cat }));
+    head.addEventListener('click', () => openCategory(cat));
     const notes = document.createElement('div');
     notes.classList.toggle('with-times', timesShown(cat));
     for (const entry of hits) {

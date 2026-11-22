@@ -10,7 +10,11 @@ const SCHEDULE = 'Schedule';
 // goes to the folder its first words name (autofile.js).
 const AUTO = 'Add note';
 // In button order: clockwise round the flower from the top.
-const BUILT_IN = ['Todo', SCHEDULE, 'Journal', 'Working on', 'Thought', 'Discord', 'Buy', 'Bring'];
+const FLOWER = ['Todo', SCHEDULE, 'Journal', 'Working on', 'Thought', 'Discord', 'Buy', 'Bring'];
+// Goals set aside for later. No button of its own: it's the lower half of the
+// Working on screen, and notes move between the two with one tap (entries.js).
+const BACK_BURNER = 'Back burner';
+const BUILT_IN = [...FLOWER, BACK_BURNER];
 // The Transfer screen's pads (transfer.js). Each is kept as a note in a category
 // of this name that never gets a category row, so no pad shows up as a project,
 // in search or in Export.
@@ -26,6 +30,7 @@ const ICONS = {
   Discord: 'M22 2L11 13M22 2l-7 20-4-9-9-4z',
   Buy: 'M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0',
   Bring: 'M3 10l9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z',
+  [BACK_BURNER]: 'M12 2c1 4 6 6 6 12a6 6 0 0 1-12 0c0-3 2-5 3-7 0 2 1 3 2 3 0-3-1-5 1-8z',
   Journal: 'M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z',
   [SCHEDULE]: 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z',
   [AUTO]: 'M22 12h-6l-2 3h-4l-2-3H2M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z',
@@ -49,7 +54,8 @@ const $ = (id) => document.getElementById(id);
 // {id, category, text, createdAt, updatedAt, deletedAt, deletedHow, dirty}.
 // Deleting sets deletedAt instead of removing the row, so the delete can sync
 // to other devices. deletedHow says what removed it ('deleted', 'done',
-// 'replaced', 'sent', 'undone' or 'project_removed'; missing on older notes). dirty = changed here
+// 'replaced', 'sent', 'moved', 'undone' or 'project_removed'; missing on older
+// notes). A moved note is a new copy in the other category. dirty = changed here
 // and not yet uploaded. Marks (ticks on schedule blocks) are
 // {id, day, blockStart, blockText, status, markedAt, endedAt, reason, dirty}: only ever
 // added, never changed. endedAt and reason are only on 'over' marks.

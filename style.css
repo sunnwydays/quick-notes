@@ -102,6 +102,7 @@ body.still-held * { user-select: none !important; -webkit-user-select: none !imp
    note wraps and spaces as it does on the notes screen. */
 #editor-recent .entry::after { content: ''; flex: none; width: 100px; height: 44px; }
 #editor-recent.no-replace .entry::after { width: 44px; }
+#editor-recent.moves .entry::after { width: 156px; }
 #editor textarea, #pad {
   flex: 1 1 0;
   min-height: 120px;
@@ -256,6 +257,9 @@ button.glance-block.now.primary { background: #fff; color: #000; outline: 2px so
 #remove-project-btn { margin-right: auto; }
 .empty { font-style: italic; }
 .sent-head { margin: 24px 0 8px; font-size: 18px; }
+/* Back burner, under Working on: a rule and its heading set it apart. */
+.burner-head { display: flex; justify-content: space-between; align-items: center; margin-top: 24px; border-top: 3px solid #000; padding-top: 4px; }
+.burner-head button { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 4px 8px; font-size: 18px; }
 .sent-item { margin: 0 0 8px; opacity: 0.7; }
 .sent-item time { display: block; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .sent-item p { margin: 0; }

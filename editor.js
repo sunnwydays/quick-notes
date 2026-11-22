@@ -39,6 +39,7 @@ function renderRecent(cat) {
   }
   box.classList.toggle('with-times', timesShown(cat));
   box.classList.toggle('no-replace', !replaces(cat));
+  box.classList.toggle('moves', Boolean(MOVES[cat]));
 }
 
 // Once the text outgrows its box (a long schedule, say), the recent notes are
