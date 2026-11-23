@@ -987,8 +987,8 @@ function renderDay(key, { blocks, bumped }, load, from, until, ghosts, drift) {
   shelf.append(element('h4', 'shelf-title', 'Untimed'));
   for (const block of day.blocks.filter((block) => block.shelf)) shelf.append(renderTile(block, key));
   for (const block of bumped) {
-    const tile = renderTile(block);
-    tile.append(element('span', 'bumped', ' · Bumped'));
+    const tile = renderTile(block, key);
+    if (!block.bumped) tile.append(element('span', 'bumped', ' · Bumped'));
     shelf.append(tile);
   }
   const timeline = element('div', 'timeline');
