@@ -1512,6 +1512,8 @@ function startPlanner() {
       pressedOutside = false;
     });
   }
+  const board = document.querySelector('.board-scroll');
+  board.addEventListener('scroll', () => board.classList.toggle('scrolled', board.scrollTop > 0), { passive: true });
   $('week').addEventListener('pointerdown', startDrag);
   window.addEventListener('pointermove', moveDrag, { passive: false });
   window.addEventListener('pointerup', endDrag);

@@ -91,6 +91,18 @@ button:disabled { opacity: .55; cursor: default; }
   position: sticky; top: 0; z-index: 2; background: #fff;
   border-radius: var(--radius) var(--radius) 0 0; padding: .6rem .55rem .45rem;
 }
+/* Once the board scrolls, each stuck header becomes its own rounded card on a strip of page colour,
+   so nothing scrolling underneath shows above it, in its corners or in the gaps beside it. */
+.board-scroll.scrolled .day-head { background: transparent; }
+.board-scroll.scrolled .day-head::before, .board-scroll.scrolled .day-head::after {
+  content: ''; position: absolute; z-index: -1; pointer-events: none;
+}
+.board-scroll.scrolled .day-head::before { inset: -4px calc(-.225rem - 1px) -3px; background: #eaf6ff; }
+.board-scroll.scrolled .time-gutter + .day .day-head::before { inset-inline-start: calc(-2.6rem - .675rem - 2px); }
+.board-scroll.scrolled .day-head::after {
+  inset: 0; background: #fff; border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: 0 3px 8px #26465e1f;
+}
 .day-head h3 { font-size: 1.2rem; display: flex; gap: .25rem; justify-content: space-between; align-items: baseline; }
 .day-date, .day-info { font-size: .75rem; font-weight: normal; color: var(--muted); }
 .day-info { margin-top: .2rem; }
