@@ -148,7 +148,7 @@ $('add-project-btn').addEventListener('click', () => {
 
 // ---------- menu ----------
 // New project, Export, Help and Log in live behind the ☰ button. Picking one
-// closes the menu. A tap outside also closes it. Let the planner link through,
+// closes the menu. A tap outside also closes it. Let the header shortcuts through,
 // but prevent other outside taps from opening a category by accident.
 
 function setMenu(open) {
@@ -163,7 +163,7 @@ $('menu').addEventListener('click', (e) => {
 document.addEventListener('click', (e) => {
   if ($('menu').hidden || e.target.closest('#menu, #menu-btn')) return;
   setMenu(false);
-  if (e.target.closest('#planner-link')) return;
+  if (e.target.closest('#transfer-btn, #planner-link')) return;
   e.preventDefault();
   e.stopPropagation();
 }, true);

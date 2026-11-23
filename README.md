@@ -16,7 +16,7 @@ Live: https://dash-notes.vercel.app
 - `I think …` / `I feel …` → Thought, `today was …` → Journal, keeping the words (`FOLDER_CUES`).
 - Anything else → Todo. Schedule is never picked.
 
-**Home screen:** built-in categories are circles in a "flower" round **Add note**; projects sit above them. Icons are SVG so they stay sharp on e-ink. Under the top row are a few to-dos (newest, then the oldest with its age) and today's schedule (the block on now in black). Hold a to-do or schedule line to tick it (`HOLD_TO_DONE_MS`). The ☰ menu holds **New project**, **Transfer**, **Export**, **Help** and **Log in**. Help's text lives in `index.html`, so update it when behaviour changes.
+**Home screen:** built-in categories are circles in a "flower" round **Add note**; projects sit above them. Icons are SVG so they stay sharp on e-ink. Under the header are a few to-dos (newest, then the oldest with its age) and today's schedule (the block on now in black). Hold a to-do or schedule line to tick it (`HOLD_TO_DONE_MS`). The document icon opens **Transfer** and the calendar icon opens the **Week planner**. The ☰ menu holds **New project**, **Export**, **Help** and **Log in**. Help's text lives in `index.html`, so update it when behaviour changes.
 
 **Search:** the box at the top shows every note containing all the typed words, grouped by category.
 
