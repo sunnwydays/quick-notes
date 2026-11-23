@@ -170,10 +170,7 @@ button:disabled { opacity: .55; cursor: default; }
   display: flex; flex-direction: column;
 }
 .tile.ghost:hover { opacity: .6; }
-.tile.ghost {
-  cursor: pointer; opacity: .35;
-  justify-content: center;
-}
+.tile.ghost { cursor: pointer; opacity: .35; }
 .split-prompt { display: block; margin-top: .25rem; font-size: .78rem; color: #70410f; }
 .review-row { padding: .65rem 0; border-bottom: 1px solid var(--line); }
 .review-row .block { display: flex; justify-content: space-between; align-items: center; gap: .75rem; }
@@ -358,4 +355,3 @@ label.choice:has(input:checked) { border-color: #5b8aa6; background: #eef6fb; }
   .invalid-drop { animation-duration: 1ms; }
 }
 
-.ghost-text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
