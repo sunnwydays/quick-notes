@@ -131,6 +131,12 @@ button:disabled { opacity: .55; cursor: default; }
   height: calc(var(--duration) * var(--minute-height)); padding-block: 0; font-size: .94rem;
   display: flex; flex-direction: column;
 }
+.tile.ghost {
+  border: 2px dashed #687b8c;
+  cursor: pointer;
+  background: color-mix(in srgb, var(--tile-colour) 55%, white);
+  justify-content: center;
+}
 .timed-label { flex: 1; min-height: min(100%, 1.06rem); container-type: size; }
 .timed-label .tile-time { margin-top: .2rem; }
 .timed-label .tile-title {

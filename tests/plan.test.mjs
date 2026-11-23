@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { applyOverrun, dayLoad, editDayWithPin, layoutDay, toggleBlockPin } from '../plan.js';
+import { applyOverrun, dayLoad, editDayWithPin, layoutDay, suggestGhosts, toggleBlockPin } from '../plan.js';
 
 const block = (id, size, fields = {}) => ({ id, size, tier: 'medium', ...fields });
 const times = ({ blocks }) => blocks.map(({ id, start, until }) => [id, start, until]);
@@ -122,4 +122,38 @@ test('load excludes fixed time, exercise tails, and mandatory gaps', () => {
     { ...block('cardio', 30, { kind: 'exercise', tail: 30 }), start: 1235, until: 1295 },
   ];
   assert.deepEqual(dayLoad(day, blocks), { usable: 60, placed: 45, ratio: .75 });
+});
+
+test('ghosts reserve the shelf first and suggest each remaining Todo once without changing the plan', () => {
+  const days = {
+    '2026-11-23': { template: 'Recovery / social', blocks: [] },
+    '2026-11-24': { blocks: [] },
+    '2026-11-25': { blocks: [block('shelf', 45, { shelf: true, goal: 'g', todoId: 's' })] },
+  };
+  const tray = [block('duplicate shelf', 45, { todoId: 's' }), block('budget', 45, { goal: 'g' }),
+    block('todo', 30, { todoId: 't' }), block('duplicate todo', 30, { todoId: 't' })];
+  const before = structuredClone({ days, tray });
+  const ghosts = suggestGhosts(days, tray, { g: 1.25 });
+  assert.deepEqual(ghosts.map(({ key, block }) => [key, block.id, block.start]),
+    [['2026-11-25', 'shelf', 420], ['2026-11-24', 'todo', 420]]);
+  assert.deepEqual({ days, tray }, before);
+});
+
+test('ghosts respect fixed blocks, tomorrow’s exam, and the strict load ceiling', () => {
+  const days = {
+    '2026-11-23': { wake: '15:30', blocks: [
+      block('project', 45, { text: 'AI tutor', pinned: '16:30' }),
+      block('dinner', 30, { text: 'Dinner', tier: 'fixed', pinned: '19:00' }),
+    ] },
+    '2026-11-24': { template: 'Exam / interview', wake: '21:10', blocks: [] },
+  };
+  const tray = [
+    block('study', 45, { text: 'Study new material' }),
+    block('prep', 30, { text: 'Exam prep', deadline: '2026-11-24T09:00' }),
+    block('almost', 30, { text: 'Finish it', kind: 'almost' }),
+  ];
+  assert.deepEqual(suggestGhosts(days, tray).map(({ key, block }) => [key, block.id, block.start]), [
+    ['2026-11-23', 'prep', 930], ['2026-11-23', 'almost', 1045],
+  ]);
+  assert.deepEqual(suggestGhosts({ '2026-11-24': days['2026-11-24'] }, [block('load', 30, { text: 'Read' })]), []);
 });

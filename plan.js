@@ -480,9 +480,13 @@ function blockSource(tile) {
   if (source === 'parked') return { parked: true, block: plan.tray.find((block) => block.id === id) };
   const entry = entriesFor(source).find((item) => item.id === id);
   if (!entry) return null;
+  return { copy: true, block: trayTodo(entry) };
+}
+
+function trayTodo(entry) {
   const text = bare(entry.text).replace(/\s+/g, ' ');
   const size = Number(/\b(30|45|60|90)\s*m(?:in)?\b/i.exec(text)?.[1]) || 45;
-  return { copy: true, block: planBlock(newId(), text, { todoId: id, size }) };
+  return planBlock(newId(), text, { todoId: entry.id, size });
 }
 
 function pinCollision(block, blocks) {
@@ -792,8 +796,103 @@ function dayLoad(day, blocks) {
 }
 
 function afterDeadline(key, block) {
-  const until = `${key}T${blockKey(block.until)}`;
-  return Boolean(block.deadline && until > block.deadline);
+  if (!block.deadline) return false;
+  const [date, time] = block.deadline.split('T');
+  return key > date || (key === date && block.until > (planMinutes(time) ?? PLAN_END));
+}
+
+function nextDateKey(key) {
+  return new Date(Date.parse(key) + 86400000).toISOString().slice(0, 10);
+}
+
+function ghostFits(day, key, tomorrow, examTomorrow, blocks, index, block) {
+  const next = blocks[index];
+  const work = blocks.filter(workBlock);
+  const kind = blockKind(block);
+  const project = work.find((item) => blockKind(item) === 'project');
+  const nextDayPrep = (item) => blockKind(item) === 'prep' && (examTomorrow || item.deadline?.startsWith(tomorrow));
+  const dinner = blocks.find((item) => blockKind(item) === 'meal' && item.start >= 16 * 60);
+  const dueTomorrow = (item) => item.deadline?.startsWith(tomorrow);
+  const first = work[0];
+  if (afterDeadline(key, block) || (day.workCap ?? Infinity) <= work.length) return false;
+  if (first && (dueTomorrow(block) ? block.start > first.start : dueTomorrow(first) && block.start < first.start)) return false;
+  if ((kind === 'study' || nextDayPrep(block)) && project && block.start > project.start) return false;
+  if (kind === 'project' && (blockKind(next ?? {}) !== 'meal' ||
+    work.some((item) => item.start > block.start && (blockKind(item) === 'study' || nextDayPrep(item))))) return false;
+  if (kind === 'almost' && next?.tier !== 'fixed') return false;
+  if (kind === 'fun' && (!dinner || block.until > dinner.start)) return false;
+  const cutoff = day.noNewAfter ?? (examTomorrow ? 16 * 60 : Infinity);
+  if (kind === 'study' && block.until > cutoff && !/\b(recall|review|warm[- ]?up|revise|revision)\b/i.test(block.text)) return false;
+  const deep = (item) => ['high', 'must'].includes(item.tier);
+  return (!deep(block) || work.filter(deep).length < (day.deepCap ?? 4)) &&
+    dayLoad(day, [...blocks.slice(0, index), block, ...blocks.slice(index)]).ratio < .75;
+}
+
+function goalMinutes(blocks, goal) {
+  return blocks.filter((block) => block.goal === goal)
+    .reduce((sum, block) => sum + Math.max(0, block.until - block.start - (block.tail ?? 0)), 0);
+}
+
+function suggestGhosts(days, tray, budgets = {}, earliest = {}, layouts = {}) {
+  const keys = Object.keys(days).sort();
+  const stacks = Object.fromEntries(keys.map((key) => [key, [...(layouts[key] ?? layoutDay(days[key])).blocks]]));
+  const weekly = Object.values(stacks).flat();
+  const committed = new Set(Object.values(days).flatMap((day) => day.blocks.map((block) => block.todoId)).filter(Boolean));
+  const seen = new Set();
+  const ghosts = [];
+  for (const { key, shelf } of [true, false].flatMap((shelf) => keys.map((key) => ({ key, shelf })))) {
+    const day = days[key];
+    if (day.noGhosts || /recovery|social/i.test(day.template ?? '') || earliest[key] === Infinity) continue;
+    const stack = stacks[key];
+    const tomorrow = nextDateKey(key);
+    const examTomorrow = days[tomorrow]?.template === 'Exam / interview';
+    const candidates = shelf ? day.blocks.filter((block) => block.shelf) : tray.filter((block) => !committed.has(block.todoId));
+    candidates.sort((a, b) => Number(Boolean(b.deadline?.startsWith(tomorrow))) - Number(Boolean(a.deadline?.startsWith(tomorrow))));
+    for (const block of candidates) {
+      const identity = block.todoId ?? block.id;
+      if (seen.has(identity) || /^now\s*:/i.test(block.text ?? '') || !workBlock(block)) continue;
+      const weekday = new Date(key).getUTCDay();
+      if (!shelf && (weekday === 0 || weekday === 6) && block.tier !== 'must') continue;
+      const duration = blockDuration(block);
+      const budget = budgets[block.goal];
+      if (budget != null && goalMinutes(weekly, block.goal) + duration - (block.tail ?? 0) > budget * 60) continue;
+      const startOfDay = Math.max((planMinutes(day.wake) ?? PLAN_START) + (day.startOffset ?? 0), day.workStart ?? 0, earliest[key] ?? 0);
+      for (let i = 0; i <= stack.length; i++) {
+        const prev = stack[i - 1];
+        const start = Math.max(startOfDay, prev ? prev.until + gapAfter(prev) : 0);
+        const until = start + duration;
+        if (until > Math.min(SCREENS_OFF, day.workEnd ?? SCREENS_OFF, (stack[i]?.start ?? Infinity) - 5)) continue;
+        const timed = { ...block, start, until, shelf: false };
+        if (!ghostFits(day, key, tomorrow, examTomorrow, stack, i, timed)) continue;
+        stack.splice(i, 0, timed);
+        weekly.push(timed);
+        seen.add(identity);
+        ghosts.push({ key, block: timed, shelf });
+        break;
+      }
+    }
+  }
+  return ghosts;
+}
+
+function keepDayTimes(day, blocks, timed, bumped = []) {
+  const order = new Map(timed.map((block, index) => [block.id, index]));
+  const sorted = [...blocks].sort((a, b) => (order.get(a.id) ?? Infinity) - (order.get(b.id) ?? Infinity));
+  return { ...day, imported: false, blocks: sorted,
+    pinLayout: { blocks: timed.map(({ id, start, until }) => ({ id, start, until })), bumped: bumped.map(({ id }) => id) } };
+}
+
+function acceptGhost({ key, block, shelf }) {
+  const day = plan.days[key];
+  const { blocks, bumped } = layoutDay(day);
+  const { start, until, ...placed } = block;
+  const all = [...day.blocks.filter((item) => !shelf || item.id !== block.id), placed];
+  if (plan.tray.some((item) => item.id === block.id)) {
+    plan.tray = plan.tray.filter((item) => item.id !== block.id);
+    plan.trayDirty = true;
+  }
+  storeDay(key, keepDayTimes(day, all, [...blocks, { ...placed, start, until }].sort((a, b) => a.start - b.start), bumped));
+  markEdited();
 }
 
 function dayWarnings(key, day, blocks) {
@@ -922,8 +1021,7 @@ function applyRestack(event) {
 function renderGoals(layouts, loads) {
   const blocks = layouts.flatMap((layout) => layout.blocks);
   const items = plannerGoals().map((entry) => {
-    const minutes = blocks.filter((block) => block.goal === entry.id)
-      .reduce((sum, block) => sum + Math.max(0, block.until - block.start - (block.tail ?? 0)), 0);
+    const minutes = goalMinutes(blocks, entry.id);
     const budget = goalHours(entry);
     const chip = plannerButton('', () => openGoalEditor(entry), 'goal-chip');
     const colour = goalColour(entry.id);
@@ -999,7 +1097,7 @@ function renderTile(block, date) {
   return tile;
 }
 
-function renderDay(key, { blocks, bumped }, load, from, until) {
+function renderDay(key, { blocks, bumped }, load, from, until, ghosts) {
   const date = keyDate(key);
   const day = plan.days[key];
   const column = element('article', 'panel day');
@@ -1072,6 +1170,16 @@ function renderDay(key, { blocks, bumped }, load, from, until) {
       timeline.append(strip);
     }
   }
+  for (const ghost of ghosts) {
+    const { block } = ghost;
+    const time = blockKey(block.start);
+    const tile = plannerButton(`${time} · ${block.text}`, () => acceptGhost(ghost), 'tile timed ghost');
+    tile.title = `Schedule ${block.text} at ${time}`;
+    tile.style.setProperty('--tile-colour', blockColour(block));
+    tile.style.setProperty('--minute', block.start - from);
+    tile.style.setProperty('--duration', block.until - block.start);
+    timeline.append(tile);
+  }
   const footer = element('footer', 'day-footer');
   footer.classList.toggle('amber', load.ratio >= .75);
   footer.classList.toggle('coral', load.ratio >= .9);
@@ -1091,7 +1199,22 @@ function renderPlanner() {
   const all = layouts.flatMap((layout) => layout.blocks);
   const from = Math.floor(Math.min(PLAN_START, ...all.map((b) => b.start)) / 60) * 60;
   const until = Math.ceil(Math.max(DEFAULT_TIMELINE_END, ...all.map((b) => b.until)) / 60) * 60;
-  $('week').replaceChildren(renderTray(), ...plan.keys.map((key, i) => renderDay(key, layouts[i], loads[i], from, until)));
+  const goals = plannerGoals();
+  const parked = new Set(plan.tray.map((block) => block.todoId));
+  const todos = entriesFor('Todo').filter((entry) => !parked.has(entry.id)).map((entry) => {
+    const block = trayTodo(entry);
+    const goal = goals.find((item) => block.text.toLowerCase().startsWith(`${bare(item.text).trim().toLowerCase()}:`));
+    return { ...block, goal: goal?.id ?? null };
+  });
+  const now = new Date();
+  const today = dayKey(now);
+  const earliest = Object.fromEntries(plan.keys.map((key) => [key,
+    key < today ? Infinity : key === today ? now.getHours() * 60 + now.getMinutes() : 0]));
+  const budgets = Object.fromEntries(goals.map((entry) => [entry.id, goalHours(entry)]));
+  const ghosts = suggestGhosts(plan.days, [...plan.tray, ...todos], budgets, earliest,
+    Object.fromEntries(plan.keys.map((key, i) => [key, layouts[i]])));
+  $('week').replaceChildren(renderTray(), ...plan.keys.map((key, i) =>
+    renderDay(key, layouts[i], loads[i], from, until, ghosts.filter((ghost) => ghost.key === key))));
 }
 
 function refreshView() {
@@ -1308,5 +1431,5 @@ function startPlanner() {
   navigator.storage?.persist?.();
 }
 
-if (typeof module !== 'undefined' && module.exports) module.exports = { layoutDay, applyOverrun, dayLoad, editDayWithPin, toggleBlockPin };
+if (typeof module !== 'undefined' && module.exports) module.exports = { layoutDay, applyOverrun, dayLoad, editDayWithPin, toggleBlockPin, suggestGhosts };
 if (typeof document !== 'undefined') startPlanner();
