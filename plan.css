@@ -351,7 +351,8 @@ label.choice:has(input:checked) { border-color: #5b8aa6; background: #eef6fb; }
 .routine-day:disabled { opacity: .45; }
 .routine-day .muted { font-size: .78rem; }
 #routine-choices > p { margin: 0; color: #2f6a8c; font-weight: 600; }
-#routine-choices .choice { align-items: center; }
+#routine-choices .choice { align-items: center; cursor: pointer; }
+#routine-choices .choice input { cursor: pointer; }
 #routine-choices .choice input { grid-row: auto; margin: 0; }
 #template-def { width: min(42rem, calc(100vw - 1rem)); }
 .template-layout { display: grid; grid-template-columns: minmax(0, 1fr) 12rem; gap: .55rem; align-items: start; }
