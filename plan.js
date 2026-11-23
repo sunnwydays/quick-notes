@@ -1,4 +1,11 @@
 const PLAN_COLOURS = ['#c8efd9', '#ffdcc8', '#e5dcfa', '#fff1ba', '#d5ebff', '#f9d9ea'];
+const COLOUR_NAMES = ['Mint', 'Peach', 'Lavender', 'Butter yellow', 'Powder blue', 'Pink'];
+const BLOCK_KINDS = {
+  '': 'Automatic', study: 'Study', project: 'Project / AI tutor', prep: 'Event prep',
+  almost: 'Almost done', fun: 'Open-ended fun', free: 'Free', buffer: 'Buffer',
+  exercise: 'Exercise', routine: 'Routine', meal: 'Meal', travel: 'Travel', event: 'Fixed event',
+};
+const FIRST_WEEK_GOALS = { chess: 6, lab: 2, fitness: 6.5, study: 20 };
 const PLAN_START = 7 * 60;
 const PLAN_END = 23 * 60;
 const SCREENS_OFF = 22 * 60;
@@ -43,6 +50,7 @@ let activeDrag;
 let editedBlock;
 let tileClick;
 let templateDate;
+let editingGoal;
 
 function planMinutes(time) {
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time ?? '')) return null;
@@ -129,7 +137,8 @@ function weekKey(start) {
 }
 
 function plannerNote(category, key) {
-  for (const entry of entriesFor(category)) {
+  const versions = entriesFor(category).sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id));
+  for (const entry of versions) {
     try {
       const note = JSON.parse(entry.text);
       if (note?.key === key && note.value && typeof note.value === 'object') return { entry, value: note.value };
@@ -184,6 +193,7 @@ function openPlannerWeek() {
   const key = weekKey(monday);
   const keys = Array.from({ length: 7 }, (_, i) => dayKey(addDays(monday, i)));
   const saved = plannerNote(PLAN_WEEK, key);
+  const goals = plannerNote(PLAN_GOALS, key);
   const schedules = schedulesForWeek(keys);
   const sources = {};
   const days = {};
@@ -194,6 +204,7 @@ function openPlannerWeek() {
     sources[date] = Array.isArray(day?.blocks) ? saved.value.sources?.[date] ?? null : schedule?.id ?? null;
   }
   plan = { key, keys, days, sources, schedules, version: saved?.entry.id ?? null, dirtyDays: new Set(), scheduleDirty: new Set(),
+    budgets: goals?.value || {}, goalVersion: goals?.entry.id ?? null, goalsDirty: false,
     tray: Array.isArray(saved?.value.tray?.week) ? saved.value.tray.week : [], trayDirty: false,
     savedDates: new Set(Object.keys(saved?.value.days || {})) };
 }
@@ -245,6 +256,11 @@ function saveWeek() {
     $('plan-status').textContent = 'A newer planner version arrived. Reopen the week before saving.';
     return;
   }
+  const goalVersion = plannerNote(PLAN_GOALS, plan.key);
+  if (plan.goalsDirty && (goalVersion?.entry.id ?? null) !== plan.goalVersion) {
+    $('plan-status').textContent = 'A newer goal budget arrived. Reopen the week before saving.';
+    return;
+  }
   const schedules = schedulesForWeek(plan.keys);
   const notes = [];
   const days = { ...plan.days };
@@ -269,6 +285,10 @@ function saveWeek() {
   }
   const text = JSON.stringify({ key: plan.key, value: { days, sources, tray: { week: plan.tray } } });
   if (text !== previous?.entry.text) notes.push(plannerEntry(PLAN_WEEK, text, previous?.entry));
+  if (plan.goalsDirty) {
+    const text = JSON.stringify({ key: plan.key, value: plan.budgets });
+    if (text !== goalVersion?.entry.text) notes.push(plannerEntry(PLAN_GOALS, text, goalVersion?.entry));
+  }
   const templates = new Set(Object.values(days).map((day) => day.template).filter((name) => Object.hasOwn(TEMPLATES, name)));
   for (const name of templates) {
     if (plannerNote(PLAN_TEMPLATE, name)) continue;
@@ -291,6 +311,7 @@ function saveWeek() {
   plan.dirtyDays.clear();
   plan.scheduleDirty.clear();
   plan.trayDirty = false;
+  plan.goalsDirty = false;
   refreshView();
   $('plan-status').textContent = count ? `Saved ${count} ${count === 1 ? 'day' : 'days'} to Dash.` : 'Week saved. No Schedule changes.';
   sync();
@@ -315,12 +336,19 @@ function plannerGoals() {
 }
 
 function goalColour(goal) {
+  const saved = plan.budgets[goal]?.colour;
+  if (PLAN_COLOURS.includes(saved)) return saved;
   const index = plannerGoals().findIndex((entry) => entry.id === goal);
   return index < 0 ? '' : PLAN_COLOURS[index % PLAN_COLOURS.length];
 }
 
+function goalHours(entry) {
+  if (Object.hasOwn(plan.budgets, entry.id)) return plan.budgets[entry.id]?.hours ?? null;
+  return plan.key === '2026-W48' ? FIRST_WEEK_GOALS[bare(entry.text).trim().toLowerCase()] ?? null : null;
+}
+
 function isPlannerDirty() {
-  return plan.dirtyDays.size > 0 || plan.trayDirty;
+  return plan.dirtyDays.size > 0 || plan.trayDirty || plan.goalsDirty;
 }
 
 function markEdited() {
@@ -429,6 +457,8 @@ function openBlockEditor(source, date) {
   fields.done.value = block.done;
   fields.next.value = block.next;
   fields.tail.value = block.tail;
+  fields.deadline.value = block.deadline || '';
+  fillOptions(fields.kind, Object.entries(BLOCK_KINDS), block.kind || '');
   fillOptions(fields.day, plan.keys.map((key) => [key, dayLabel(key)]), date);
   const sizes = PLAN_SIZES.map((size) => [size, `${size} min`]);
   if (block.duration != null) sizes.unshift(['original', `${block.duration} min (original)`]);
@@ -481,6 +511,7 @@ function applyBlockEditor(event) {
   const changes = {
     text, done: fields.done.value.trim(), next: fields.next.value.trim(), goal: fields.goal.value || null,
     tier: fields.tier.value, tail: Number(fields.tail.value), pinned,
+    kind: fields.kind.value || undefined, deadline: fields.deadline.value || undefined,
     ...size === 'original' ? {} : { size: Number(size), duration: undefined },
   };
   const target = { date, shelf, before };
@@ -584,15 +615,148 @@ function applyTemplateEditor(event) {
   markEdited();
 }
 
-function renderGoals() {
-  const goals = plannerGoals();
-  const items = goals.map((entry) => {
-    const chip = element('span', 'goal-chip', bare(entry.text));
-    chip.style.background = goalColour(entry.id);
+function blockKind(block) {
+  if (block.kind) return block.kind;
+  const text = block.text;
+  if (/\b(ai[- ]tutor|project)\b/i.test(text)) return 'project';
+  if (/\b(prep|settle)\b/i.test(text)) return 'prep';
+  if (/\b(study|recall|revise|review notes|lab)\b/i.test(text)) return 'study';
+  if (/\b(lunch|dinner|meal)\b/i.test(text)) return 'meal';
+  if (/^free\b/i.test(text)) return 'free';
+  if (/^buffer\b/i.test(text)) return 'buffer';
+  return '';
+}
+
+function workBlock(block) {
+  return block.tier !== 'fixed' && !['free', 'buffer', 'meal', 'routine', 'exercise', 'travel', 'event'].includes(blockKind(block));
+}
+
+function dayLoad(day, blocks) {
+  const start = Math.max((planMinutes(day.wake) ?? PLAN_START) + (day.startOffset ?? 0), day.workStart ?? 0);
+  const end = day.workEnd ?? SCREENS_OFF;
+  const excluded = [];
+  let placed = 0;
+  for (const [i, block] of blocks.entries()) {
+    const from = Math.max(start, block.start);
+    const until = Math.min(end, block.until);
+    const work = workBlock(block);
+    if (!work && until > from) excluded.push([from, until]);
+    if (work && until > from) {
+      const tailStart = Math.max(from, Math.min(until, block.until - (block.tail ?? 0)));
+      placed += tailStart - from;
+      if (tailStart < until) excluded.push([tailStart, until]);
+    }
+    const gapUntil = Math.min(block.until + gapAfter(block), blocks[i + 1]?.start ?? end, end);
+    if (gapUntil > until && gapUntil > start) excluded.push([Math.max(start, until), gapUntil]);
+  }
+  let cursor = start;
+  let unavailable = 0;
+  for (const [from, until] of excluded.sort((a, b) => a[0] - b[0])) {
+    unavailable += Math.max(0, until - Math.max(from, cursor));
+    cursor = Math.max(cursor, until);
+  }
+  const usable = Math.max(0, end - start - unavailable);
+  return { usable, placed, ratio: usable ? placed / usable : placed ? 1 : 0 };
+}
+
+function afterDeadline(key, block) {
+  const until = `${key}T${blockKey(block.until)}`;
+  return Boolean(block.deadline && until > block.deadline);
+}
+
+function dayWarnings(key, day, blocks) {
+  const warnings = new Set();
+  const work = blocks.filter(workBlock);
+  const cap = day.deepCap ?? 4;
+  if (work.filter((b) => ['high', 'must'].includes(b.tier)).length > cap) warnings.add(`More than ${cap} deep blocks`);
+  if (work.length && !blocks.some((b) => ['free', 'buffer'].includes(blockKind(b)))) warnings.add('No free time or buffer');
+  if (work.length && blocks.filter((b) => blockKind(b) === 'buffer').reduce((sum, b) => sum + b.until - b.start, 0) < 45) {
+    warnings.add('Less than 45m of buffer');
+  }
+  const tomorrow = dayKey(addDays(keyDate(key), 1));
+  const nextDay = plan.days[tomorrow];
+  const examTomorrow = nextDay?.template === 'Exam / interview';
+  const cutoff = day.noNewAfter ?? (examTomorrow ? 16 * 60 : Infinity);
+  const dinner = blocks.find((b) => blockKind(b) === 'meal' && b.start >= 16 * 60);
+  const project = work.find((b) => blockKind(b) === 'project');
+  for (const [i, block] of blocks.entries()) {
+    const next = blocks[i + 1];
+    const kind = blockKind(block);
+    if (next && next.start - block.until < 5 && !(next.templateAnchor && block.templateAnchor && next.start === block.until)) {
+      warnings.add(next.start < block.until ? 'Overlapping pins' : 'Gap under 5m');
+    }
+    if (kind === 'project' && (!next || (blockKind(next) !== 'meal' && !next.pinned))) warnings.add('Project needs a meal or anchor after it');
+    if (kind === 'project' && next && blockKind(next) === 'study') warnings.add('Put study before project work');
+    if (kind === 'prep' && project && block.start > project.start && (block.deadline?.startsWith(tomorrow) || examTomorrow)) {
+      warnings.add('Put next-day prep before project work');
+    }
+    if (kind === 'almost' && next?.tier !== 'fixed') warnings.add('Put almost-done work before a fixed block');
+    if (kind === 'fun' && (!next || (dinner && block.start >= dinner.start))) warnings.add('Put open-ended fun before dinner');
+    if (kind === 'study' && block.until > cutoff && !/\b(recall|review|warm[- ]?up|revise|revision)\b/i.test(block.text)) {
+      warnings.add('Use light recall before the exam or interview');
+    }
+    if (afterDeadline(key, block)) warnings.add('Block scheduled after its deadline');
+    if (block.deadline?.startsWith(tomorrow) && work.includes(block) && work[0] !== block) warnings.add('Put tomorrow’s deliverable first');
+  }
+  return [...warnings];
+}
+
+function hoursText(minutes) {
+  return new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(minutes / 60) + 'h';
+}
+
+function meter(value, label) {
+  const bar = element('span', 'meter');
+  bar.setAttribute('role', 'meter');
+  bar.setAttribute('aria-label', label);
+  bar.setAttribute('aria-valuemin', '0');
+  bar.setAttribute('aria-valuemax', '100');
+  const percent = Math.min(100, Math.round(value * 100));
+  bar.setAttribute('aria-valuenow', String(percent));
+  const fill = element('span', 'meter-fill');
+  fill.style.width = `${percent}%`;
+  bar.append(fill);
+  return bar;
+}
+
+function openGoalEditor(entry) {
+  editingGoal = entry.id;
+  $('goal-title').textContent = bare(entry.text);
+  const fields = $('goal-form').elements;
+  fields.hours.value = goalHours(entry) ?? '';
+  fillOptions(fields.colour, PLAN_COLOURS.map((colour, i) => [colour, COLOUR_NAMES[i]]), goalColour(entry.id));
+  $('goal-editor').showModal();
+}
+
+function applyGoalEditor(event) {
+  event.preventDefault();
+  const fields = event.target.elements;
+  plan.budgets = { ...plan.budgets, [editingGoal]: { hours: fields.hours.value === '' ? null : Number(fields.hours.value), colour: fields.colour.value } };
+  plan.goalsDirty = true;
+  $('goal-editor').close();
+  markEdited();
+}
+
+function renderGoals(layouts, loads) {
+  const blocks = layouts.flatMap((layout) => layout.blocks);
+  const items = plannerGoals().map((entry) => {
+    const minutes = blocks.filter((block) => block.goal === entry.id)
+      .reduce((sum, block) => sum + Math.max(0, block.until - block.start - (block.tail ?? 0)), 0);
+    const budget = goalHours(entry);
+    const chip = plannerButton('', () => openGoalEditor(entry), 'goal-chip');
+    const colour = goalColour(entry.id);
+    chip.style.background = colour;
+    chip.append(element('strong', '', bare(entry.text)), element('span', 'goal-hours', budget == null
+      ? hoursText(minutes) : `${hoursText(minutes)} / ${budget}h`));
+    if (budget != null) chip.append(meter(budget ? minutes / (budget * 60) : Number(minutes > 0), 'Goal progress'));
+    chip.classList.toggle('over-budget', budget != null && minutes > budget * 60);
     return chip;
   });
   if (!items.length) items.push(element('span', 'muted', 'No Working on notes'));
-  $('goals').replaceChildren(element('h3', '', 'Working on'), ...items);
+  const placed = loads.reduce((sum, load) => sum + load.placed, 0);
+  const usable = loads.reduce((sum, load) => sum + load.usable, 0);
+  $('goals').replaceChildren(element('h3', '', 'Working on'), ...items,
+    element('span', 'week-load', `${hoursText(placed)} placed / ${hoursText(usable)} usable`));
 }
 
 function renderTray() {
@@ -630,7 +794,8 @@ function renderTile(block, date) {
   tile.dataset.id = block.id;
   if (date) tile.dataset.date = date;
   tile.classList.toggle('fixed', block.tier === 'fixed');
-  tile.style.setProperty('--tile-colour', goalColour(block.goal) || (block.pinned ? '#fff0d7' : '#edf0f3'));
+  const rest = ['free', 'buffer'].includes(blockKind(block));
+  tile.style.setProperty('--tile-colour', goalColour(block.goal) || (rest ? '#e9f6e6' : block.pinned ? '#fff0d7' : '#edf0f3'));
   tile.append(element('span', 'tile-title', block.text));
   if (block.bumped) tile.append(element('span', 'bumped', ' · Bumped'));
   if (block.pinned) {
@@ -642,7 +807,7 @@ function renderTile(block, date) {
   return tile;
 }
 
-function renderDay(key, { blocks, bumped }, from, until) {
+function renderDay(key, { blocks, bumped }, load, from, until) {
   const date = keyDate(key);
   const day = plan.days[key];
   const column = element('article', 'panel day');
@@ -686,9 +851,10 @@ function renderDay(key, { blocks, bumped }, from, until) {
     line.style.setProperty('--minute', hour - from);
     timeline.append(line);
   }
-  for (const block of blocks) {
+  for (const [i, block] of blocks.entries()) {
     const tile = renderTile(block, key);
     tile.classList.add('timed');
+    tile.classList.toggle('late', afterDeadline(key, block));
     tile.style.setProperty('--minute', block.start - from);
     tile.style.setProperty('--duration', block.until - block.start);
     tile.prepend(element('time', 'tile-time', `${blockKey(block.start)}–${blockKey(block.until)}`));
@@ -697,8 +863,21 @@ function renderDay(key, { blocks, bumped }, from, until) {
       tile.append(element('span', 'tail', `+${block.tail}m`));
     }
     timeline.append(tile);
+    const gap = Math.min(gapAfter(block), (blocks[i + 1]?.start ?? until) - block.until);
+    if (gap > 0 && blocks[i + 1]) {
+      const strip = element('span', 'gap');
+      strip.style.setProperty('--minute', block.until - from);
+      strip.style.setProperty('--duration', gap);
+      strip.title = `${gap} min gap`;
+      timeline.append(strip);
+    }
   }
-  column.append(head, shelf, timeline);
+  const footer = element('footer', 'day-footer');
+  footer.classList.toggle('amber', load.ratio >= .75);
+  footer.classList.toggle('coral', load.ratio >= .9);
+  footer.append(element('p', 'day-info', `Load ${Math.round(load.ratio * 100)}% · ${hoursText(load.placed)}`), meter(load.ratio, `${dayLabel(key)} load`));
+  for (const warning of dayWarnings(key, day, blocks)) footer.append(element('span', 'warning', warning));
+  column.append(head, shelf, timeline, footer);
   return column;
 }
 
@@ -706,16 +885,24 @@ function renderPlanner() {
   const end = addDays(monday, 6);
   const formatter = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
   $('week-range').textContent = formatter.formatRange(monday, end);
-  renderGoals();
   const layouts = plan.keys.map((key) => layoutDay(plan.days[key]));
+  const loads = layouts.map((layout, i) => dayLoad(plan.days[plan.keys[i]], layout.blocks));
+  renderGoals(layouts, loads);
   const all = layouts.flatMap((layout) => layout.blocks);
   const from = Math.floor(Math.min(PLAN_START, ...all.map((b) => b.start)) / 60) * 60;
   const until = Math.ceil(Math.max(PLAN_END, ...all.map((b) => b.until)) / 60) * 60;
-  $('week').replaceChildren(renderTray(), ...plan.keys.map((key, i) => renderDay(key, layouts[i], from, until)));
+  $('week').replaceChildren(renderTray(), ...plan.keys.map((key, i) => renderDay(key, layouts[i], loads[i], from, until)));
 }
 
 function refreshView() {
-  if (plan && isPlannerDirty()) plan.schedules = schedulesForWeek(plan.keys);
+  if (plan && isPlannerDirty()) {
+    plan.schedules = schedulesForWeek(plan.keys);
+    if (!plan.goalsDirty) {
+      const goals = plannerNote(PLAN_GOALS, plan.key);
+      plan.budgets = goals?.value || {};
+      plan.goalVersion = goals?.entry.id ?? null;
+    }
+  }
   else openPlannerWeek();
   if (!activeDrag) renderPlanner();
 }
@@ -869,6 +1056,8 @@ function startPlanner() {
   $('template-form').addEventListener('submit', applyTemplateEditor);
   $('template-form').addEventListener('change', updateTemplateFields);
   $('template-cancel').addEventListener('click', () => $('template-editor').close());
+  $('goal-form').addEventListener('submit', applyGoalEditor);
+  $('goal-cancel').addEventListener('click', () => $('goal-editor').close());
   $('week').addEventListener('pointerdown', startDrag);
   window.addEventListener('pointermove', moveDrag, { passive: false });
   window.addEventListener('pointerup', endDrag);

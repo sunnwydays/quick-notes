@@ -72,6 +72,10 @@
         <label>Goal <select name="goal"></select></label>
         <label>Tail (min) <input name="tail" type="number" min="0" max="120" step="5"></label>
       </div>
+      <div class="field-row">
+        <label>Kind <select name="kind"></select></label>
+        <label>Deadline <input name="deadline" type="datetime-local"></label>
+      </div>
       <div class="field-row pin-fields">
         <label><input name="pin" type="checkbox"> Pin time</label>
         <label>Time <input name="time" type="time"></label>
@@ -100,6 +104,17 @@
       <div class="actions">
         <button class="primary">Apply template</button>
         <button id="template-cancel" type="button">Cancel</button>
+      </div>
+    </form>
+  </dialog>
+  <dialog id="goal-editor" aria-labelledby="goal-title">
+    <form id="goal-form">
+      <h2 id="goal-title">Goal budget</h2>
+      <label>Weekly hours <input name="hours" type="number" min="0" max="168" step="0.25" placeholder="No budget"></label>
+      <label>Colour <select name="colour"></select></label>
+      <div class="actions">
+        <button class="primary">Apply</button>
+        <button id="goal-cancel" type="button">Cancel</button>
       </div>
     </form>
   </dialog>
