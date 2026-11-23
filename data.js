@@ -183,6 +183,31 @@ function entriesFor(cat) {
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
+function plannerNotes(category) {
+  const notes = new Map();
+  const versions = entriesFor(category).sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id));
+  for (const entry of versions) {
+    try {
+      const note = JSON.parse(entry.text);
+      if (typeof note?.key === 'string' && !notes.has(note.key) && note.value && typeof note.value === 'object') {
+        notes.set(note.key, { entry, value: note.value });
+      }
+    } catch {
+      // Ignore a malformed version and look for the previous saved note.
+    }
+  }
+  return notes;
+}
+
+function plannerNote(category, key) {
+  return plannerNotes(category).get(key) ?? null;
+}
+
+function plannerEntry(category, text, previous) {
+  const createdAt = new Date(Math.max(Date.now(), previous ? Date.parse(previous.createdAt) + 1 : 0)).toISOString();
+  return { id: newId(), category, text, createdAt, updatedAt: createdAt, deletedAt: null, dirty: true };
+}
+
 function newId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }

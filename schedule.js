@@ -204,6 +204,151 @@ function scheduleDay(entry) {
   return dayKey(addDays(saved, dayOffset(word, saved)));
 }
 
+function weekMonday(date) {
+  return addDays(date, -((date.getDay() + 6) % 7));
+}
+
+function weekKey(start) {
+  const thursday = addDays(start, 3);
+  const year = thursday.getFullYear();
+  const first = weekMonday(new Date(year, 0, 4));
+  const number = Math.round((start - first) / (7 * 864e5)) + 1;
+  return `${year}-W${String(number).padStart(2, '0')}`;
+}
+
+function emptyDay() {
+  return { template: '', phoneOff: false, wake: '07:00', blocks: [] };
+}
+
+function dayFromSchedule(entry) {
+  const day = emptyDay();
+  if (!entry) return day;
+  const parsed = parseSchedule(entry.text);
+  day.imported = true;
+  day.blocks = parsed.intro.map((line, i) => planBlock(`${entry.id}-s${i}`, line, { shelf: true }));
+  for (const [i, block] of parsed.blocks.entries()) {
+    const [line, ...more] = block.lines;
+    const [, title, done] = /^(.*?)\s*\(done = (.*)\)$/.exec(line) || [];
+    day.blocks.push(planBlock(`${entry.id}-b${i}`, (title ?? line) || 'Untitled block', {
+      duration: block.until > block.start ? (block.end == null ? Math.min(45, block.until - block.start) : block.until - block.start) : 45,
+      importedStart: block.start,
+      done: done || '',
+      next: more.join('\n'),
+    }));
+  }
+  return day;
+}
+
+// Prevent prose containing “, 10:30” from being read as a second block.
+function scheduleProse(text) {
+  return text.replace(/([,;]\s+)(?=\d)/g, '$1\u2060');
+}
+
+function scheduleNoteLine(text, label) {
+  const line = bare(text);
+  return scheduleProse(readTime(line) || dayWord(line) ? `${label} · ${line}` : line);
+}
+
+function scheduleText(key, day) {
+  const { blocks, bumped } = layoutDay(day);
+  const untimed = [...day.blocks.filter((block) => block.shelf), ...bumped];
+  const lines = [datedScheduleHeading(key)];
+  for (const block of untimed) {
+    const text = block.done ? `${block.text} (done = ${block.done})` : block.text;
+    lines.push(scheduleNoteLine(text, 'Untimed'));
+  }
+  for (const block of blocks) {
+    const text = block.done ? `${block.text} (done = ${block.done})` : block.text;
+    lines.push(`${blockKey(block.start)}-${blockKey(block.until)} ${scheduleProse(text)}`);
+    for (const line of (block.next || '').split('\n').filter((line) => line.trim())) lines.push(scheduleNoteLine(line, 'Next'));
+  }
+  return lines.join('\n');
+}
+
+// A typed Schedule has no pin metadata. Recognize named commitments and the
+// explicit Fixed: prefix when restacking it directly from Dash.
+function pinScheduleCommitments(day, previous) {
+  const fixedTitle = /^(?:fixed\s*:|breakfast\b|lunch\b|dinner\b|wake\b|walk outside\b|afternoon cardio\b|screens? off\b|wind[- ]down\b|sleep\b|bedtime\b|review$|welding\b|game\b|foosball\b|(?:exam|interview)(?!\s+(?:prep|practice|review)\b)\b)/i;
+  const known = previous ? layoutDay(previous).blocks.filter((block) => block.pinned || block.tier === 'fixed') : [];
+  return {
+    ...day,
+    blocks: day.blocks.map((block) => {
+      if (block.shelf || block.pinned || block.tier === 'fixed' || block.importedStart == null) return block;
+      const prior = known.find((timed) => timed.start === block.importedStart && timed.text === block.text);
+      if (!fixedTitle.test(block.text) && !prior) return block;
+      return { ...block, pinned: blockKey(block.importedStart), tier: prior?.tier ?? 'fixed' };
+    }),
+  };
+}
+
+function restackSavedSchedule(key, expectedId, { wake, over, fields }) {
+  reload();
+  const entry = scheduleOn(key);
+  if (!entry || entry.id !== expectedId) {
+    refreshView();
+    alert('The schedule changed. Open the action again to use the latest version.');
+    return;
+  }
+  const week = weekKey(weekMonday(keyDate(key)));
+  const saved = plannerNote(PLAN_WEEK, week);
+  const value = saved?.value ?? {};
+  const previous = value.days?.[key];
+  const currentPlan = value.sources?.[key] === entry.id && Array.isArray(previous?.blocks);
+  const day = currentPlan && !previous.imported ? previous : pinScheduleCommitments(
+    currentPlan ? previous : dayFromSchedule(entry), currentPlan ? null : previous);
+  let changed;
+  if (over) {
+    const timed = layoutDay(day).blocks.find((block) => block.start === over.start);
+    const result = timed && applyOverrun(day, timed.id, planMinutes(fields.endedAt));
+    if (!result) {
+      alert('Choose an end time after the block started.');
+      return;
+    }
+    changed = result.day;
+  } else {
+    changed = applyWake(day, wake);
+  }
+  const restacked = restackBeforeScreensOff(changed);
+  const { bumped } = layoutDay(restacked);
+  const bumpedIds = new Set(bumped.map((block) => block.id));
+  restacked.blocks = restacked.blocks.map((block) => bumpedIds.has(block.id)
+    ? { ...untimedBlock(block), bumped: true } : block);
+  restacked.pinLayout.bumped = [];
+  const text = scheduleText(key, restacked);
+  const next = changesSchedule(text) ? plannerEntry(SCHEDULE, text, entry) : entry;
+  const version = { ...value, days: { ...value.days, [key]: restacked }, sources: { ...value.sources, [key]: next.id } };
+  if (next !== entry) data.entries.push(next);
+  data.entries.push(plannerEntry(PLAN_WEEK, JSON.stringify({ key: week, value: version }), saved?.entry));
+  if (over) data.marks.push(makeBlockMark(key, over, fields));
+  try {
+    persist();
+  } catch {
+    reload();
+    alert('Could not save the restacked schedule. Device storage is full or unavailable.');
+    return;
+  }
+  refreshView();
+  const status = $('schedule-restack-status');
+  status.dataset.day = key;
+  status.hidden = false;
+  status.textContent = bumped.length ? `Moved to Untimed · ${bumped.map((block) => block.text).join(', ')}` : 'Schedule restacked.';
+  sync();
+}
+
+function wakeSchedule(key, entry) {
+  const week = weekKey(weekMonday(keyDate(key)));
+  const day = plannerNote(PLAN_WEEK, week)?.value.days?.[key];
+  const answer = prompt('Woke at…', day?.wake ?? '07:00');
+  if (answer == null) return;
+  const time = answer.trim();
+  const parsed = readTime(`${time} wake`);
+  if (!parsed || parsed.length !== time.length || minutes(parsed) >= DAY_END) {
+    alert('Enter a time such as 09:15.');
+    return;
+  }
+  restackSavedSchedule(key, entry.id, { wake: blockKey(minutes(parsed)) });
+}
+
 // The newest schedule for a day, or undefined.
 function scheduleOn(key) {
   return entriesFor(SCHEDULE).find((e) => scheduleDay(e) === key);
@@ -262,11 +407,6 @@ function textLine(className, text) {
 const MARK_BOX = 'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z';
 
 // 'HH:MM', 24 hours, as stored in qn_block_marks.
-function blockKey(start) {
-  const p = (n) => String(n).padStart(2, '0');
-  return `${p(Math.floor(start / 60))}:${p(start % 60)}`;
-}
-
 function keyMinutes(key) {
   const [h, m] = key.split(':').map(Number);
   return h * 60 + m;
@@ -292,6 +432,7 @@ function makeBlockMark(day, b, fields) {
 }
 
 function addMark(day, b, fields) {
+  reload();
   data.marks.push(makeBlockMark(day, b, fields));
   persist();
   refreshView();
@@ -307,18 +448,21 @@ function cycleMark(day, b) {
 // being marked if that's past the block's end (so the usual case is just OK),
 // else at the end. A time without am/pm is read as after the block's start. No
 // time at the start makes the whole line the reason.
-function markOver(day, b) {
+function markOver(day, b, scheduleId = null) {
   const now = new Date();
   const nowMin = day === dayKey(now) ? now.getHours() * 60 + now.getMinutes() : -1;
-  const answer = prompt('Ran over: ended at, and why (optional)', `${clock(Math.min(Math.max(nowMin, b.until), DAY_END - 1))} `);
+  const answer = prompt(`Ran over · ${b.lines.find(Boolean) || clock(b.start)}\nEnter the end time and an optional reason.`,
+    `${clock(Math.min(Math.max(nowMin, b.until), DAY_END - 1))} `);
   if (answer == null) return;
   const s = answer.trim();
   const t = readTime(s);
-  addMark(day, b, {
+  const fields = {
     status: 'over',
     endedAt: t ? blockKey(Math.min(minutes(t, b.start), DAY_END - 1)) : null,
     reason: (t ? s.slice(t.length) : s).replace(/^[\s,:;–—-]+/, ''),
-  });
+  };
+  if (scheduleId && day === dayKey(now) && fields.endedAt) restackSavedSchedule(day, scheduleId, { over: b, fields });
+  else addMark(day, b, fields);
 }
 
 function markLabel(mark) {
@@ -342,7 +486,7 @@ function markIcon(status, size) {
 }
 
 // day is null on a day that hasn't come yet, where there's nothing to tick.
-function blockRow(b, state, mark, day) {
+function blockRow(b, state, mark, day, scheduleId = null) {
   const status = mark && mark.status;
   const div = document.createElement('div');
   div.className = ['block', state, status && `marked-${status}`].filter(Boolean).join(' ');
@@ -376,7 +520,7 @@ function blockRow(b, state, mark, day) {
     btn.addEventListener('click', () => {
       if (!btn.held) cycleMark(day, b);
     });
-    onHoldRelease(btn, () => markOver(day, b), HOLD_TO_DONE_MS);
+    onHoldRelease(btn, () => markOver(day, b, scheduleId), HOLD_TO_DONE_MS);
     div.append(btn);
   }
   return div;
@@ -443,6 +587,15 @@ function renderSchedule(state, fresh = false) {
   const plan = entry ? parseSchedule(entry.text) : { head: null, intro: [], blocks: [] };
   const nowMin = now.getHours() * 60 + now.getMinutes();
   $('schedule-review').hidden = !isToday || nowMin < REVIEW_START;
+  const wake = $('schedule-wake');
+  const over = $('schedule-over');
+  const recent = isToday ? plan.blocks.findLast((block) => block.start <= nowMin) : null;
+  $('schedule-restack').hidden = !entry || key < today || !plan.blocks.length;
+  wake.onclick = entry ? () => wakeSchedule(key, entry) : null;
+  over.hidden = !recent;
+  over.onclick = recent ? () => markOver(key, recent, entry.id) : null;
+  const status = $('schedule-restack-status');
+  status.hidden = status.dataset.day !== key;
 
   if (!entry) {
     const how = ' Tap New, then paste one or type a line per block, like "9:00-11:30 Foosball".';
@@ -470,7 +623,7 @@ function renderSchedule(state, fresh = false) {
       const d = done.indexOf(b);
       if (d >= 0 && d < hidden) continue;
       if (b === nextBlock) box.append(textLine('free', `Free until ${clock(b.start)}`));
-      box.append(blockRow(b, d >= 0 ? 'done' : b === nowBlock ? 'now' : '', marks.get(blockKey(b.start)), key <= today ? key : null));
+      box.append(blockRow(b, d >= 0 ? 'done' : b === nowBlock ? 'now' : '', marks.get(blockKey(b.start)), key <= today ? key : null, entry.id));
     }
     if (isToday && plan.blocks.length && !nowBlock && !nextBlock) box.append(textLine('empty', 'Done for today.'));
   }

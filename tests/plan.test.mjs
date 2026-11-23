@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { applyOverrun, dayLoad, editDayWithPin, layoutDay, suggestGhosts, toggleBlockPin } from '../plan.js';
+import { applyOverrun, applyWake, dayLoad, editDayWithPin, insertPopup, layoutDay, restackBeforeScreensOff, suggestGhosts, toggleBlockPin } from '../plan-engine.js';
 
 const block = (id, size, fields = {}) => ({ id, size, tier: 'medium', ...fields });
 const times = ({ blocks }) => blocks.map(({ id, start, until }) => [id, start, until]);
@@ -156,4 +156,27 @@ test('ghosts respect fixed blocks, tomorrow’s exam, and the strict load ceilin
     ['2026-11-23', 'prep', 930], ['2026-11-23', 'almost', 1045],
   ]);
   assert.deepEqual(suggestGhosts({ '2026-11-24': days['2026-11-24'] }, [block('load', 30, { text: 'Read' })]), []);
+});
+
+test('a late wake keeps fixed commitments through screens-off and bumps flexible work', () => {
+  const day = { imported: true, blocks: [
+    block('fixed meeting', 30, { importedStart: 1140, tier: 'fixed' }),
+    block('must', 45, { importedStart: 1170, tier: 'must' }),
+    block('low', 60, { importedStart: 1225, tier: 'low' }),
+    block('screens off', 60, { importedStart: 1320, tier: 'fixed', pinned: '22:00' }),
+  ] };
+  const result = layoutDay(restackBeforeScreensOff(applyWake(day, '20:45')));
+  assert.deepEqual(times(result), [['fixed meeting', 1140, 1170], ['must', 1245, 1290], ['screens off', 1320, 1380]]);
+  assert.deepEqual(result.bumped.map(({ id }) => id), ['low']);
+});
+
+test('a short interruption uses only the time it needs from a pinned buffer', () => {
+  const day = { blocks: [
+    block('buffer', 45, { text: 'Buffer', pinned: '10:00', tier: 'fixed' }),
+    block('meal', 30, { pinned: '10:45', tier: 'fixed' }),
+  ] };
+  const { day: updated } = insertPopup(day, block('popup', 15), 610);
+  assert.deepEqual(times(layoutDay(updated)), [
+    ['buffer', 600, 610], ['popup', 610, 625], ['popup-free', 625, 645], ['meal', 645, 675],
+  ]);
 });

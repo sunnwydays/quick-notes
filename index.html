@@ -155,6 +155,11 @@
       <h2 id="schedule-day"></h2>
       <button id="day-next" class="quiet"></button>
     </div>
+    <div class="tools" id="schedule-restack" hidden>
+      <button id="schedule-wake" class="quiet" type="button">Woke at…</button>
+      <button id="schedule-over" class="quiet" type="button">Ran over…</button>
+    </div>
+    <p class="schedule-note" id="schedule-restack-status" role="status" hidden></p>
     <a class="schedule-note" id="schedule-review" href="plan.html?review=1" hidden>Review today</a>
     <div id="schedule-list"></div>
   </section>
@@ -173,6 +178,7 @@
   <script src="autofile.js"></script>
   <script src="entries.js"></script>
   <script src="transfer.js"></script>
+  <script src="plan-engine.js"></script>
   <script src="schedule.js"></script>
   <script src="export.js"></script>
   <script src="sync.js"></script>
