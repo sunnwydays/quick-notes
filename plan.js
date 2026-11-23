@@ -1454,7 +1454,7 @@ function timeTile(tile, start, until, from) {
   return time;
 }
 
-function renderDay(key,{ blocks, bumped }, load, from, until, ghosts, drift) {
+function renderDay(key,{ blocks, bumped }, load, from, until, ghosts) {
   const date = keyDate(key);
   const day = plan.days[key];
   const column = element('article', 'panel day');
@@ -1464,7 +1464,6 @@ function renderDay(key,{ blocks, bumped }, load, from, until, ghosts, drift) {
   heading.append(element('span', 'day-date', date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })));
   const info = [day.wake && `Wake ${day.wake}`, day.template].filter(Boolean);
   head.append(heading, element('p', 'day-info', info.join(' · ')));
-  if (drift >= 10) head.append(element('span', 'warning', `Drift · ${drift} AI tutor ideas`));
   if (changedInDash(key)) head.append(element('span', 'warning', 'Changed on phone'));
   const events = blocks.filter((block) => block.pinned && (block.kind === 'event' || block.tier === 'fixed' && !block.templateAnchor));
   for (const event of events) head.append(element('p', 'day-info day-event', `★ ${event.pinned} ${event.text}`));
@@ -1562,14 +1561,6 @@ function renderPlanner() {
   const budgets = Object.fromEntries(goals.map((entry) => [entry.id, goalHours(entry)]));
   const ghosts = suggestGhosts(plan.days, [...plan.tray, ...todos], budgets, earliest,
     Object.fromEntries(plan.keys.map((key, i) => [key, layouts[i]])));
-  const drift = new Map();
-  for (const entry of data.entries) {
-    if (entry.category !== 'ai-tutor') continue;
-    const date = new Date(entry.createdAt);
-    if (Number.isNaN(date.getTime())) continue;
-    const key = dayKey(date);
-    drift.set(key, (drift.get(key) ?? 0) + 1);
-  }
   if (!plan.keys.includes(selectedDay)) selectedDay = plan.keys.includes(today) ? today : plan.keys[0];
   $('day-tabs').replaceChildren(...plan.keys.map((key) => {
     const date = keyDate(key);
@@ -1593,7 +1584,7 @@ function renderPlanner() {
   }
   renderTray();
   $('week').replaceChildren(gutter, ...plan.keys.map((key, i) => {
-    const column = renderDay(key, layouts[i], loads[i], from, until, ghosts.filter((ghost) => ghost.key === key), drift.get(key));
+    const column = renderDay(key, layouts[i], loads[i], from, until, ghosts.filter((ghost) => ghost.key === key));
     column.classList.toggle('selected', key === selectedDay);
     return column;
   }));
