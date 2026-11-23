@@ -720,8 +720,12 @@ function templatePointerDown(event) {
   tplPointer = event.pointerType;
   if (event.button !== 0 || tplDrag) return;
   const timeline = $('template-day');
-  const tile = event.target.closest('.tile[data-id]');
-  if (tile) {
+  const edge = tileBottomEdgeAt(event);
+  const tile = edge ?? event.target.closest('.tile[data-id]');
+  if (edge) {
+    event.preventDefault();
+    tplDrag = { resize: true, id: edge.dataset.id, y: event.clientY, moved: false, pointer: event.pointerId };
+  } else if (tile) {
     event.preventDefault();
     const grab = event.clientY - tile.getBoundingClientRect().top;
     tplDrag = { id: tile.dataset.id, grab, y: event.clientY, moved: false, pointer: event.pointerId };
@@ -739,6 +743,15 @@ function templatePointerMove(event) {
   if (!tplDrag.moved && Math.abs(event.clientY - tplDrag.y) < 6) return;
   tplDrag.moved = true;
   const timeline = $('template-day');
+  if (tplDrag.resize) {
+    const block = tplBlocks.find((item) => item.id === tplDrag.id);
+    const end = Math.min(timelineMinute(timeline, event.clientY), DAY_END);
+    const duration = Math.max(15, end - block.start - block.tail);
+    if (duration === block.duration && tplSelected === block.id) return;
+    block.duration = duration;
+    selectTemplateBlock(block.id);
+    return;
+  }
   if (tplDrag.sketch) {
     tplDrag.current = timelineMinute(timeline, event.clientY);
     const [start, end] = draftRange(tplDrag);
@@ -764,7 +777,7 @@ function templatePointerUp(event) {
   if (event.type !== 'pointerup') return;
   tplSkipClick = true;
   setTimeout(() => { tplSkipClick = false; }, 0);
-  if (!drag.sketch) selectTemplateBlock(drag.id);
+  if (!drag.sketch || drag.resize) selectTemplateBlock(drag.id);
   else if (!drag.moved) addTemplateBlock(drag.anchor);
   else {
     const [start, end] = draftRange(drag);
@@ -1934,6 +1947,10 @@ function startPlanner() {
   $('template-block-delete').addEventListener('click', deleteTemplateBlock);
   $('template-def-form').elements.wake.addEventListener('input', renderTemplateDay);
   $('template-day').addEventListener('pointerdown', templatePointerDown);
+  $('template-day').addEventListener('pointermove', (event) => {
+    if (tplDrag || event.pointerType === 'touch') return;
+    $('template-day').classList.toggle('resizing', Boolean(tileBottomEdgeAt(event)));
+  });
   $('template-day').addEventListener('pointermove', templatePointerMove);
   $('template-day').addEventListener('pointerup', templatePointerUp);
   $('template-day').addEventListener('pointercancel', templatePointerUp);
