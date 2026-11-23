@@ -712,6 +712,10 @@ function applyPopup(event) {
     $('now-error').hidden = false;
     return;
   }
+  if (popup.todoId && plan.tray.some((block) => block.todoId === popup.todoId)) {
+    plan.tray = plan.tray.filter((block) => block.todoId !== popup.todoId);
+    plan.trayDirty = true;
+  }
   storeDay(key, result.day, duration > 15);
   $('now-editor').close();
   markEdited();
@@ -723,7 +727,8 @@ function applyPopup(event) {
 function acceptGhost({ key, block, shelf }) {
   const day = plan.days[key];
   const { blocks, bumped } = layoutDay(day);
-  const { start, until, ...placed } = block;
+  const { start, until, ...fields } = block;
+  const placed = { ...fields, bumped: false, bumpedFrom: undefined };
   const all = [...day.blocks.filter((item) => !shelf || item.id !== block.id), placed];
   if (plan.tray.some((item) => item.id === block.id)) {
     plan.tray = plan.tray.filter((item) => item.id !== block.id);
