@@ -186,3 +186,8 @@ function entriesFor(cat) {
 function newId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
+
+// Drop empty "- " lines and surrounding whitespace.
+function cleanText(text) {
+  return text.split('\n').filter((line) => line.trim() !== '-').join('\n').trim();
+}

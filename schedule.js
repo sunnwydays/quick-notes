@@ -5,6 +5,7 @@
 // a day is the one shown, and every version stays under All saved.
 
 const WEEKDAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+const SCHEDULE_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 // A line that starts with a day: "Sun (full day)", "Monday:", "Tue 27 Oct", "Tomorrow".
 // What follows the day has to look like a heading, so "Sat runs late" stays text.
 const DAY_HEAD = /^(today|tomorrow|sun(?:day)?|mon(?:day)?|tue(?:s(?:day)?)?|wed(?:nesday)?|thu(?:rs?(?:day)?)?|fri(?:day)?|sat(?:urday)?)\.?(?=\s*(?:$|[(:,–—-]|\d|[a-z]{3,9}\.?\s+\d))/i;
@@ -176,10 +177,29 @@ function splitDays(text) {
   return notes.length ? notes : [text];
 }
 
-// The day a schedule is for: its heading's day, counted from when it was saved.
+function datedScheduleHeading(key) {
+  const date = keyDate(key);
+  const weekday = WEEKDAYS[date.getDay()];
+  return `${weekday[0].toUpperCase()}${weekday.slice(1)} ${date.getDate()} ${SCHEDULE_MONTHS[date.getMonth()]} ${date.getFullYear()}`;
+}
+
+function datedScheduleKey(heading) {
+  const match = /^(\w{3}) (\d{1,2}) (\w{3}) (\d{4})$/i.exec(heading || '');
+  if (!match) return null;
+  const [, weekday, day, month, year] = match;
+  const monthIndex = SCHEDULE_MONTHS.findIndex((name) => name.toLowerCase() === month.toLowerCase());
+  if (monthIndex < 0) return null;
+  const date = new Date(Number(year), monthIndex, Number(day));
+  return date.getDate() === Number(day) && WEEKDAYS[date.getDay()] === weekday.toLowerCase() ? dayKey(date) : null;
+}
+
+// Dated headings keep their day when edited later. Short headings count from the save date.
 function scheduleDay(entry) {
   const saved = new Date(entry.createdAt);
-  const word = dayWord(parseSchedule(entry.text).head || 'today');
+  const head = parseSchedule(entry.text).head;
+  const exact = datedScheduleKey(head);
+  if (exact) return exact;
+  const word = dayWord(head || 'today');
   return dayKey(addDays(saved, dayOffset(word, saved)));
 }
 
@@ -201,7 +221,7 @@ function editText(entry, key) {
   const i = head ? lines.findIndex((l) => bare(l) === head) : -1;
   if (i < 0) {
     if (want) lines.unshift(name);
-  } else {
+  } else if (!datedScheduleKey(head)) {
     const word = dayWord(bare(lines[i]));
     if (dayOffset(word, today) !== want) lines[i] = lines[i].replace(word, name);
   }

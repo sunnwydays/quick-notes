@@ -75,6 +75,7 @@ button:disabled { opacity: .55; cursor: default; }
 .day-head h3 { font-size: 1.2rem; display: flex; gap: .25rem; justify-content: space-between; align-items: baseline; }
 .day-date, .day-info { font-size: .75rem; font-weight: normal; color: var(--muted); }
 .day-info { margin-top: .2rem; }
+.warning { display: inline-block; background: #fff1bd; border-radius: 6px; padding: .15rem .3rem; font-size: .72rem; }
 .shelf { background: #f5faff; border-block: 1px dashed var(--line); padding: .35rem .4rem .5rem; }
 .shelf-title { margin: 0 0 .25rem; font-size: .75rem; color: var(--muted); }
 .shelf .tile + .tile { margin-top: .25rem; }

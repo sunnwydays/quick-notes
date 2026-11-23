@@ -155,7 +155,94 @@ function openPlannerWeek() {
     days[date] = Array.isArray(day?.blocks) ? day : dayFromSchedule(schedule);
     sources[date] = Array.isArray(day?.blocks) ? saved.value.sources?.[date] ?? null : schedule?.id ?? null;
   }
-  plan = { key, keys, days, sources, schedules };
+  plan = { key, keys, days, sources, schedules, version: saved?.entry.id ?? null, dirtyDays: new Set(),
+    savedDates: new Set(Object.keys(saved?.value.days || {})) };
+}
+
+function changedInDash(key, schedules = plan.schedules) {
+  return (schedules.get(key)?.id ?? null) !== plan.sources[key];
+}
+
+// Prevent prose containing “, 10:30” from being read as a second block.
+function scheduleProse(text) {
+  return text.replace(/([,;]\s+)(?=\d)/g, '$1\u2060');
+}
+
+function scheduleNoteLine(text, label) {
+  const line = bare(text);
+  return scheduleProse(readTime(line) || dayWord(line) ? `${label} · ${line}` : line);
+}
+
+function scheduleText(key, day) {
+  const { blocks, bumped } = layoutDay(day);
+  const untimed = [...day.blocks.filter((block) => block.shelf), ...bumped];
+  const lines = [datedScheduleHeading(key)];
+  for (const block of untimed) {
+    const text = block.done ? `${block.text} (done = ${block.done})` : block.text;
+    lines.push(scheduleNoteLine(text, 'Untimed'));
+  }
+  for (const block of blocks) {
+    const text = block.done ? `${block.text} (done = ${block.done})` : block.text;
+    lines.push(`${blockKey(block.start)}-${blockKey(block.until)} ${scheduleProse(text)}`);
+    for (const line of (block.next || '').split('\n').filter((line) => line.trim())) lines.push(scheduleNoteLine(line, 'Next'));
+  }
+  return lines.join('\n');
+}
+
+function plannerEntry(category, text, previous) {
+  const createdAt = new Date(Math.max(Date.now(), previous ? Date.parse(previous.createdAt) + 1 : 0)).toISOString();
+  return { id: newId(), category, text, createdAt, updatedAt: createdAt, deletedAt: null, dirty: true };
+}
+
+function saveWeek() {
+  reload();
+  const originalStore = localStorage.getItem(STORE_KEY);
+  const previous = plannerNote(PLAN_WEEK, plan.key);
+  if ((previous?.entry.id ?? null) !== plan.version) {
+    $('plan-status').textContent = 'A newer planner version arrived. Reopen the week before saving.';
+    return;
+  }
+  const schedules = schedulesForWeek(plan.keys);
+  const notes = [];
+  const days = { ...plan.days };
+  const sources = { ...plan.sources };
+  for (const key of plan.keys) {
+    const entry = schedules.get(key);
+    const changed = changedInDash(key, schedules) && (plan.dirtyDays.has(key) || plan.savedDates.has(key));
+    if (changed && !confirm(`${dayLabel(key)} changed in Dash. OK keeps the planner version. Cancel uses Dash.`)) {
+      days[key] = dayFromSchedule(entry);
+    } else if (plan.dirtyDays.has(key) || changed) {
+      const text = scheduleText(key, days[key]);
+      if ((entry || days[key].blocks.length) && changesSchedule(text)) {
+        const note = plannerEntry(SCHEDULE, text, entry);
+        notes.push(note);
+        sources[key] = note.id;
+        continue;
+      }
+    } else if (changedInDash(key, schedules)) {
+      days[key] = dayFromSchedule(entry);
+    }
+    sources[key] = entry?.id ?? null;
+  }
+  const text = JSON.stringify({ key: plan.key, value: { days, sources } });
+  if (text !== previous?.entry.text) notes.push(plannerEntry(PLAN_WEEK, text, previous?.entry));
+  if (localStorage.getItem(STORE_KEY) !== originalStore) {
+    $('plan-status').textContent = 'Notes changed while saving. Try again to review the latest versions.';
+    return;
+  }
+  data.entries.push(...notes);
+  try {
+    if (notes.length) persist();
+  } catch {
+    reload();
+    $('plan-status').textContent = 'Could not save. Device storage is full or unavailable.';
+    return;
+  }
+  const count = notes.filter((entry) => entry.category === SCHEDULE).length;
+  plan.dirtyDays.clear();
+  refreshView();
+  $('plan-status').textContent = count ? `Saved ${count} ${count === 1 ? 'day' : 'days'} to Dash.` : 'Week saved. No Schedule changes.';
+  sync();
 }
 
 function element(tag, className = '', text = '') {
@@ -231,6 +318,7 @@ function renderDay(key, { blocks, bumped }, from, until) {
   heading.append(element('span', 'day-date', date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })));
   const info = [day.phoneOff && 'Phone off', day.wake && `Wake ${day.wake}`, day.template].filter(Boolean);
   head.append(heading, element('p', 'day-info', info.join(' · ')));
+  if (changedInDash(key)) head.append(element('span', 'warning', 'Changed on phone'));
   const pins = blocks.filter((block) => block.pinned && block.tier === 'fixed');
   if (pins.length) head.append(element('p', 'day-info', `★ ${pins.map((block) => block.pinned).join(' · ')}`));
   const shelf = element('div', 'shelf');
@@ -273,7 +361,8 @@ function renderPlanner() {
 }
 
 function refreshView() {
-  openPlannerWeek();
+  if (plan?.dirtyDays.size) plan.schedules = schedulesForWeek(plan.keys);
+  else openPlannerWeek();
   renderPlanner();
 }
 
@@ -295,6 +384,7 @@ function startPlanner() {
   $('week-prev').addEventListener('click', () => { monday = addDays(monday, -7); refreshView(); });
   $('week-next').addEventListener('click', () => { monday = addDays(monday, 7); refreshView(); });
   $('week-today').addEventListener('click', () => { monday = weekMonday(new Date()); refreshView(); });
+  $('save-week').addEventListener('click', saveWeek);
   window.addEventListener('popstate', (event) => showPlannerScreen(event.state));
   showPlannerScreen(history.state);
   refreshView();

@@ -56,15 +56,6 @@ function saveDraft() {
   localStorage.setItem(DRAFT_KEY, JSON.stringify({ cat: current.cat, text: textarea.value }));
 }
 
-// Drop empty "- " lines and surrounding whitespace.
-function cleanText(text) {
-  return text
-    .split('\n')
-    .filter((line) => line.trim() !== '-')
-    .join('\n')
-    .trim();
-}
-
 // A note already in its category isn't added again. Notes count as the same
 // ignoring case, spacing, the bullet and a full stop at the end (Gboard sometimes
 // adds one). Schedules are compared by changesSchedule instead.
