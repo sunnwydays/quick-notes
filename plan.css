@@ -122,10 +122,30 @@ button:disabled { opacity: .55; cursor: default; }
 .tile:has(.pin) { padding-right: 1rem; }
 .tile.timed {
   position: absolute; inset-inline: .32rem; overflow: hidden; width: auto;
-  height: calc(var(--duration) * var(--minute-height)); font-size: .94rem;
+  height: calc(var(--duration) * var(--minute-height)); padding-block: 0; font-size: .94rem;
+  display: flex; flex-direction: column;
 }
-.tile.timed .tile-title {
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+.timed-label { flex: 1; min-height: min(100%, 1.06rem); container-type: size; }
+.timed-label .tile-time { margin-top: .2rem; }
+.timed-label .tile-title {
+  display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
+}
+@container (min-height: 3.25rem) {
+  .timed-label .tile-title { -webkit-line-clamp: 2; }
+}
+@container (height < 2.25rem) {
+  .timed-label .tile-time { float: right; margin: 0 0 0 .3rem; line-height: 1rem; white-space: nowrap; }
+  .timed-label .tile-title { font-size: .82rem; line-height: 1rem; }
+}
+@container (height < 2.25rem) and (width < 9rem) {
+  .timed-label .tile-end { position: absolute; clip-path: inset(50%); }
+}
+@container (height < 1rem) {
+  .timed-label .tile-time { position: absolute; clip-path: inset(50%); }
+  .timed-label .tile-title { font-size: .68rem; line-height: .65rem; }
+}
+@container (height < .65rem) {
+  .timed-label .tile-title { clip-path: inset(50%); }
 }
 .tile.late, .tile.late:hover { background-color: #dddfe1; border-color: #8b9298; text-decoration: line-through; }
 .gap {
@@ -143,10 +163,12 @@ button:disabled { opacity: .55; cursor: default; }
 .day-footer.amber .meter-fill { background: #b98226; }
 .day-footer.coral .meter-fill, .over-budget .meter-fill { background: #c96d58; }
 .tail {
-  position: absolute; inset: auto 0 0; padding: 0 .3rem;
-  height: calc(var(--tail) * var(--minute-height));
+  align-self: stretch; flex: none; margin-inline: -.38rem; padding: 0 .3rem;
+  height: min(calc(var(--tail) * var(--minute-height)), calc(100% - 1.06rem)); overflow: hidden;
   background: #ffffff65; border-top: 1px dashed #172e4333; font-size: .72rem;
 }
+.tile.fixed .tail { margin-left: -.55rem; }
+.tile:has(.pin) .tail { margin-right: -1rem; }
 .bumped { font-size: .7rem; color: var(--muted); }
 .over-badge { margin-left: .25rem; font-weight: bold; color: #654325; }
 .tile.dragging { opacity: .45; }

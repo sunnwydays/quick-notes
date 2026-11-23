@@ -971,8 +971,15 @@ function renderDay(key, { blocks, bumped }, load, from, until) {
     tile.classList.toggle('late', afterDeadline(key, block));
     tile.style.setProperty('--minute', block.start - from);
     tile.style.setProperty('--duration', block.until - block.start);
-    tile.prepend(element('time', 'tile-time', `${blockKey(block.start)}–${blockKey(block.until)}`));
-    if (block.actualUntil != null) tile.append(element('span', 'over-badge', '↗'));
+    const start = blockKey(block.start);
+    const end = `–${blockKey(block.until)}`;
+    const time = element('time', 'tile-time', start);
+    time.append(element('span', 'tile-end', end));
+    if (block.actualUntil != null) time.append(element('span', 'over-badge', '↗'));
+    const label = element('span', 'timed-label');
+    label.append(time, tile.firstElementChild);
+    tile.prepend(label);
+    tile.title = `${start}${end}\n${tile.title}`;
     if (block.tail > 0) {
       tile.style.setProperty('--tail', block.tail);
       tile.append(element('span', 'tail', `+${block.tail}m`));
@@ -1080,7 +1087,6 @@ function moveDrag(event) {
     activeDrag.moved = true;
     const bounds = activeDrag.tile.getBoundingClientRect();
     const preview = activeDrag.tile.cloneNode(true);
-    preview.classList.remove('timed');
     preview.classList.add('drag-preview');
     preview.setAttribute('aria-hidden', 'true');
     preview.tabIndex = -1;
