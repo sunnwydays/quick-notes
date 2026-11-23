@@ -1845,7 +1845,8 @@ function refreshView() {
 function plannerDropTarget(event, source) {
   const under = document.elementFromPoint(event.clientX, event.clientY);
   const tab = under?.closest('[data-tab-day]');
-  if (tab) return { date: tab.dataset.tabDay, pin: false, indicator: tab };
+  // Drops never unpin: a pinned block keeps its pin (and, on another day, its time).
+  if (tab) return { date: tab.dataset.tabDay, indicator: tab };
   const inside = (el) => {
     const r = el.getBoundingClientRect();
     return event.clientX >= r.left && event.clientX <= r.right && event.clientY >= r.top && event.clientY <= r.bottom;
@@ -1871,7 +1872,7 @@ function plannerDropTarget(event, source) {
     const after = event.clientY > rect.top + rect.height / 2;
     const next = stack.slice(index + Number(after)).find((block) => block.id !== source.block.id);
     const at = Number(after ? tile.dataset.until : tile.dataset.start);
-    return { date, before: next?.id, at: blockKey(at), pin: false, indicator: tile, after };
+    return { date, before: next?.id, at: blockKey(at), indicator: tile, after };
   }
   const dragged = activeDrag?.tile;
   const length = dragged?.dataset.until ? Number(dragged.dataset.until) - Number(dragged.dataset.start) : 0;
