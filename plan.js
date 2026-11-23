@@ -1381,7 +1381,7 @@ function renderTray() {
   });
   const someday = element('details', 'panel tray-box someday');
   someday.open = $('tray').querySelector('.someday')?.open ?? false;
-  someday.append(element('summary', '', 'Back Burner'));
+  someday.append(element('summary', '', 'Back burner'));
   // Anything already on a day leaves the tray, so it can't be dragged in twice.
   const placed = new Set(Object.values(plan.days).flatMap((day) => day.blocks.map((block) => block.todoId)));
   const parked = new Set(plan.tray.map((block) => block.todoId));
