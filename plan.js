@@ -1452,7 +1452,6 @@ function renderDay(key,{ blocks, bumped }, load, from, until, ghosts, drift) {
       tile.style.setProperty('--tail', block.tail);
       tile.append(element('span', 'tail', `+${block.tail}m`));
     }
-    tile.append(element('span', 'resize'));
     timeline.append(tile);
     const gap = Math.min(gapAfter(block), (blocks[i + 1]?.start ?? until) - block.until);
     if (gap > 0 && blocks[i + 1]) {
@@ -1684,17 +1683,38 @@ function endDraft(event) {
   }
 }
 
+// The grab zone for resizing: just inside the bottom edge of a timed tile and a little below it.
+function tileBottomEdgeAt(event) {
+  if (event.pointerType === 'touch') {
+    const inside = event.target.closest('.tile.timed[data-id]');
+    if (!inside) return null;
+    const bottom = inside.getBoundingClientRect().bottom;
+    return event.clientY >= bottom - 14 ? inside : null;
+  }
+  const timeline = event.target.closest('.timeline');
+  if (!timeline) return null;
+  let best = null;
+  let bestGap = Infinity;
+  for (const tile of timeline.querySelectorAll('.tile.timed[data-id]')) {
+    const box = tile.getBoundingClientRect();
+    const gap = Math.abs(event.clientY - box.bottom);
+    if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.bottom - 8 || event.clientY > box.bottom + 8) continue;
+    if (gap < bestGap) { best = tile; bestGap = gap; }
+  }
+  return best;
+}
+
 function startDrag(event) {
   lastPointerType = event.pointerType;
   if (event.button !== 0 || activeDrag) return;
-  const handle = event.target.closest('.resize');
-  if (handle) {
-    const tile = handle.closest('.tile');
+  const edgeTile = tileBottomEdgeAt(event);
+  if (edgeTile) {
+    const tile = edgeTile;
     const source = blockSource(tile);
     if (!source?.block) return;
     event.preventDefault();
     clearTimeout(tileClick);
-    handle.setPointerCapture(event.pointerId);
+    tile.setPointerCapture(event.pointerId);
     activeDrag = { resize: true, tile, source, timeline: tile.closest('.timeline'), pointer: event.pointerId,
       start: Number(tile.dataset.start), until: Number(tile.dataset.until), moved: false };
     activeDrag.end = activeDrag.until;
@@ -1941,6 +1961,10 @@ function startPlanner() {
   // The tray and the days, which tiles get dragged between.
   const tilesArea = document.querySelector('.board');
   tilesArea.addEventListener('pointerdown', startDrag);
+  tilesArea.addEventListener('pointermove', (event) => {
+    if (activeDrag || event.pointerType === 'touch') return;
+    tilesArea.classList.toggle('resizing', Boolean(tileBottomEdgeAt(event)));
+  });
   window.addEventListener('pointermove', moveDrag, { passive: false });
   window.addEventListener('pointerup', endDrag);
   window.addEventListener('pointercancel', endDrag);

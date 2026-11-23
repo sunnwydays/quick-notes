@@ -234,7 +234,7 @@ button:disabled { opacity: .55; cursor: default; }
   padding: .1rem .38rem; justify-content: flex-start;
 }
 .tile.dragging { opacity: .45; }
-.resize { position: absolute; inset: auto 0 0; height: .7rem; cursor: ns-resize; touch-action: none; }
+.board.resizing, .board.resizing .tile, .board.resizing .timeline { cursor: ns-resize; }
 .tile.drag-preview {
   position: fixed; inset: auto; z-index: 10; pointer-events: none;
   box-shadow: 0 5px 14px #24485a44; transform: rotate(-2deg) scale(1.04);
