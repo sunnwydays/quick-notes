@@ -142,7 +142,6 @@ button:disabled { opacity: .55; cursor: default; }
 .now-line[hidden] { display: none; }
 .day.today .day-date { background: var(--now); color: #fff; border-radius: 999px; padding: 0 .4rem; }
 .tile.timed.current { filter: saturate(2.4); box-shadow: 0 0 0 2px var(--now); }
-.tile.timed.past { opacity: .6; }
 .tile {
   position: relative; background: var(--tile-colour, #edf4fa); color: var(--ink);
   border: 1px solid #172e431c; border-bottom-width: 3px; border-radius: 9px;
@@ -162,14 +161,13 @@ button:disabled { opacity: .55; cursor: default; }
 .pin { position: absolute; top: .2rem; right: .22rem; font-size: .7rem; }
 .tile:has(.pin) { padding-right: 1rem; }
 .tile.timed {
-  position: absolute; inset-inline: .32rem; overflow: hidden; width: auto;
+  position: absolute; inset-inline: .32rem 12%; overflow: hidden; width: auto;
   height: calc(var(--duration) * var(--minute-height)); padding-block: 0; font-size: .94rem;
   display: flex; flex-direction: column;
 }
+.tile.ghost:hover { opacity: .6; }
 .tile.ghost {
-  border: 2px dashed #687b8c;
-  cursor: pointer;
-  background: color-mix(in srgb, var(--tile-colour) 55%, white);
+  cursor: pointer; opacity: .35;
   justify-content: center;
 }
 .split-prompt { display: block; margin-top: .25rem; font-size: .78rem; color: #70410f; }

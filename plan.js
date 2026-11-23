@@ -1332,16 +1332,14 @@ function renderPlanner() {
   showNow();
 }
 
-// Google Calendar style: a line at the current time, the running block brighter and finished ones faded.
+// Google Calendar style: a line at the current time, and the running block brighter.
 function showNow() {
   const now = new Date();
   const today = dayKey(now);
   const minute = now.getHours() * 60 + now.getMinutes();
   for (const tile of $('week').querySelectorAll('.tile.timed[data-date]')) {
     const { date, start, until } = tile.dataset;
-    const isToday = date === today;
-    tile.classList.toggle('current', isToday && Number(start) <= minute && minute < Number(until));
-    tile.classList.toggle('past', date < today || (isToday && Number(until) <= minute));
+    tile.classList.toggle('current', date === today && Number(start) <= minute && minute < Number(until));
   }
   const line = $('week').querySelector('.day.today .now-line');
   if (!line) return;
