@@ -1035,9 +1035,13 @@ function renderDay(key, { blocks, bumped }, load, from, until, ghosts, drift) {
   const timeline = element('div', 'timeline');
   timeline.dataset.from = from;
   timeline.dataset.until = until;
-  const add = plannerButton('+', () => openBlockEditor({ fresh: true, block: planBlock(newId(), '') }, { date: key, shelf: true }), 'day-add');
+  const addUntimed = () => openBlockEditor({ fresh: true, block: planBlock(newId(), '') }, { date: key, shelf: true });
+  const add = plannerButton('+', addUntimed, 'day-add');
   add.setAttribute('aria-label', `Add an untimed item for ${dayLabel(key)}`);
   shelf.append(add);
+  shelf.addEventListener('click', (event) => {
+    if (!event.target.closest('button')) addUntimed();
+  });
   timeline.style.setProperty('--minutes', until - from);
   for (let hour = from; hour < until; hour += 60) {
     const line = element('span', 'hour', blockKey(hour));
