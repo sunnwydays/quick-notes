@@ -20,7 +20,7 @@ test('keeps fixed anchors, even if their reservation comes later in the stack', 
   assert.deepEqual(times(layoutDay(day)), [['meal', 450, 480], ['work', 490, 535], ['next', 545, 575]]);
 });
 
-test('allows contiguous fixed anchors and checks the end, not the trailing gap, against 22:00', () => {
+test('allows contiguous fixed anchors through midnight', () => {
   const day = {
     wake: '21:00',
     blocks: [
@@ -32,9 +32,18 @@ test('allows contiguous fixed anchors and checks the end, not the trailing gap, 
   assert.deepEqual(layoutDay(day).bumped, []);
 });
 
+test('keeps pinned and flexible blocks after 22:00 when they fit by midnight', () => {
+  const day = {
+    blocks: [block('late pin', 45, { pinned: '22:15' }), block('late flexible', 50)],
+  };
+  const result = layoutDay(day);
+  assert.deepEqual(times(result), [['late pin', 1335, 1380], ['late flexible', 1390, 1440]]);
+  assert.deepEqual(result.bumped, []);
+});
+
 test('bumps lower priority work first and only fixed pins survive a later wake unchanged', () => {
   const day = {
-    wake: '20:20',
+    wake: '22:20',
     blocks: [
       block('old-pin', 30, { pinned: '19:00', tier: 'must' }),
       block('meal', 30, { pinned: '19:00', tier: 'fixed' }),
@@ -43,7 +52,7 @@ test('bumps lower priority work first and only fixed pins survive a later wake u
   };
   const result = layoutDay(day);
   assert.deepEqual(result.bumped.map((b) => b.id), ['old-pin', 'low']);
-  assert.deepEqual(times(result), [['meal', 1140, 1170], ['must', 1220, 1280]]);
+  assert.deepEqual(times(result), [['meal', 1140, 1170], ['must', 1340, 1400]]);
 });
 
 test('preserves an imported Schedule until the planner changes the day', () => {

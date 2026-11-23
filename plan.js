@@ -7,7 +7,7 @@ const BLOCK_KINDS = {
 };
 const FIRST_WEEK_GOALS = { chess: 6, lab: 2, fitness: 6.5, study: 20 };
 const PLAN_START = 7 * 60;
-const PLAN_END = 23 * 60;
+const PLAN_END = 24 * 60;
 const SCREENS_OFF = 22 * 60;
 const PLAN_SIZES = [30, 45, 60, 90];
 const PLAN_TIERS = ['low', 'medium', 'high', 'must', 'fixed'];
@@ -110,7 +110,7 @@ function layoutDay(day) {
     };
   }
   const wake = planMinutes(day.wake) ?? PLAN_START;
-  const cutoff = day.workEnd ?? SCREENS_OFF;
+  const cutoff = day.workEnd ?? PLAN_END;
   let stack = day.blocks.filter((block) => !block.shelf);
   const overruns = stack.filter((block) => block.actualUntil != null);
   const canBump = (block) => block.tier !== 'fixed' && block.actualStart == null && block.restackStart == null;
@@ -422,9 +422,7 @@ function removeFromDay(key, day, remaining) {
 function storeDay(key, day) {
   const { bumped } = layoutDay(day);
   const bumpedIds = new Set(bumped.map((block) => block.id));
-  const now = new Date();
-  const today = dayKey(now);
-  const ended = key < today || key === today && now.getHours() >= 22;
+  const ended = key < dayKey(new Date());
   const blocks = [];
   for (const block of day.blocks) {
     if (!bumpedIds.has(block.id)) blocks.push(block);
@@ -1077,7 +1075,7 @@ function plannerDropTarget(event, source) {
   const from = Number(slot.dataset.from);
   const until = Number(slot.dataset.until);
   const scale = (rect.height - 8) / (until - from);
-  const time = Math.max(from, Math.min(1435, from + 5 * Math.round((event.clientY - rect.top) / scale / 5)));
+  const time = Math.max(from, Math.min(PLAN_END - 5, from + 5 * Math.round((event.clientY - rect.top) / scale / 5)));
   const before = stack.find((block) => block.start >= time && block.id !== source.block.id);
   return { date, pinned: blockKey(time), before: before?.id, time, indicator: slot };
 }
