@@ -47,6 +47,8 @@ let tileClick;
 let templateDate;
 let editingGoal;
 let restacking;
+let selectedDay;
+let goalsOpen = false;
 
 function schedulesForWeek(keys) {
   const latest = new Map();
@@ -878,7 +880,13 @@ function renderGoals(layouts, loads) {
   if (!items.length) items.push(element('span', 'muted', 'No Working on notes'));
   const placed = loads.reduce((sum, load) => sum + load.placed, 0);
   const usable = loads.reduce((sum, load) => sum + load.usable, 0);
-  $('goals').replaceChildren(element('h3', '', 'Working on'), ...items,
+  const toggle = plannerButton(`Goals · ${hoursText(placed)} / ${hoursText(usable)} ${goalsOpen ? '▴' : '▾'}`, () => {
+    goalsOpen = !goalsOpen;
+    renderPlanner();
+  }, 'goals-toggle');
+  toggle.setAttribute('aria-expanded', String(goalsOpen));
+  $('goals').classList.toggle('open', goalsOpen);
+  $('goals').replaceChildren(toggle, element('h3', '', 'Working on'), ...items,
     element('span', 'week-load', `${hoursText(placed)} placed / ${hoursText(usable)} usable`));
 }
 
@@ -1070,8 +1078,33 @@ function renderPlanner() {
     const key = dayKey(date);
     drift.set(key, (drift.get(key) ?? 0) + 1);
   }
-  $('week').replaceChildren(renderTray(), ...plan.keys.map((key, i) =>
-    renderDay(key, layouts[i], loads[i], from, until, ghosts.filter((ghost) => ghost.key === key), drift.get(key))));
+  if (!plan.keys.includes(selectedDay)) selectedDay = plan.keys.includes(today) ? today : plan.keys[0];
+  $('day-tabs').replaceChildren(...plan.keys.map((key) => {
+    const date = keyDate(key);
+    const tab = plannerButton('', () => selectDay(key), 'day-tab');
+    tab.dataset.tabDay = key;
+    tab.append(element('span', '', date.toLocaleDateString(undefined, { weekday: 'short' })),
+      element('span', 'day-tab-date', String(date.getDate())));
+    tab.setAttribute('aria-pressed', String(key === selectedDay));
+    tab.classList.toggle('today', key === today);
+    return tab;
+  }));
+  const scroll = $('week').querySelector('.day.selected')?.scrollTop ?? 0;
+  const trayScroll = $('week').querySelector('.tray')?.scrollTop ?? 0;
+  $('week').replaceChildren(renderTray(), ...plan.keys.map((key, i) => {
+    const column = renderDay(key, layouts[i], loads[i], from, until, ghosts.filter((ghost) => ghost.key === key), drift.get(key));
+    column.classList.toggle('selected', key === selectedDay);
+    return column;
+  }));
+  $('week').querySelector('.day.selected').scrollTop = scroll;
+  $('week').querySelector('.tray').scrollTop = trayScroll;
+}
+
+function selectDay(key) {
+  if (key === selectedDay) return;
+  selectedDay = key;
+  renderPlanner();
+  $('week').querySelector('.day.selected').scrollTop = 0;
 }
 
 function refreshView() {
@@ -1089,6 +1122,8 @@ function refreshView() {
 
 function plannerDropTarget(event, source) {
   const under = document.elementFromPoint(event.clientX, event.clientY);
+  const tab = under?.closest('[data-tab-day]');
+  if (tab) return { date: tab.dataset.tabDay, pinned: null, indicator: tab };
   const slot = under?.closest('[data-shelf], .timeline');
   if (!slot) {
     return source.date && under?.closest('#planner') ? { indicator: $('week').querySelector('[data-tray]') } : null;
@@ -1161,9 +1196,12 @@ function moveDrag(event) {
 
 function scrollDuringDrag() {
   if (!activeDrag?.moved) return;
-  const board = document.querySelector('.board-scroll');
-  const bounds = board.getBoundingClientRect();
   const point = activeDrag.position;
+  const board = [...document.querySelectorAll('#week > .day.selected, #week > .tray, .board-scroll')].find((el) => {
+    const box = el.getBoundingClientRect();
+    return el.scrollHeight > el.clientHeight + 1 && point && point.clientX >= box.left && point.clientX <= box.right;
+  }) ?? document.querySelector('.board-scroll');
+  const bounds = board.getBoundingClientRect();
   if (point && point.clientX >= bounds.left && point.clientX <= bounds.right &&
       point.clientY >= bounds.top && point.clientY <= bounds.bottom) {
     const edge = (at, low, high) => at - low < 34 ? -12 : high - at < 34 ? 12 : 0;
@@ -1189,6 +1227,7 @@ function endDrag(event) {
   setTimeout(() => delete tile.dataset.dragged, 0);
   const target = plannerDropTarget(event, source);
   const error = target && moveBlock(source, target);
+  if (!error && target?.indicator?.matches('[data-tab-day]')) selectDay(target.date);
   if (error) {
     tile.classList.add('invalid-drop');
     tile.addEventListener('animationend', () => tile.classList.remove('invalid-drop'), { once: true });
@@ -1201,6 +1240,7 @@ function changePlannerWeek(next) {
   if (isPlannerDirty() && !confirm('Leave this week and discard unsaved changes?')) return;
   monday = next;
   plan = null;
+  selectedDay = null;
   $('plan-status').textContent = '';
   refreshView();
   document.querySelector('.board-scroll').scrollTo(0, 0);
