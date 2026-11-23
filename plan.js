@@ -409,9 +409,20 @@ function moveBlock(source, target, changes = {}) {
   return '';
 }
 
+// A to-do list item is a Dash note, so deleting or ticking it off removes the note, as Dash does.
+function removeNote(source, how) {
+  const entry = data.entries.find((item) => item.id === source.entry.id && !item.deletedAt);
+  if (!entry) return;
+  touch(entry, { deletedAt: new Date().toISOString(), deletedHow: how });
+  persist();
+  sync();
+  renderPlanner();
+}
+
 function deleteBlock(source) {
-  if (!source?.block || source.copy) return;
-  if (source.date) {
+  if (!source?.block) return;
+  if (source.copy) removeNote(source, 'deleted');
+  else if (source.date) {
     const day = plan.days[source.date];
     removeFromDay(source.date, day, day.blocks.filter((block) => block.id !== source.block.id));
   } else {
@@ -471,7 +482,8 @@ function openBlockEditor(source, target = blockTarget(source)) {
   }
   $('block-main-row').classList.toggle('field-row', !dragged);
   $('block-editor-title').textContent = source.fresh ? 'Add item' : 'Edit item';
-  $('block-delete').hidden = Boolean(source.copy || source.fresh);
+  $('block-delete').hidden = Boolean(source.fresh);
+  $('block-done').hidden = !source.copy;
   quickDelete = !$('block-delete').hidden;
   $('block-error').hidden = true;
   updateEditorFields();
@@ -2036,6 +2048,7 @@ function startPlanner() {
     }
   });
   $('block-editor').addEventListener('pointerdown', () => { quickDelete = false; });
+  $('block-done').addEventListener('click', () => { removeNote(editedBlock, 'done'); $('block-editor').close(); });
   $('template-form').addEventListener('submit', applyTemplateEditor);
   $('template-form').addEventListener('change', updateTemplateFields);
   $('template-cancel').addEventListener('click', () => $('template-editor').close());

@@ -278,6 +278,8 @@ dialog {
   border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 15px 45px #26465e33;
 }
 dialog::backdrop { background: #26465e42; }
+.editor-head { display: flex; align-items: center; gap: .2rem; }
+.editor-head h2 { flex: 1; margin: 0; }
 dialog form, #event-fields { display: grid; gap: .55rem; }
 form label { display: grid; gap: .2rem; font-size: .9rem; font-weight: bold; }
 dialog input:not([type="checkbox"]), dialog select, #login input {
