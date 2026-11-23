@@ -68,6 +68,8 @@ function oneTypoApart(a, b) {
 function fileNote(line) {
   const [, bullet, text] = line.match(/^(-\s*)?(.*)$/s);
   const prefix = bullet ? BULLET : '';
+  const urgent = text.match(/^(?:now|asap)(?![\p{L}\p{N}])[\s,.:;!?-]+(\S.*)$/isu);
+  if (urgent) return { cat: DEFAULT_FOLDER, text: `${prefix}now: ${urgent[1]}` };
   for (const { cat, phrase, keep } of folderRules()) {
     const match = text.match(phrasePattern(phrase));
     if (!match) continue;

@@ -456,14 +456,14 @@ function removeFromDay(key, day, remaining) {
   storeDay(key, day.imported ? { ...day, blocks: remaining } : editDay(day, remaining));
 }
 
-function storeDay(key, day) {
+function storeDay(key, day, bumpToTray = false) {
   const { bumped } = layoutDay(day);
   const bumpedIds = new Set(bumped.map((block) => block.id));
   const ended = key < dayKey(new Date());
   const blocks = [];
   for (const block of day.blocks) {
     if (!bumpedIds.has(block.id)) blocks.push(block);
-    else if (!ended) blocks.push({ ...untimedBlock(block), bumped: true });
+    else if (!ended && !bumpToTray) blocks.push({ ...untimedBlock(block), bumped: true });
     else {
       plan.tray.push({ ...untimedBlock(block), bumped: true, bumpedFrom: key });
       plan.trayDirty = true;
@@ -882,6 +882,123 @@ function keepDayTimes(day, blocks, timed, bumped = []) {
     pinLayout: { blocks: timed.map(({ id, start, until }) => ({ id, start, until })), bumped: bumped.map(({ id }) => id) } };
 }
 
+function lockRestackTimes(blocks, timed) {
+  const times = new Map(timed.map((block) => [block.id, block]));
+  return blocks.map((block) => {
+    const previous = times.get(block.id);
+    return previous && !block.pinned && block.actualStart == null
+      ? { ...block, restackStart: previous.start, restackUntil: previous.until } : block;
+  });
+}
+
+function insertPopup(day, popup, minute) {
+  const { blocks, bumped } = layoutDay(day);
+  const duration = blockDuration(popup);
+  const cutoff = Math.min(SCREENS_OFF, day.workEnd ?? SCREENS_OFF);
+  const wake = (planMinutes(day.wake) ?? PLAN_START) + (day.startOffset ?? 0);
+  const earliest = Math.max(minute, wake);
+  if (duration <= 15) {
+    let cursor = earliest;
+    for (const next of [...blocks, { start: cutoff, until: cutoff }]) {
+      const start = cursor;
+      const until = start + duration;
+      const fitsGap = until <= Math.min(next.start, cutoff);
+      const freeStart = Math.max(start, next.start);
+      const freeEnd = freeStart + duration;
+      const fitsFree = ['free', 'buffer'].includes(blockKind(next)) && freeEnd <= Math.min(next.until, cutoff);
+      if (fitsGap || fitsFree) {
+        const timed = fitsGap ? { ...popup, start, until } : { ...popup, start: freeStart, until: freeEnd };
+        const remaining = fitsGap ? blocks : blocks.filter((block) => block.id !== next.id);
+        if (!fitsGap) {
+          const { actualStart, actualUntil, restackStart, restackUntil, importedStart, ...free } = next;
+          const parts = [[next.start, freeStart], [freeEnd, next.until]];
+          for (const [i, [from, to]] of parts.entries()) {
+            if (to <= from) continue;
+            remaining.push({ ...free, id: i === 0 ? next.id : `${popup.id}-free`,
+              pinned: next.pinned ? blockKey(from) : null, start: from, until: to, duration: to - from, tail: 0 });
+          }
+        }
+        const stack = [...remaining, timed].sort((a, b) => a.start - b.start);
+        const untimed = day.blocks.filter((block) => block.shelf || bumped.some((item) => item.id === block.id));
+        return { day: keepDayTimes(day, [...stack, ...untimed], stack, bumped), bumped };
+      }
+      cursor = Math.max(cursor, next.until);
+    }
+    return null;
+  }
+  const overlappingEnd = Math.max(earliest, ...blocks.filter((block) => block.start <= earliest && earliest < block.until).map((block) => block.until));
+  const boundary = blocks.find((block) => block.start >= overlappingEnd)?.start ?? overlappingEnd;
+  const fixed = blocks.filter((block) => block.tier === 'fixed' || block.actualStart != null);
+  const keep = blocks.filter((block) => block.start < boundary || fixed.includes(block));
+  let start = boundary;
+  for (const block of fixed) {
+    if (start < block.until && start + duration > block.start) start = block.until + gapAfter(block);
+  }
+  if (start + duration > cutoff) return null;
+  const displaced = blocks.filter((block) => block.pinned && !keep.includes(block) &&
+    block.start < start + duration && start < block.until);
+  const displacedIds = new Set(displaced.map((block) => block.id));
+  const stack = lockRestackTimes(day.blocks.filter((block) => !displacedIds.has(block.id)), keep);
+  const next = blocks.find((block) => block.start >= boundary && !displacedIds.has(block.id));
+  const at = next ? stack.findIndex((block) => block.id === next.id) : stack.length;
+  stack.splice(at, 0, { ...popup, restackStart: start, restackUntil: start + duration });
+  const edited = editDay(day, stack, true);
+  const result = layoutDay({ ...edited, workEnd: cutoff });
+  const allBumped = [...new Map([...bumped, ...displaced, ...result.bumped].map((block) => [block.id, block])).values()]
+    .filter((block) => !result.blocks.some((item) => item.id === block.id));
+  return { day: keepDayTimes(edited, [...edited.blocks, ...displaced], result.blocks, allBumped), bumped: allBumped };
+}
+
+function urgentTodos() {
+  const copies = new Set(Object.values(plan.days).flatMap((day) => day.blocks.map((block) => block.todoId)));
+  return entriesFor('Todo').filter((entry) => !copies.has(entry.id) && /^now:\s*\S/i.test(bare(entry.text)));
+}
+
+function fillPopupFields() {
+  const fields = $('now-form').elements;
+  const text = bare(urgentTodos().find((entry) => entry.id === fields.todo.value)?.text ?? '').replace(/^now:\s*/i, '');
+  const duration = /\s+\(?([1-9]\d*)\s*m(?:in(?:utes?)?)?\)?$/i.exec(text);
+  fields.title.value = duration ? text.slice(0, duration.index).trim() : text;
+  fields.duration.value = duration ? Math.min(180, Number(duration[1])) : 15;
+}
+
+function openPopup(todoId = '') {
+  const today = new Date();
+  const key = dayKey(today);
+  if (!plan.days[key]) changePlannerWeek(weekMonday(today));
+  if (!plan.days[key]) return;
+  const todos = urgentTodos();
+  fillOptions($('now-form').elements.todo, [['', 'New interruption'], ...todos.map((entry) =>
+    [entry.id, bare(entry.text).replace(/^now:\s*/i, '')])], todoId || todos[0]?.id || '');
+  $('now-source').hidden = !todos.length;
+  $('now-error').hidden = true;
+  fillPopupFields();
+  $('now-editor').showModal();
+}
+
+function applyPopup(event) {
+  event.preventDefault();
+  const fields = event.target.elements;
+  const now = new Date();
+  const key = dayKey(now);
+  const text = fields.title.value.trim();
+  const duration = fields.duration.valueAsNumber;
+  if (!text || !plan.days[key] || !Number.isInteger(duration) || duration < 1 || duration > 180) return;
+  const popup = planBlock(newId(), text, { duration, tier: 'must', todoId: fields.todo.value || null });
+  const result = insertPopup(plan.days[key], popup, now.getHours() * 60 + now.getMinutes());
+  if (!result) {
+    $('now-error').textContent = 'No room left today for that length.';
+    $('now-error').hidden = false;
+    return;
+  }
+  storeDay(key, result.day, duration > 15);
+  $('now-editor').close();
+  markEdited();
+  if (result.bumped.length && duration > 15) {
+    $('plan-status').textContent = `Bumped from today · ${result.bumped.map((block) => block.text).join(', ')} · Unsaved`;
+  }
+}
+
 function acceptGhost({ key, block, shelf }) {
   const day = plan.days[key];
   const { blocks, bumped } = layoutDay(day);
@@ -1086,7 +1203,8 @@ function renderTile(block, date) {
   tile.classList.toggle('fixed', block.tier === 'fixed');
   tile.style.setProperty('--tile-colour', blockColour(block));
   tile.append(element('span', 'tile-title', block.text));
-  if (block.bumped) tile.append(element('span', 'bumped', block.bumpedFrom ? ` · Bumped from ${dayLabel(block.bumpedFrom, false)}` : ' · Bumped'));
+  if (block.bumped) tile.append(element('span', 'bumped', block.bumpedFrom
+    ? ` · Bumped from ${block.bumpedFrom === dayKey(new Date()) ? 'today' : dayLabel(block.bumpedFrom, false)}` : ' · Bumped'));
   if (planMinutes(block.pinned) != null) {
     const pin = element('span', 'pin', '📌');
     pin.title = `Pinned at ${block.pinned}`;
@@ -1384,6 +1502,10 @@ function startPlanner() {
   $('week-next').addEventListener('click', () => changePlannerWeek(addDays(monday, 7)));
   $('week-today').addEventListener('click', () => changePlannerWeek(weekMonday(new Date())));
   $('save-week').addEventListener('click', saveWeek);
+  $('plan-now').addEventListener('click', () => openPopup());
+  $('now-form').addEventListener('submit', applyPopup);
+  $('now-form').elements.todo.addEventListener('change', fillPopupFields);
+  $('now-cancel').addEventListener('click', () => $('now-editor').close());
   $('block-form').addEventListener('submit', applyBlockEditor);
   $('block-form').addEventListener('change', updateEditorFields);
   $('block-cancel').addEventListener('click', () => $('block-editor').close());
@@ -1408,7 +1530,8 @@ function startPlanner() {
     if (!tile || tile.dataset.dragged || event.detail > 1) return;
     const open = () => {
       const source = blockSource(tile);
-      if (source?.block) openBlockEditor(source, source.date || (plan.keys.includes(dayKey(new Date())) ? dayKey(new Date()) : plan.keys[0]));
+      if (tile.dataset.source === 'Todo' && urgentTodos().some((entry) => entry.id === tile.dataset.id)) openPopup(tile.dataset.id);
+      else if (source?.block) openBlockEditor(source, source.date || (plan.keys.includes(dayKey(new Date())) ? dayKey(new Date()) : plan.keys[0]));
     };
     if (event.detail === 0) open();
     else tileClick = setTimeout(open, 260);

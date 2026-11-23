@@ -19,6 +19,7 @@
         <button id="week-prev" type="button" aria-label="Previous week">‹</button>
         <button id="week-today" type="button">This week</button>
         <button id="week-next" type="button" aria-label="Next week">›</button>
+        <button id="plan-now" type="button">Now…</button>
         <button class="primary" id="save-week" type="button">Save to Dash</button>
         <button id="sync-status" type="button"></button>
         <button id="login-btn" type="button" hidden>Log in</button>
@@ -129,6 +130,19 @@
       <div class="actions">
         <button type="submit" class="primary">Restack day</button>
         <button id="restack-cancel" type="button">Cancel</button>
+      </div>
+    </form>
+  </dialog>
+  <dialog id="now-editor" aria-labelledby="now-title">
+    <form id="now-form">
+      <h2 id="now-title">Now…</h2>
+      <label id="now-source">Todo <select name="todo"></select></label>
+      <label>Block title <input name="title" required autofocus></label>
+      <label>Minutes <input type="number" name="duration" min="1" max="180" required></label>
+      <p id="now-error" class="warning" role="alert" hidden></p>
+      <div class="actions">
+        <button class="primary">Fit into today</button>
+        <button id="now-cancel" type="button">Cancel</button>
       </div>
     </form>
   </dialog>
