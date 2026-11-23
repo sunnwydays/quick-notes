@@ -415,6 +415,10 @@ function untimedBlock(block) {
   return { ...untimed, pinned: null, shelf: true };
 }
 
+function removeFromDay(key, day, remaining) {
+  storeDay(key, day.imported ? { ...day, blocks: remaining } : editDay(day, remaining));
+}
+
 function storeDay(key, day) {
   const { bumped } = layoutDay(day);
   const bumpedIds = new Set(bumped.map((block) => block.id));
@@ -465,10 +469,9 @@ function moveBlock(source, target, changes = {}) {
   const origin = source.date && plan.days[source.date];
   const remaining = origin?.blocks.filter((block) => block.id !== old.id);
   if (!target.date) {
-    const liveTodo = old.todoId && ['Todo', BACK_BURNER].some((cat) => entriesFor(cat).some((note) => note.id === old.todoId));
-    if (origin) storeDay(source.date, editDay(origin, remaining));
+    if (origin) removeFromDay(source.date, origin, remaining);
     plan.tray = plan.tray.filter((block) => block.id !== old.id);
-    if (!liveTodo || source.parked) plan.tray.push(untimedBlock(changed));
+    plan.tray.push(untimedBlock(changed));
     plan.trayDirty = true;
     markEdited();
     return '';
@@ -487,7 +490,7 @@ function moveBlock(source, target, changes = {}) {
   }
   const at = blocks.findIndex((item) => item.id === target.before);
   blocks.splice(at < 0 ? blocks.length : at, 0, block);
-  if (origin && source.date !== target.date) storeDay(source.date, editDay(origin, remaining));
+  if (origin && source.date !== target.date) removeFromDay(source.date, origin, remaining);
   if (source.parked) {
     plan.tray = plan.tray.filter((item) => item.id !== old.id);
     plan.trayDirty = true;
@@ -501,7 +504,7 @@ function deleteBlock(source) {
   if (!source?.block || source.copy) return;
   if (source.date) {
     const day = plan.days[source.date];
-    storeDay(source.date, editDay(day, day.blocks.filter((block) => block.id !== source.block.id)));
+    removeFromDay(source.date, day, day.blocks.filter((block) => block.id !== source.block.id));
   } else {
     plan.tray = plan.tray.filter((block) => block.id !== source.block.id);
     plan.trayDirty = true;
@@ -895,9 +898,12 @@ function renderTray() {
   someday.open = $('week').querySelector('.someday')?.open ?? false;
   someday.append(element('summary', '', 'Someday'));
   const copied = new Set(Object.values(plan.days).flatMap((day) => day.blocks.map((block) => block.todoId)));
+  const parked = new Set(plan.tray.map((block) => block.todoId));
   for (const [category, section] of [['Todo', tray], [BACK_BURNER, someday]]) {
-    const entries = entriesFor(category);
-    if (!entries.length) section.append(element('p', 'muted', `No ${category} notes`));
+    const entries = entriesFor(category).filter((entry) => !parked.has(entry.id));
+    if (!entries.length && (category !== 'Todo' || !plan.tray.length)) {
+      section.append(element('p', 'muted', `No ${category} notes`));
+    }
     for (const entry of entries) {
       const text = bare(entry.text);
       const tile = element('button', 'tile tray-tile', text);
@@ -1051,18 +1057,14 @@ function refreshView() {
 
 function plannerDropTarget(event, source) {
   const under = document.elementFromPoint(event.clientX, event.clientY);
-  const day = under?.closest('[data-day]');
-  if (!day) {
-    const tray = under?.closest('[data-tray]');
-    return tray && !source.copy ? { indicator: tray } : null;
+  const slot = under?.closest('[data-shelf], .timeline');
+  if (!slot) {
+    return source.date && under?.closest('#planner') ? { indicator: $('week').querySelector('[data-tray]') } : null;
   }
-  const date = day.dataset.day;
-  const shelf = under.closest('[data-shelf]');
-  const timeline = under.closest('.timeline');
-  if (!shelf && !timeline) return null;
+  const date = slot.closest('[data-day]').dataset.day;
   const tile = under.closest('.tile[data-id]');
   if (tile && date === source.date && tile.dataset.id === source.block.id) return null;
-  if (shelf) return { date, shelf: true, before: tile?.dataset.id, indicator: shelf };
+  if (slot.matches('[data-shelf]')) return { date, shelf: true, before: tile?.dataset.id, indicator: slot };
   const stack = layoutDay(plan.days[date]).blocks;
   if (tile) {
     const index = stack.findIndex((block) => block.id === tile.dataset.id);
@@ -1071,13 +1073,13 @@ function plannerDropTarget(event, source) {
     const next = stack.slice(index + Number(after)).find((block) => block.id !== source.block.id);
     return { date, before: next?.id, pinned: null, indicator: tile, after };
   }
-  const rect = timeline.getBoundingClientRect();
-  const from = Number(timeline.dataset.from);
-  const until = Number(timeline.dataset.until);
+  const rect = slot.getBoundingClientRect();
+  const from = Number(slot.dataset.from);
+  const until = Number(slot.dataset.until);
   const scale = (rect.height - 8) / (until - from);
   const time = Math.max(from, Math.min(1435, from + 5 * Math.round((event.clientY - rect.top) / scale / 5)));
   const before = stack.find((block) => block.start >= time && block.id !== source.block.id);
-  return { date, pinned: blockKey(time), before: before?.id, time, indicator: timeline };
+  return { date, pinned: blockKey(time), before: before?.id, time, indicator: slot };
 }
 
 function showDropTarget(target) {
@@ -1145,7 +1147,7 @@ function scrollDuringDrag() {
 
 function endDrag(event) {
   if (activeDrag?.pointer !== event.pointerId) return;
-  const { tile, source, moved, target, preview } = activeDrag;
+  const { tile, source, moved, preview } = activeDrag;
   showDropTarget(null);
   activeDrag = null;
   preview?.remove();
@@ -1153,11 +1155,12 @@ function endDrag(event) {
   if (!moved || event.type !== 'pointerup') return;
   tile.dataset.dragged = 'true';
   setTimeout(() => delete tile.dataset.dragged, 0);
+  const target = plannerDropTarget(event, source);
   const error = target && moveBlock(source, target);
-  if (!target || error) {
+  if (error) {
     tile.classList.add('invalid-drop');
     tile.addEventListener('animationend', () => tile.classList.remove('invalid-drop'), { once: true });
-    if (error) $('plan-status').textContent = error;
+    $('plan-status').textContent = error;
   }
 }
 
