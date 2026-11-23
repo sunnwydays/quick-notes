@@ -1182,7 +1182,6 @@ function dayWarnings(key, day, blocks) {
   const work = blocks.filter(workBlock);
   const cap = day.deepCap ?? 4;
   if (work.filter((b) => ['high', 'must'].includes(b.tier)).length > cap) warnings.add(`More than ${cap} deep blocks`);
-  if (work.length && !blocks.some((b) => ['free', 'buffer'].includes(blockKind(b)))) warnings.add('No free time or buffer');
   if (work.length && blocks.filter((b) => blockKind(b) === 'buffer').reduce((sum, b) => sum + b.until - b.start, 0) < 45) {
     warnings.add('Less than 45m of buffer');
   }
