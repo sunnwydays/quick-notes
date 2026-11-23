@@ -12,6 +12,13 @@ function blockKey(start) {
   return `${p(Math.floor(start / 60))}:${p(start % 60)}`;
 }
 
+// Display only: minutes after midnight (or "HH:MM") as "3:20 PM".
+function clock12(value) {
+  const min = typeof value === 'string' ? planMinutes(value) : value;
+  const h = Math.floor(min / 60) % 24;
+  return `${h % 12 || 12}:${String(min % 60).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
+}
+
 function planMinutes(time) {
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time ?? '')) return null;
   return Number(time.slice(0, 2)) * 60 + Number(time.slice(3));

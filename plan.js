@@ -510,7 +510,7 @@ function openBlockEditor(source, target = blockTarget(source)) {
   fields.pin.checked = Boolean(block.pinned);
   fields.time.value = start;
   const end = blockKey(planMinutes(start) + blockDuration(block));
-  $('block-where').textContent = !date ? 'This week tray' : `${dayLabel(date)} · ${timed ? `${start}–${end}` : 'To do'}`;
+  $('block-where').textContent = !date ? 'This week tray' : `${dayLabel(date)} · ${timed ? `${clock12(start)}–${clock12(end)}` : 'To do'}`;
   $('pin-fields').hidden = !timed;
   $('block-more').open = false;
   // A drag already chose the time and length, so they sit at the top of More there.
@@ -824,7 +824,7 @@ function openTemplateEditor(key) {
 function describeTemplate(template) {
   if (template.hint) return template.hint;
   const count = template.anchors?.length || 0;
-  return [`Wake ${template.wake || '07:00'}`, count ? `${count} fixed block${count === 1 ? '' : 's'}` : 'blank day',
+  return [`Wake ${clock12(template.wake || '07:00')}`, count ? `${count} fixed block${count === 1 ? '' : 's'}` : 'blank day',
     template.event && 'asks for an event'].filter(Boolean).join(' · ');
 }
 
@@ -878,7 +878,7 @@ function renderTemplateDay() {
   const parts = [];
   for (let hour = from; hour < until; hour += 60) {
     const line = element('span', 'hour');
-    line.append(element('span', 'hour-label', blockKey(hour)));
+    line.append(element('span', 'hour-label', clock12(hour).replace(':00', '')));
     line.style.setProperty('--minute', hour - from);
     parts.push(line);
     if (hour + 30 < until) parts.push(halfHourLine(hour + 30 - from));
@@ -989,7 +989,7 @@ function templatePointerMove(event) {
     tplDrag.preview ??= element('div', 'tile timed draft');
     tplDrag.preview.style.setProperty('--minute', start - Number(timeline.dataset.from));
     tplDrag.preview.style.setProperty('--duration', end - start);
-    tplDrag.preview.textContent = `${blockKey(start)}–${blockKey(end)}`;
+    tplDrag.preview.textContent = `${clock12(start)}–${clock12(end)}`;
     if (!tplDrag.preview.isConnected) timeline.append(tplDrag.preview);
     return;
   }
@@ -1599,11 +1599,11 @@ function renderTile(block, date) {
   if (!date || block.shelf) tile.append(element('span', 'tile-size', lengthLabel(block.duration ?? block.size)));
   if (planMinutes(block.pinned) != null) {
     const pin = element('span', 'pin', '📌');
-    pin.title = `Pinned at ${block.pinned}`;
+    pin.title = `Pinned at ${clock12(block.pinned)}`;
     tile.append(pin);
   }
   tile.title = [block.text, block.done && `Done = ${block.done}`, block.next,
-    block.actualUntil != null && `Ran over until ${blockKey(block.actualUntil)}`].filter(Boolean).join('\n');
+    block.actualUntil != null && `Ran over until ${clock12(block.actualUntil)}`].filter(Boolean).join('\n');
   return tile;
 }
 
@@ -1612,9 +1612,9 @@ function timeTile(tile, start, until, from) {
   tile.classList.add('timed');
   tile.style.setProperty('--minute', start - from);
   tile.style.setProperty('--duration', until - start);
-  const range = `${blockKey(start)}–${blockKey(until)}`;
-  const time = element('time', 'tile-time', blockKey(start));
-  time.append(element('span', 'tile-end', `–${blockKey(until)}`));
+  const range = `${clock12(start)}–${clock12(until)}`;
+  const time = element('time', 'tile-time', clock12(start));
+  time.append(element('span', 'tile-end', `–${clock12(until)}`));
   const label = element('span', 'timed-label');
   label.append(time, tile.firstElementChild);
   tile.prepend(label);
@@ -1700,7 +1700,7 @@ function renderDay(key,{ blocks, bumped }, load, from, until, ghosts) {
   timeline.style.setProperty('--minutes', until - from);
   for (let hour = from; hour < until; hour += 60) {
     const line = element('span', 'hour');
-    line.append(element('span', 'hour-label', blockKey(hour)));
+    line.append(element('span', 'hour-label', clock12(hour).replace(':00', '')));
     line.style.setProperty('--minute', hour - from);
     timeline.append(line);
     if (hour + 30 < until) timeline.append(halfHourLine(hour + 30 - from));
@@ -1787,7 +1787,7 @@ function renderPlanner() {
   gutter.setAttribute('aria-hidden', 'true');
   gutter.style.setProperty('--minutes', until - from);
   for (let hour = from; hour < until; hour += 60) {
-    const label = element('span', 'gutter-label', blockKey(hour));
+    const label = element('span', 'gutter-label', clock12(hour).replace(':00', ''));
     label.style.setProperty('--minute', hour - from);
     gutter.append(label);
   }
@@ -1946,7 +1946,7 @@ function moveDraft(event) {
   const from = Number(activeDrag.timeline.dataset.from);
   activeDrag.preview.style.setProperty('--minute', start - from);
   activeDrag.preview.style.setProperty('--duration', end - start);
-  activeDrag.preview.textContent = `${blockKey(start)}–${blockKey(end)}`;
+  activeDrag.preview.textContent = `${clock12(start)}–${clock12(end)}`;
 }
 
 function endDraft(event) {
