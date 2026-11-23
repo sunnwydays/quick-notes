@@ -374,7 +374,7 @@ function scheduledTodos() {
         const order = `${key} ${start == null ? 'zz' : String(start).padStart(4, '0')}`;
         if (found.has(block.todoId) && found.get(block.todoId).order <= order) continue;
         const dayName = key === today ? 'Today' : key === tomorrow ? 'Tomorrow' : dayLabel(key);
-        found.set(block.todoId, { order, label: `${dayName} · ${start == null ? 'to do' : clock(start, true, true)}` });
+        found.set(block.todoId, { order, label: start == null ? dayName : `${dayName} · ${clock(start, true, true)}` });
       }
     }
   }

@@ -23,7 +23,7 @@ Live: https://dash-notes.vercel.app
 
 **Read:** tap a category to see its notes, newest first, with Delete and Replace (delete and write the next one; not in Todo, Journal, Thought, Bring, Working on or Back burner). In Todo, Bring, Working on, Back burner, Discord and projects, a tick marks a note done; swipe to delete without counting it done. Everything has Undo. **Show times** is remembered per category. Double-tap or hold a blank spot to go back.
 
-**Todo:** to-dos the planner has put on a day (today or later) sit under **Scheduled** at the bottom, soonest first, each with its day and time (or "to do" if it's on the day's shelf).
+**Todo:** to-dos the planner has put on a day (today or later) sit under **Scheduled** at the bottom, soonest first, each with its day, and its time if it has one.
 
 **Back burner:** the lower half of the Working on screen, for goals set aside for later (no button of its own). ↓ on a Working on note, or the flame on a Todo note, moves it there; ↑ moves it back up to Working on. Tap its heading to fold it away; its **Add** writes straight into it, and Add note files `back burner …` there. A move deletes the note (`deleted_how = 'moved'`) and saves a copy on top of the other list.
 
