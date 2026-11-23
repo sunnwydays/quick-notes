@@ -1302,7 +1302,6 @@ function renderGoals(layouts, loads) {
 }
 
 function renderTray() {
-  const outer = element('aside', 'tray');
   const tray = element('div', 'panel tray-box');
   tray.dataset.tray = '';
   const addItem = () => openBlockEditor({ fresh: true, block: planBlock(newId(), '') }, {});
@@ -1313,7 +1312,7 @@ function renderTray() {
     if (!event.target.closest('button, summary')) addItem();
   });
   const someday = element('details', 'panel tray-box someday');
-  someday.open = $('week').querySelector('.someday')?.open ?? false;
+  someday.open = $('tray').querySelector('.someday')?.open ?? false;
   someday.append(element('summary', '', 'Back Burner'));
   const copied = new Set(Object.values(plan.days).flatMap((day) => day.blocks.map((block) => block.todoId)));
   const parked = new Set(plan.tray.map((block) => block.todoId));
@@ -1350,8 +1349,7 @@ function renderTray() {
     if (old.has(block.todoId)) splitPrompt(tile);
     tray.append(tile);
   }
-  outer.append(tray, someday);
-  return outer;
+  $('tray').replaceChildren(tray, someday);
 }
 
 function renderTile(block, date) {
@@ -1520,7 +1518,7 @@ function renderPlanner() {
     return tab;
   }));
   const scroll = $('week').querySelector('.day.selected')?.scrollTop ?? 0;
-  const trayScroll = $('week').querySelector('.tray-box')?.scrollTop ?? 0;
+  const trayScroll = $('tray').querySelector('.tray-box')?.scrollTop ?? 0;
   const gutter = element('div', 'time-gutter');
   gutter.setAttribute('aria-hidden', 'true');
   gutter.style.setProperty('--minutes', until - from);
@@ -1529,13 +1527,14 @@ function renderPlanner() {
     label.style.setProperty('--minute', hour - from);
     gutter.append(label);
   }
-  $('week').replaceChildren(renderTray(), gutter, ...plan.keys.map((key, i) => {
+  renderTray();
+  $('week').replaceChildren(gutter, ...plan.keys.map((key, i) => {
     const column = renderDay(key, layouts[i], loads[i], from, until, ghosts.filter((ghost) => ghost.key === key), drift.get(key));
     column.classList.toggle('selected', key === selectedDay);
     return column;
   }));
   $('week').querySelector('.day.selected').scrollTop = scroll;
-  $('week').querySelector('.tray-box').scrollTop = trayScroll;
+  $('tray').querySelector('.tray-box').scrollTop = trayScroll;
   planSnap = snapshotPlan();
   showNow();
 }
@@ -1592,7 +1591,7 @@ function plannerDropTarget(event, source) {
   }
   const slot = under?.closest('[data-shelf], .timeline');
   if (!slot) {
-    return source.date && under?.closest('#planner') ? { indicator: $('week').querySelector('[data-tray]') } : null;
+    return source.date && under?.closest('#planner') ? { indicator: $('tray').querySelector('[data-tray]') } : null;
   }
   const date = slot.closest('[data-day]').dataset.day;
   const tile = under.closest('.tile[data-id]');
@@ -1723,7 +1722,7 @@ function moveDrag(event) {
 function scrollDuringDrag() {
   if (!activeDrag?.moved) return;
   const point = activeDrag.position;
-  const board = [...document.querySelectorAll('#week > .day.selected, #week > .tray .tray-box, .board-scroll')].find((el) => {
+  const board = [...document.querySelectorAll('#week > .day.selected, #tray .tray-box, .board-scroll')].find((el) => {
     const box = el.getBoundingClientRect();
     return el.scrollHeight > el.clientHeight + 1 && point && point.clientX >= box.left && point.clientX <= box.right;
   }) ?? document.querySelector('.board-scroll');
@@ -1892,11 +1891,13 @@ function startPlanner() {
   }
   const board = document.querySelector('.board-scroll');
   board.addEventListener('scroll', () => board.classList.toggle('scrolled', board.scrollTop > 0), { passive: true });
-  $('week').addEventListener('pointerdown', startDrag);
+  // The tray and the days, which tiles get dragged between.
+  const tilesArea = document.querySelector('.board');
+  tilesArea.addEventListener('pointerdown', startDrag);
   window.addEventListener('pointermove', moveDrag, { passive: false });
   window.addEventListener('pointerup', endDrag);
   window.addEventListener('pointercancel', endDrag);
-  $('week').addEventListener('click', (event) => {
+  tilesArea.addEventListener('click', (event) => {
     const timeline = event.target.closest('.timeline');
     // Phones scroll on a drag, so a tap on an empty part of a day adds an item there.
     if (lastPointerType === 'touch' && timeline && !event.target.closest('.tile')) {
@@ -1913,7 +1914,7 @@ function startPlanner() {
     if (event.detail === 0) open();
     else tileClick = setTimeout(open, 260);
   });
-  $('week').addEventListener('dblclick', (event) => {
+  tilesArea.addEventListener('dblclick', (event) => {
     const tile = event.target.closest('.tile[data-id]');
     if (!tile) return;
     clearTimeout(tileClick);

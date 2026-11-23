@@ -68,20 +68,21 @@ button:disabled { opacity: .55; cursor: default; }
 .goal-hours, .week-load { font-size: .82rem; color: var(--muted); }
 .goal-chip .meter { grid-column: 1 / -1; }
 .goal-chip.over-budget { border-bottom-color: #ab5545; }
-.board-scroll { grid-row: 4; overflow: auto; padding: 2px 2px .75rem; container-type: size; }
-#week {
-  display: grid;
-  grid-template-columns: minmax(150px, 1.13fr) 2.6rem repeat(7, minmax(125px, 1fr));
-  grid-template-rows: auto auto auto auto;
-  gap: .45rem;
+/* The tray sits beside the scrolling days, not inside them, so it never moves while they scroll. */
+.board {
+  grid-row: 4; min-height: 0; display: grid; gap: .45rem;
+  grid-template-columns: minmax(150px, 1.13fr) minmax(0, 7fr);
   --minute-height: 1.45px;
   --now: #6a4fd8;
 }
-/* Pinned to the visible part of the board, so Back Burner stays on screen to drag notes into. */
-.tray {
-  grid-row: span 4; min-width: 0; display: flex; flex-direction: column; gap: .45rem;
-  position: sticky; top: 0; align-self: start; height: calc(100cqh - .75rem - 2px);
+.board-scroll { min-height: 0; overflow: auto; padding: 2px 2px .75rem; }
+#week {
+  display: grid;
+  grid-template-columns: 2.6rem repeat(7, minmax(125px, 1fr));
+  grid-template-rows: auto auto auto auto;
+  gap: .45rem;
 }
+.tray { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: .45rem; padding: 2px 0 .75rem; }
 .tray-box { padding: .75rem; background: #dfeef4; border-color: #accad9; min-height: 0; overflow-y: auto; }
 .someday { flex: 0 1 auto; max-height: 50%; }
 .tray-box[data-tray] { flex: 1; cursor: pointer; }
@@ -127,7 +128,7 @@ button:disabled { opacity: .55; cursor: default; }
 }
 .hour-label { display: none; }
 .time-gutter {
-  grid-column: 2; grid-row: 3; position: relative;
+  grid-column: 1; grid-row: 3; position: relative;
   height: calc(var(--minutes) * var(--minute-height) + .5rem);
 }
 .gutter-label {
@@ -326,12 +327,10 @@ label.choice:has(input:checked) { border-color: #5b8aa6; background: #eef6fb; }
   .day-tab[aria-pressed="true"] { background: #222; color: #fff; border-color: #222; }
   .day-tab[aria-pressed="true"] .day-tab-date { color: #fff; }
   .day-tab.drop-target { outline: 2px dashed #387fa6; outline-offset: 1px; }
+  .board { grid-template-columns: minmax(0, 36fr) minmax(0, 64fr); gap: .35rem; }
   .board-scroll { overflow: hidden; padding: 0 0 .5rem; }
-  #week {
-    height: 100%; grid-template-columns: minmax(0, 36fr) minmax(0, 64fr);
-    grid-template-rows: minmax(0, 1fr); gap: .35rem;
-  }
-  .tray { grid-row: 1; min-height: 0; overflow: hidden; position: static; align-self: stretch; height: auto; }
+  #week { height: 100%; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+  .tray { overflow: hidden; padding: 0 0 .5rem; }
   .tray-box { padding: .4rem; }
   .tray h3 { font-size: 1rem; }
   .tray-tile { font-size: .85rem; }
