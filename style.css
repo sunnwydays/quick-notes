@@ -269,7 +269,7 @@ button.glance-block.now.primary { background: #fff; color: #000; outline: 2px so
 
 #add-any-btn svg { display: block; flex: none; }
 
-/* Search, then the sync icon and the ☰ menu button on the right. It stays at the
+/* Search and its shortcuts, with the ☰ menu on the right. The row stays at the
    top while search results scroll. The menu drops down over the page below. */
 .sync-row {
   position: sticky; top: 0; z-index: 1; background: #fff;
@@ -278,6 +278,7 @@ button.glance-block.now.primary { background: #fff; color: #000; outline: 2px so
 #sync-status { display: flex; align-items: center; justify-content: center; gap: 6px; min-width: 48px; min-height: 48px; }
 #sync-status .sync-login { font-weight: bold; text-decoration: underline; white-space: nowrap; }
 #sync-status svg, #menu-btn svg { display: block; }
+#planner-link { display: flex; flex: 0 0 48px; align-items: center; justify-content: center; min-height: 48px; color: inherit; }
 #menu-btn { display: flex; align-items: center; justify-content: center; width: 56px; min-height: 48px; padding: 0; border: 0; }
 #menu-btn[aria-expanded='true'] { background: #000; color: #fff; }
 #menu {

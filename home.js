@@ -148,8 +148,8 @@ $('add-project-btn').addEventListener('click', () => {
 
 // ---------- menu ----------
 // New project, Export, Help and Log in live behind the ☰ button. Picking one
-// closes the menu. So does tapping anywhere else, and that tap does nothing
-// more, so closing it can't open a category by accident.
+// closes the menu. A tap outside also closes it. Let the planner link through,
+// but prevent other outside taps from opening a category by accident.
 
 function setMenu(open) {
   $('menu').hidden = !open;
@@ -162,9 +162,10 @@ $('menu').addEventListener('click', (e) => {
 });
 document.addEventListener('click', (e) => {
   if ($('menu').hidden || e.target.closest('#menu, #menu-btn')) return;
+  setMenu(false);
+  if (e.target.closest('#planner-link')) return;
   e.preventDefault();
   e.stopPropagation();
-  setMenu(false);
 }, true);
 
 // Hard refresh: drop the service worker and every cached file, then reload from
