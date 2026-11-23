@@ -1781,8 +1781,9 @@ function endDrag(event) {
     }
     const day = plan.days[source.date];
     const duration = end - Number(tile.dataset.start) - (source.block.tail ?? 0);
-    const blocks = day.blocks.map((block) => block.id === source.block.id ? { ...block, duration } : block);
-    storeDay(source.date, editDay(day, blocks));
+    const resized = { ...source.block, duration };
+    const blocks = day.blocks.map((block) => block.id === resized.id ? resized : block);
+    storeDay(source.date, editDayWithPin(day, blocks, resized, Number(tile.dataset.start)));
     markEdited();
     return;
   }
