@@ -341,9 +341,9 @@ function moveBlock(source, target, changes = {}) {
   const day = plan.days[target.date];
   const blocks = source.date === target.date ? remaining : [...day.blocks];
   let block = target.shelf ? untimedBlock(changed) : { ...changed, shelf: false };
-  if (!target.shelf && Object.hasOwn(target, 'pinned')) {
+  if (!target.shelf && (Object.hasOwn(target, 'pinned') || target.place != null)) {
     const { actualStart, actualUntil, ...unpinned } = block;
-    block = { ...unpinned, pinned: target.pinned };
+    block = Object.hasOwn(target, 'pinned') ? { ...unpinned, pinned: target.pinned } : unpinned;
   }
   const pin = planMinutes(block.pinned);
   // A drop from the tray or Untimed lands at the time without pinning.
@@ -1859,7 +1859,8 @@ function endDrag(event) {
   tile.dataset.dragged = 'true';
   setTimeout(() => delete tile.dataset.dragged, 0);
   let target = plannerDropTarget(event, source);
-  if (target?.time != null && (!source.date || source.block.shelf)) {
+  // Dropping at a time only keeps a pin the block already had; it never adds one.
+  if (target?.time != null && planMinutes(source.block.pinned) == null) {
     const { pinned, ...rest } = target;
     target = { ...rest, place: pinned };
   }
