@@ -294,7 +294,7 @@ function deleteEntry(id, how) {
 function removeEntry(id, how) {
   const entry = deleteEntry(id, how);
   if (!entry) return;
-  showUndo(how === 'done' ? 'Done.' : 'Note deleted.', () => restoreEntry(entry));
+  if (how !== 'done') showUndo('Note deleted.', () => restoreEntry(entry));
   refreshView();
   sync();
 }
