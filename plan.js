@@ -659,7 +659,11 @@ function renderTemplateDay() {
   }
   for (const block of tplBlocks) {
     const tile = renderTile(planBlock(block.id, block.text || 'Untitled', { kind: block.kind, tier: 'fixed' }));
-    timeTile(tile, block.start, block.start + block.duration, from);
+    timeTile(tile, block.start, block.start + block.duration + block.tail, from);
+    if (block.tail > 0) {
+      tile.style.setProperty('--tail', block.tail);
+      tile.append(element('span', 'tail', `+${block.tail}m`));
+    }
     tile.classList.toggle('selected', block.id === tplSelected);
     parts.push(tile);
   }
@@ -675,6 +679,7 @@ function showTemplateBlock() {
   templateField('text').value = block.text;
   templateField('time').value = blockKey(block.start);
   templateField('mins').value = block.duration;
+  templateField('tail').value = block.tail;
   const kinds = ANCHOR_KINDS.includes(block.kind) ? ANCHOR_KINDS : [...ANCHOR_KINDS, block.kind];
   fillOptions(templateField('kind'), kinds.map((kind) => [kind, kind]), block.kind);
 }
@@ -701,6 +706,7 @@ function editTemplateBlock(event) {
   if (field === 'kind') block.kind = value;
   if (field === 'time' && planMinutes(value) != null) block.start = planMinutes(value);
   if (field === 'mins' && Number.isInteger(Number(value)) && Number(value) >= 5) block.duration = Number(value);
+  if (field === 'tail' && Number.isInteger(Number(value)) && Number(value) >= 0) block.tail = Number(value);
   renderTemplateDay();
 }
 
@@ -744,7 +750,7 @@ function templatePointerMove(event) {
     return;
   }
   const block = tplBlocks.find((item) => item.id === tplDrag.id);
-  const start = Math.min(timelineMinute(timeline, event.clientY - tplDrag.grab), DAY_END - block.duration);
+  const start = Math.min(timelineMinute(timeline, event.clientY - tplDrag.grab), DAY_END - block.duration - block.tail);
   if (start === block.start && tplSelected === block.id) return;
   block.start = start;
   selectTemplateBlock(block.id);
@@ -829,9 +835,9 @@ function saveTemplateDef(event) {
   };
   for (const [i, block] of blocks.entries()) {
     if (!block.text.trim()) return fail(block, 'Give every block a title.');
-    if (block.start + block.duration > DAY_END) return fail(block, `${block.text} runs past midnight.`);
+    if (block.start + block.duration + block.tail > DAY_END) return fail(block, `${block.text} runs past midnight.`);
     const before = blocks[i - 1];
-    if (before && block.start < before.start + before.duration) return fail(block, `${block.text} overlaps ${before.text}.`);
+    if (before && block.start < before.start + before.duration + before.tail) return fail(block, `${block.text} overlaps ${before.text}.`);
   }
   const anchors = blocks.map((block) => [blockKey(block.start), block.duration, block.text.trim(), block.kind,
     ...(block.tail ? [block.tail] : [])]);
