@@ -265,7 +265,7 @@ dialog input:not([type="checkbox"]), dialog select, #login input {
 .pin-check { grid-template-rows: auto 2rem; justify-items: center; align-items: center; }
 #block-where { margin: -.25rem 0 0; }
 #block-more summary { cursor: pointer; font-size: .9rem; font-weight: bold; color: var(--muted); }
-.more-fields { display: grid; gap: .55rem; margin-top: .55rem; }
+.more-fields { display: grid; gap: .55rem; margin-top: .45rem; padding-top: .55rem; border-top: 1px solid #dbe6ec; }
 form label.check { display: flex; align-items: center; gap: .35rem; }
 .choices { display: grid; gap: .3rem; }
 form label.choice {
