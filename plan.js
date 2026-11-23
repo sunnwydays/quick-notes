@@ -1252,30 +1252,12 @@ function dayWarnings(key, day, blocks) {
   if (work.length && blocks.filter((b) => blockKind(b) === 'buffer').reduce((sum, b) => sum + b.until - b.start, 0) < 45) {
     warnings.add('Less than 45m of buffer');
   }
-  const tomorrow = dayKey(addDays(keyDate(key), 1));
-  const nextDay = plan.days[tomorrow];
-  const examTomorrow = nextDay?.template === 'Exam / interview';
-  const cutoff = day.noNewAfter ?? (examTomorrow ? 16 * 60 : Infinity);
-  const dinner = blocks.find((b) => blockKind(b) === 'meal' && b.start >= 16 * 60);
-  const project = work.find((b) => blockKind(b) === 'project');
   for (const [i, block] of blocks.entries()) {
     const next = blocks[i + 1];
-    const kind = blockKind(block);
     if (next && next.start - block.until < 5 && !(next.templateAnchor && block.templateAnchor && next.start === block.until)) {
       warnings.add(next.start < block.until ? 'Overlapping pins' : 'Gap under 5m');
     }
     if (block.actualUntil > block.until) warnings.add('Ran into a fixed time');
-    if (kind === 'project' && next && blockKind(next) === 'study') warnings.add('Put study before project work');
-    if (kind === 'prep' && project && block.start > project.start && (block.deadline?.startsWith(tomorrow) || examTomorrow)) {
-      warnings.add('Put next-day prep before project work');
-    }
-    if (kind === 'almost' && next?.tier !== 'fixed') warnings.add('Put almost-done work before a fixed block');
-    if (kind === 'fun' && (!next || (dinner && block.start >= dinner.start))) warnings.add('Put open-ended fun before dinner');
-    if (kind === 'study' && block.until > cutoff && !/\b(recall|review|warm[- ]?up|revise|revision)\b/i.test(block.text)) {
-      warnings.add('Use light recall before the exam or interview');
-    }
-    if (afterDeadline(key, block)) warnings.add('Block scheduled after its deadline');
-    if (block.deadline?.startsWith(tomorrow) && work.includes(block) && work[0] !== block) warnings.add('Put tomorrow’s deliverable first');
   }
   return [...warnings];
 }
