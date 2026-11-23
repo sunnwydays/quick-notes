@@ -531,10 +531,10 @@ function openBlockEditor(source, date) {
   const goals = plannerGoals().map((item) => [item.id, bare(item.text)]);
   if (block.goal && !goals.some(([id]) => id === block.goal)) goals.push([block.goal, 'Archived goal']);
   fillOptions(fields.goal, [['', 'No goal'], ...goals], block.goal || '');
-  fields.placement.value = source.parked ? 'tray' : block.shelf ? 'shelf' : 'stack';
+  fields.placement.value = source.date && block.shelf ? 'shelf' : 'stack';
   fields.pin.checked = Boolean(block.pinned);
   fields.time.value = block.pinned || (source.date ? blockKey(layoutDay(plan.days[source.date]).blocks.find((b) => b.id === block.id)?.start ?? PLAN_START) : '07:00');
-  $('block-editor-title').textContent = source.copy || source.fresh ? 'Place block' : 'Edit block';
+  $('block-editor-title').textContent = source.date && !source.fresh ? 'Edit block' : 'Place block';
   $('block-delete').hidden = Boolean(source.copy || source.fresh);
   $('block-over').hidden = !source.date || block.shelf;
   $('block-error').hidden = true;
@@ -875,7 +875,8 @@ function renderGoals(layouts, loads) {
 function renderTray() {
   const tray = element('aside', 'panel tray');
   tray.dataset.tray = '';
-  tray.append(element('h3', '', 'This week'));
+  tray.append(element('h3', '', 'This week'),
+    element('p', 'muted tray-hint', 'Drag into a day or tap a task to pick a day.'));
   const someday = element('details', 'someday');
   someday.open = $('week').querySelector('.someday')?.open ?? false;
   someday.append(element('summary', '', 'Someday'));
