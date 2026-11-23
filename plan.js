@@ -606,7 +606,7 @@ function refreshReviewStatus(layouts) {
   const now = new Date();
   const today = dayKey(now);
   const minute = now.getHours() * 60 + now.getMinutes();
-  $('day-review').hidden = !plan.days[today] || minute < REVIEW_START;
+  $('day-review').hidden = minute < REVIEW_START;
   let unmarked = 0;
   for (const [i, key] of plan.keys.entries()) {
     if (key > today) continue;
@@ -1242,6 +1242,12 @@ function endDrag(event) {
   }
 }
 
+// After screens-off the day is over, so the planner opens on tomorrow's week.
+function homeMonday() {
+  const now = new Date();
+  return weekMonday(now.getHours() * 60 + now.getMinutes() >= SCREENS_OFF ? addDays(now, 1) : now);
+}
+
 function changePlannerWeek(next) {
   if (dayKey(next) === dayKey(monday)) return;
   if (isPlannerDirty() && !confirm('Leave this week and discard unsaved changes?')) return;
@@ -1282,11 +1288,11 @@ function registerPlannerWorker() {
 
 function startPlanner() {
   registerPlannerWorker();
-  monday = weekMonday(new Date());
+  monday = homeMonday();
   $('login-back').addEventListener('click', () => history.back());
   $('week-prev').addEventListener('click', () => changePlannerWeek(addDays(monday, -7)));
   $('week-next').addEventListener('click', () => changePlannerWeek(addDays(monday, 7)));
-  $('week-today').addEventListener('click', () => changePlannerWeek(weekMonday(new Date())));
+  $('week-today').addEventListener('click', () => changePlannerWeek(homeMonday()));
   $('save-week').addEventListener('click', saveWeek);
   $('plan-now').addEventListener('click', () => openPopup());
   $('now-form').addEventListener('submit', applyPopup);
