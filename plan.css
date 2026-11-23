@@ -292,16 +292,23 @@ label.choice:has(input:checked) { border-color: #5b8aa6; background: #eef6fb; }
 #routine-choices > p { margin: 0; }
 #routine-choices .choice { align-items: center; }
 #routine-choices .choice input { grid-row: auto; margin: 0; }
-#template-def { width: min(34rem, calc(100vw - 1rem)); }
+#template-def { width: min(42rem, calc(100vw - 1rem)); }
+.template-layout { display: grid; grid-template-columns: minmax(0, 1fr) 12rem; gap: .55rem; align-items: start; }
+.template-side { position: sticky; top: 0; }
+@media (max-width: 560px) {
+  #template-def { padding-inline: .7rem; }
+  .template-layout { grid-template-columns: minmax(0, 1fr) 8.5rem; gap: .4rem; }
+  .template-block { padding: .4rem; }
+  .template-block :is(input, select) { font-size: .8rem; }
+}
 #template-def .muted { margin: 0; }
-.template-day-scroll { max-height: 48vh; overflow-y: auto; overscroll-behavior: contain; --minute-height: 1.2px; padding-top: .4rem; }
+.template-day-scroll { max-height: 60vh; overflow-y: auto; overscroll-behavior: contain; --minute-height: 1.2px; padding-top: .4rem; }
 .template-day-scroll .hour { inset-inline: 0; }
 .template-day-scroll .hour-label { display: inline; }
 .template-day-scroll .tile.timed { inset-inline: 2.8rem .4rem; }
 .tile.timed.selected { box-shadow: 0 0 0 2px #387fa6; z-index: 1; }
 .template-block { display: grid; gap: .45rem; padding: .55rem; background: #f5faff; border: 1px solid var(--line); border-radius: 9px; }
 .template-block[hidden] { display: none; }
-.template-block-row { display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: .4rem; }
 .template-block > button { justify-self: start; }
 @media (max-width: 700px) {
   #planner { padding: .5rem .5rem 0; }

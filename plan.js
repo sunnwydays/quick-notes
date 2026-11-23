@@ -670,6 +670,7 @@ function renderTemplateDay() {
 function showTemplateBlock() {
   const block = tplBlocks.find((item) => item.id === tplSelected);
   $('template-block').hidden = !block;
+  $('template-block-hint').hidden = Boolean(block);
   if (!block) return;
   templateField('text').value = block.text;
   templateField('time').value = blockKey(block.start);
