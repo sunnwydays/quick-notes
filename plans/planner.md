@@ -32,6 +32,7 @@ A block is:
 ```js
 {
   id, text, size: 30|45|60|90,
+  shelf: false,                        // true = committed to the day, not timed yet
   goal: <Working on note id> | null,   // colours the block and feeds the goal bar
   tier: 'fixed'|'must'|'high'|'medium'|'low',
   pinned: 'HH:MM' | null,              // anchors (from template or dragged to a time)
@@ -42,7 +43,11 @@ A block is:
 }
 ```
 
-The tray needs no storage: **This week** = live `Todo`, **Someday** = `Back burner`, **Goals header** = `Working on`. The planner reads them straight from `data.entries`. Dedupe Schedule rows on (day, text) when reading history (inputs §0).
+The week tray needs no storage: **This week** = live `Todo`, **Someday** = `Back burner`, **Goals header** = `Working on`. The planner reads them straight from `data.entries`. Dedupe Schedule rows on (day, text) when reading history (inputs §0).
+
+**Each day also has a shelf**: a strip at the top of the column for things committed to that day but not timed yet ("do it Thursday, whenever"). Shelf items are blocks with `shelf: true` in the day's `blocks` array; they aren't laid out and don't count toward load. Dropping a tray item on the shelf commits it to the day; dropping it into the stack times it. Dragging shelf → stack times it, stack → shelf untimes it. Ghost suggestions for a day are built from its shelf first, then the week tray. On Save, shelf items go out as note lines under the day heading, before the first time, so Dash shows them as the day's intro text. Bumped blocks land on their own day's shelf, not the week tray, unless the day is over.
+
+**Pinning**: any block can be pinned to a clock time (`pinned: 'HH:MM'`). Template anchors come pinned; a dragged block pins when dropped on a time rather than between blocks; the popover has a pin toggle with a time field. Pinned blocks never move when the stack is re-timed, and flexible blocks flow around them. `tier: 'fixed'` is for commitments that can't be bumped either (interview, game, welding, meals, sleep); a pinned block with another tier can still be dropped by Woke at… if the day no longer fits.
 
 ## Layout
 
@@ -51,6 +56,8 @@ The tray needs no storage: **This week** = live `Todo`, **Someday** = `Back burn
 │ Study ████████░░ 14/25h   Chess ██████ 6/7h   Fitness ████░░ 5/8h   Lab ██ 2/2h │
 ├ Tray ───────┬ Mon 23 ─┬ Tue 24 ─┬ Wed 25 ─┬ Thu 26 ─┬ Fri 27 ─┬ Sat 28 ─┬ Sun 29 ┤
 │ This week   │ 📵 ⏰7:00│         │ ★ 9:30  │         │         │ ★ Game  │ Weld   │
+│             │ shelf:  │ shelf:  │ shelf:  │ shelf:  │         │         │        │
+│             │ cut nail│ –       │ –       │ prelab  │         │         │        │
 │ ▭ ece311 lab│ ▬ wake  │ ▬ wake  │ ▬ wake  │ ...     │         │         │ 9–17   │
 │ ▭ interview │ ▬ walk  │ ▬ walk  │ ▬ chess │         │         │         │        │
 │   prep  🕒  │ █ chess │ █ chess │ ★ intvw │         │         │         │        │
@@ -174,12 +181,12 @@ Goals header defaults: Chess 6h, Lab 2h, Fitness 6.5h (not 21h: tapering while s
 **Phase 1 – static week (no drag yet)**
 1. `plan.html` + `plan.css` + `plan.js`, loading `data.js`, `sync.js`, `login.js`, `schedule.js`. Add all three to `sw.js` `FILES`; bump `CACHE`.
 2. Hidden categories `Plan week`, `Plan template`, `Plan goals` (same mechanism as `PADS`: no category row, excluded from search/Export/project list).
-3. Render tray (Todo / Back burner / Working on header) and 7 columns from the stored `Plan week` note or the saved Schedule notes for that week (`parseSchedule` → blocks with `pinned` where the text had a range).
+3. Render tray (Todo / Back burner / Working on header), each day's shelf, and 7 columns from the stored `Plan week` note or the saved Schedule notes for that week (`parseSchedule` → blocks with `pinned` where the text had a range).
 4. Stacking + timing engine as pure functions (`layoutDay(day) → blocks with start/until`), unit-tested in `tests/plan.test.mjs` with `node --test`.
 5. Save to Dash (write Schedule notes).
 
 **Phase 2 – interaction**
-6. Drag tray→day, day→day, reorder, drag back to tray (pointer events; fall back to SortableJS if needed). Block popover (text, size, goal, tier, done).
+6. Drag tray→shelf, tray→stack, shelf↔stack, day→day, reorder, drag back to tray (pointer events; fall back to SortableJS if needed). Drop on a time pins. Block popover (text, size, goal, tier, pin + time, done).
 7. Templates: weekday / exam / recovery / welding / game. Apply from day header.
 8. Load bar + warnings. Goal budgets + header bars.
 9. Woke at… / Ran over… restack.
