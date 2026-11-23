@@ -1343,7 +1343,7 @@ function renderPlanner() {
     return tab;
   }));
   const scroll = $('week').querySelector('.day.selected')?.scrollTop ?? 0;
-  const trayScroll = $('week').querySelector('.tray')?.scrollTop ?? 0;
+  const trayScroll = $('week').querySelector('.tray-box')?.scrollTop ?? 0;
   const gutter = element('div', 'time-gutter');
   gutter.setAttribute('aria-hidden', 'true');
   gutter.style.setProperty('--minutes', until - from);
@@ -1358,7 +1358,7 @@ function renderPlanner() {
     return column;
   }));
   $('week').querySelector('.day.selected').scrollTop = scroll;
-  $('week').querySelector('.tray').scrollTop = trayScroll;
+  $('week').querySelector('.tray-box').scrollTop = trayScroll;
   planSnap = snapshotPlan();
   showNow();
 }
@@ -1546,7 +1546,7 @@ function moveDrag(event) {
 function scrollDuringDrag() {
   if (!activeDrag?.moved) return;
   const point = activeDrag.position;
-  const board = [...document.querySelectorAll('#week > .day.selected, #week > .tray, .board-scroll')].find((el) => {
+  const board = [...document.querySelectorAll('#week > .day.selected, #week > .tray .tray-box, .board-scroll')].find((el) => {
     const box = el.getBoundingClientRect();
     return el.scrollHeight > el.clientHeight + 1 && point && point.clientX >= box.left && point.clientX <= box.right;
   }) ?? document.querySelector('.board-scroll');

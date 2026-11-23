@@ -311,7 +311,9 @@ label.choice:has(input:checked) { border-color: #5b8aa6; background: #eef6fb; }
     height: 100%; grid-template-columns: minmax(0, 36fr) minmax(0, 64fr);
     grid-template-rows: minmax(0, 1fr); gap: .35rem;
   }
-  .tray { grid-row: 1; overflow-y: auto; }
+  .tray { grid-row: 1; min-height: 0; overflow: hidden; }
+  .tray-box { min-height: 0; overflow-y: auto; }
+  .someday { flex: 0 1 auto; max-height: 50%; }
   .tray-box { padding: .4rem; }
   .tray h3 { font-size: 1rem; }
   .tray-tile { font-size: .85rem; }
