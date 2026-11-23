@@ -247,7 +247,7 @@ function markEdited(message = 'Change made.') {
     renderPlanner();
   };
   clearTimeout(undoTimer);
-  undoTimer = setTimeout(hidePlanUndo, 8000);
+  undoTimer = setTimeout(hidePlanUndo, 5000);
 }
 
 function removeFromDay(key, day, remaining) {
@@ -953,7 +953,9 @@ function renderTray() {
     }
     for (const entry of entries) {
       const text = bare(entry.text);
-      const tile = element('button', 'tile tray-tile', text);
+      const tile = element('button', 'tile tray-tile');
+      tile.append(element('span', 'tile-title', text));
+      tile.title = text;
       tile.type = 'button';
       tile.style.setProperty('--tile-colour', blockColour({ text }));
       Object.assign(tile.dataset, { id: entry.id, source: category });

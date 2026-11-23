@@ -123,7 +123,7 @@ button:disabled { opacity: .55; cursor: default; }
   background-size: 4px 100%; background-repeat: no-repeat;
   padding-left: .55rem;
 }
-.tile-title { font-weight: bold; }
+.tile-title { font-weight: bold; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
 .tile-time { display: block; font-size: .68rem; margin-bottom: .12rem; }
 .pin { position: absolute; top: .2rem; right: .22rem; font-size: .7rem; }
 .tile:has(.pin) { padding-right: 1rem; }
@@ -284,3 +284,4 @@ dialog input:not([type="checkbox"]), dialog select, #login input {
 }
 #plan-undo[hidden] { display: none; }
 #plan-undo button { min-height: 44px; padding: 4px 16px; font-weight: 700; }
+.tray-tile .tile-title { font-weight: normal; }
