@@ -489,11 +489,11 @@ function openBlockEditor(source, target = blockTarget(source)) {
 }
 
 // Length is a scrub field: drag sideways to change it, or click to type a number.
-const SCRUB_PX = 6; // pixels of drag per 5 minutes
+const SCRUB_PX = 4; // pixels of drag per minute
 
 function setScrub(input, value) {
   input.value = value;
-  input.closest('.scrub').style.setProperty('--shift', `${-value / 5 * SCRUB_PX}px`);
+  input.closest('.scrub').style.setProperty('--shift', `${-value * SCRUB_PX}px`);
 }
 
 function initScrub(input) {
@@ -512,7 +512,7 @@ function initScrub(input) {
     if (Math.abs(dx) > 3) drag.moved = true;
     if (!drag.moved) return;
     const steps = Math.round(dx / SCRUB_PX);
-    const value = Math.min(Number(input.max), Math.max(Number(input.min), Math.round(drag.value / 5) * 5 + steps * 5));
+    const value = Math.min(Number(input.max), Math.max(Number(input.min), drag.value + steps));
     if (value !== Number(input.value)) setScrub(input, value);
   });
   const end = () => {

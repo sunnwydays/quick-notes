@@ -296,8 +296,8 @@ dialog input:not([type="checkbox"]), dialog select, #login input {
   cursor: ew-resize; touch-action: none; user-select: none; font-weight: normal;
   background:
     linear-gradient(90deg, white, #fff0 30%, #fff0 70%, white),
-    linear-gradient(90deg, #172e4366 1px, transparent 1px) var(--shift) 100% / 30px 40% repeat-x,
-    linear-gradient(90deg, #172e4333 1px, transparent 1px) var(--shift) 100% / 6px 22% repeat-x,
+    linear-gradient(90deg, #172e4366 1px, transparent 1px) var(--shift) 100% / 60px 40% repeat-x,
+    linear-gradient(90deg, #172e4333 1px, transparent 1px) var(--shift) 100% / 20px 22% repeat-x,
     white;
 }
 .scrub::after {
