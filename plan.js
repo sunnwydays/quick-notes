@@ -825,6 +825,12 @@ function templateRange() {
   return [Math.floor(Math.min(wake, PLAN_START, ...tplBlocks.map((block) => block.start)) / 60) * 60, DAY_END];
 }
 
+function halfHourLine(minute) {
+  const line = element('span', 'hour half');
+  line.style.setProperty('--minute', minute);
+  return line;
+}
+
 function renderTemplateDay() {
   const timeline = $('template-day');
   const [from, until] = templateRange();
@@ -837,6 +843,7 @@ function renderTemplateDay() {
     line.append(element('span', 'hour-label', blockKey(hour)));
     line.style.setProperty('--minute', hour - from);
     parts.push(line);
+    if (hour + 30 < until) parts.push(halfHourLine(hour + 30 - from));
   }
   for (const block of tplBlocks) {
     const tile = renderTile(planBlock(block.id, block.text || 'Untitled', { kind: block.kind, tier: 'fixed' }));
@@ -1658,6 +1665,7 @@ function renderDay(key,{ blocks, bumped }, load, from, until, ghosts) {
     line.append(element('span', 'hour-label', blockKey(hour)));
     line.style.setProperty('--minute', hour - from);
     timeline.append(line);
+    if (hour + 30 < until) timeline.append(halfHourLine(hour + 30 - from));
   }
   if (key === dayKey(new Date())) {
     column.classList.add('today');

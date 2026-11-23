@@ -148,6 +148,7 @@ button:disabled { opacity: .55; cursor: default; }
   inset-inline: calc(-.225rem - 1px); border-top: 1px solid #dfe8ee; color: var(--muted);
   font-size: .65rem; padding: 0 .28rem; pointer-events: none;
 }
+.hour.half { border-top-color: #eef3f6; }
 .hour-label { display: none; }
 .time-gutter {
   grid-column: 1; grid-row: 3; position: relative;
