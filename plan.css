@@ -1,21 +1,7 @@
-@font-face {
-  font-family: Atkinson;
-  src: url('fonts/atkinson-400.woff2') format('woff2');
-  font-weight: 400;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: Atkinson;
-  src: url('fonts/atkinson-700.woff2') format('woff2');
-  font-weight: 700;
-  font-display: swap;
-}
-
 :root {
   color: #222;
   background: #eaf6ff;
-  font-family: Atkinson, sans-serif;
+  font-family: system-ui, sans-serif;
   --ink: #222;
   --muted: #485c68;
   --line: #cadfe9;
@@ -126,7 +112,7 @@ button:disabled { opacity: .55; cursor: default; }
 .day-menu button:hover { background: #eef6fb; }
 .day-date, .day-info { font-size: .75rem; font-weight: normal; color: var(--muted); }
 .day-info { margin-top: .2rem; }
-.day-event { font-weight: bold; }
+.day-event, .tile-title { font-weight: 600; }
 .day-actions { display: flex; flex-wrap: wrap; gap: .2rem; margin-top: .35rem; }
 .day-action { padding: .1rem .3rem; font-size: .72rem; border-bottom-width: 2px; }
 .day-action[aria-pressed="true"] { background: #e5dcfa; border-style: solid; }
@@ -208,7 +194,7 @@ button:disabled { opacity: .55; cursor: default; }
 .timed-label { flex: 1; width: 100%; min-height: min(100%, 1.06rem); container-type: size; }
 .timed-label .tile-time { margin-top: .12rem; line-height: .85rem; }
 .timed-label .tile-title {
-  margin-top: .15rem; font-weight: bold; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
+  margin-top: .15rem; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
 }
 @container (min-height: 3.25rem) {
   .timed-label .tile-title { -webkit-line-clamp: 2; }
