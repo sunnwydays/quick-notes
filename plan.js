@@ -74,7 +74,8 @@ function openPlannerWeek() {
   for (const date of keys) {
     const schedule = schedules.get(date);
     const stored = saved?.value.days?.[date];
-    const day = Array.isArray(stored?.blocks) ? { ...stored, blocks: stored.blocks.map(foldTail) } : stored;
+    const day = Array.isArray(stored?.blocks)
+      ? { ...stored, blocks: stored.blocks.filter((block) => !tickedOff(block)).map(foldTail) } : stored;
     days[date] = Array.isArray(day?.blocks) ? day : dayFromSchedule(schedule);
     // Older imports treated every written time range as a pin.
     if (day?.imported && !day.pinLayout && Array.isArray(day.blocks) && day.blocks.some((block) => block.pinned)) {
@@ -87,6 +88,11 @@ function openPlannerWeek() {
     budgets: goals?.value || {}, goalVersion: goals?.entry.id ?? null, goalsDirty: false,
     tray: Array.isArray(saved?.value.tray?.week) ? saved.value.tray.week : [], trayDirty: false, pendingMarks: [],
     savedDates: new Set(Object.keys(saved?.value.days || {})) };
+}
+
+// A shelf item whose Todo was ticked off, here or in Dash, is finished, so it leaves the shelf.
+function tickedOff(block) {
+  return block.shelf && block.todoId && data.entries.some((entry) => entry.id === block.todoId && entry.deletedHow === 'done');
 }
 
 function changedInDash(key, schedules = plan.schedules) {
@@ -1612,7 +1618,7 @@ function renderTile(block, date) {
   return tile;
 }
 
-// Places a tile on a timeline and puts its start–end time above the title.
+// Places a tile on a timeline.
 function timeTile(tile, start, until, from) {
   tile.classList.add('timed');
   tile.style.setProperty('--minute', start - from);
@@ -1621,9 +1627,9 @@ function timeTile(tile, start, until, from) {
   const time = element('time', 'tile-time', clock12(start));
   time.append(element('span', 'tile-end', `–${clock12(until)}`));
   const label = element('span', 'timed-label');
-  label.append(time, tile.firstElementChild);
+  label.append(tile.firstElementChild, time);
   tile.prepend(label);
-  tile.title = `${range}\n${tile.title}`;
+  tile.title = `${tile.title}\n${range}`;
   return time;
 }
 
@@ -2268,8 +2274,13 @@ function startPlanner() {
   });
   $('block-editor').addEventListener('pointerdown', () => { quickDelete = false; });
   $('block-done').addEventListener('click', () => {
-    removeNote(editedBlock.copy ? editedBlock.entry.id : editedBlock.block.todoId, 'done');
+    const { copy, block, target: { date, shelf } = {} } = editedBlock;
+    removeNote(copy ? editedBlock.entry.id : block.todoId, 'done');
     $('block-editor').close();
+    if (!copy && date && shelf) {
+      removeFromDay(date, block.id);
+      markEdited();
+    }
   });
   $('template-form').addEventListener('submit', applyTemplateEditor);
   $('template-form').addEventListener('change', updateTemplateFields);
