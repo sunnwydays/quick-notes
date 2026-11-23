@@ -1895,7 +1895,9 @@ function movePreview(target) {
   const live = target?.at != null && target.indicator.matches('.timeline') && tile.classList.contains('timed');
   preview.classList.toggle('drag-preview', !live);
   preview.classList.toggle('drag-live', live);
-  tile.classList.toggle('drag-hidden', live);
+  const copying = Boolean(activeDrag.copying) && !activeDrag.source.copy;
+  tile.classList.toggle('drag-hidden', live && !copying);
+  tile.classList.toggle('dragging', !copying);
   if (live) {
     const start = planMinutes(target.at);
     if (preview.parentElement !== target.indicator) target.indicator.append(preview);
@@ -2076,9 +2078,21 @@ function moveDrag(event) {
     requestAnimationFrame(scrollDuringDrag);
   }
   event.preventDefault();
+  activeDrag.copying = event.shiftKey || event.ctrlKey;
   activeDrag.position = { clientX: event.clientX, clientY: event.clientY };
   showDropTarget(plannerDropTarget(event, activeDrag.source));
 }
+
+// Holding or releasing Shift/Ctrl mid-drag switches between moving and copying live.
+function dragModifierChanged(event) {
+  if (!activeDrag?.moved || activeDrag.resize || activeDrag.draft || !activeDrag.position) return;
+  const copying = event.shiftKey || event.ctrlKey;
+  if (copying === activeDrag.copying) return;
+  activeDrag.copying = copying;
+  showDropTarget(plannerDropTarget(activeDrag.position, activeDrag.source));
+}
+document.addEventListener('keydown', dragModifierChanged);
+document.addEventListener('keyup', dragModifierChanged);
 
 function scrollDuringDrag() {
   if (!activeDrag?.moved) return;
