@@ -1395,6 +1395,14 @@ function registerPlannerWorker() {
 function startPlanner() {
   registerPlannerWorker();
   monday = homeMonday();
+  $('hard-refresh').addEventListener('click', async () => {
+    try {
+      const regs = (await navigator.serviceWorker?.getRegistrations()) || [];
+      await Promise.all(regs.map((r) => r.unregister()));
+      await Promise.all((await caches.keys()).map((k) => caches.delete(k)));
+    } catch {}
+    location.reload();
+  });
   $('login-back').addEventListener('click', () => history.back());
   $('week-prev').addEventListener('click', () => changePlannerWeek(addDays(monday, -7)));
   $('week-next').addEventListener('click', () => changePlannerWeek(addDays(monday, 7)));
