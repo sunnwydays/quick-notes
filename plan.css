@@ -71,10 +71,11 @@ button:disabled { opacity: .55; cursor: default; }
 .board-scroll { overflow: auto; padding: 2px 2px .75rem; }
 #week {
   display: grid;
-  grid-template-columns: minmax(150px, 1.13fr) repeat(7, minmax(125px, 1fr));
+  grid-template-columns: minmax(150px, 1.13fr) 2.6rem repeat(7, minmax(125px, 1fr));
   grid-template-rows: auto auto auto auto;
   gap: .45rem;
   --minute-height: 1.45px;
+  --now: #6a4fd8;
 }
 .tray {
   grid-row: span 4; min-width: 0; padding: .75rem;
@@ -106,9 +107,31 @@ button:disabled { opacity: .55; cursor: default; }
 .timeline { position: relative; height: calc(var(--minutes) * var(--minute-height) + .5rem); }
 .hour, .timed { position: absolute; top: calc(var(--minute) * var(--minute-height)); }
 .hour {
-  inset-inline: 0; border-top: 1px solid #ecf2f5; color: var(--muted);
+  /* Reach across the column gaps so each hour reads as one line through the week. */
+  inset-inline: calc(-.225rem - 1px); border-top: 1px solid #dfe8ee; color: var(--muted);
   font-size: .65rem; padding: 0 .28rem; pointer-events: none;
 }
+.hour-label { display: none; }
+.time-gutter {
+  grid-column: 2; grid-row: 3; position: relative;
+  height: calc(var(--minutes) * var(--minute-height) + .5rem);
+}
+.gutter-label {
+  position: absolute; right: .3rem; top: calc(var(--minute) * var(--minute-height));
+  transform: translateY(-50%); font-size: .68rem; color: var(--muted); white-space: nowrap;
+}
+.now-line {
+  position: absolute; inset-inline: 0; z-index: 1; pointer-events: none;
+  top: calc(var(--minute) * var(--minute-height) - 1px); border-top: 2px solid var(--now);
+}
+.now-line::before {
+  content: ''; position: absolute; left: -5px; top: -6px;
+  width: 10px; height: 10px; border-radius: 50%; background: var(--now);
+}
+.now-line[hidden] { display: none; }
+.day.today .day-date { background: var(--now); color: #fff; border-radius: 999px; padding: 0 .4rem; }
+.tile.timed.current { filter: saturate(2.4); box-shadow: 0 0 0 2px var(--now); }
+.tile.timed.past { opacity: .6; }
 .tile {
   position: relative; background: var(--tile-colour, #edf4fa); color: var(--ink);
   border: 1px solid #172e431c; border-bottom-width: 3px; border-radius: 9px;
@@ -267,6 +290,11 @@ dialog input:not([type="checkbox"]), dialog select, #login input {
   .tray-hint { display: none; }
   .tray-tile { font-size: .85rem; }
   .day { display: none; }
+  .time-gutter { display: none; }
+  .hour { inset-inline: 0; }
+  .hour-label { display: inline; }
+  .tile.timed { inset-inline-start: 2.6rem; }
+  .gap, .now-line { inset-inline-start: 2.6rem; }
   .day.selected { display: block; grid-row: 1; overflow-y: auto; overscroll-behavior: contain; }
   .day-head h3 { font-size: 1.05rem; }
 }

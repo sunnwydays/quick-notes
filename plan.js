@@ -1044,13 +1044,19 @@ function renderDay(key, { blocks, bumped }, load, from, until, ghosts, drift) {
   });
   timeline.style.setProperty('--minutes', until - from);
   for (let hour = from; hour < until; hour += 60) {
-    const line = element('span', 'hour', blockKey(hour));
+    const line = element('span', 'hour');
+    line.append(element('span', 'hour-label', blockKey(hour)));
     line.style.setProperty('--minute', hour - from);
     timeline.append(line);
+  }
+  if (key === dayKey(new Date())) {
+    column.classList.add('today');
+    timeline.append(element('span', 'now-line'));
   }
   for (const [i, block] of blocks.entries()) {
     const tile = renderTile(block, key);
     tile.classList.add('timed');
+    Object.assign(tile.dataset, { start: block.start, until: block.until });
     tile.classList.toggle('late', afterDeadline(key, block));
     tile.style.setProperty('--minute', block.start - from);
     tile.style.setProperty('--duration', block.until - block.start);
@@ -1141,7 +1147,15 @@ function renderPlanner() {
   }));
   const scroll = $('week').querySelector('.day.selected')?.scrollTop ?? 0;
   const trayScroll = $('week').querySelector('.tray')?.scrollTop ?? 0;
-  $('week').replaceChildren(renderTray(), ...plan.keys.map((key, i) => {
+  const gutter = element('div', 'time-gutter');
+  gutter.setAttribute('aria-hidden', 'true');
+  gutter.style.setProperty('--minutes', until - from);
+  for (let hour = from; hour < until; hour += 60) {
+    const label = element('span', 'gutter-label', blockKey(hour));
+    label.style.setProperty('--minute', hour - from);
+    gutter.append(label);
+  }
+  $('week').replaceChildren(renderTray(), gutter, ...plan.keys.map((key, i) => {
     const column = renderDay(key, layouts[i], loads[i], from, until, ghosts.filter((ghost) => ghost.key === key), drift.get(key));
     column.classList.toggle('selected', key === selectedDay);
     return column;
@@ -1149,6 +1163,26 @@ function renderPlanner() {
   $('week').querySelector('.day.selected').scrollTop = scroll;
   $('week').querySelector('.tray').scrollTop = trayScroll;
   planSnap = snapshotPlan();
+  showNow();
+}
+
+// Google Calendar style: a line at the current time, the running block brighter and finished ones faded.
+function showNow() {
+  const now = new Date();
+  const today = dayKey(now);
+  const minute = now.getHours() * 60 + now.getMinutes();
+  for (const tile of $('week').querySelectorAll('.tile.timed[data-date]')) {
+    const { date, start, until } = tile.dataset;
+    const isToday = date === today;
+    tile.classList.toggle('current', isToday && Number(start) <= minute && minute < Number(until));
+    tile.classList.toggle('past', date < today || (isToday && Number(until) <= minute));
+  }
+  const line = $('week').querySelector('.day.today .now-line');
+  if (!line) return;
+  const timeline = line.parentElement;
+  const at = minute - Number(timeline.dataset.from);
+  line.hidden = at < 0 || minute > Number(timeline.dataset.until);
+  line.style.setProperty('--minute', at);
 }
 
 function selectDay(key) {
@@ -1490,7 +1524,10 @@ function startPlanner() {
     history.replaceState(history.state, '', url);
     openDayReview();
   }
-  setInterval(refreshReviewStatus, 30000);
+  setInterval(() => {
+    refreshReviewStatus();
+    showNow();
+  }, 30000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshReviewStatus(); });
   showStatus();
   sync();
