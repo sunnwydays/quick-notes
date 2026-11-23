@@ -503,7 +503,8 @@ function initScrub(input) {
     button.setAttribute('aria-label', `${Math.abs(step)} minutes ${step > 0 ? 'more' : 'less'}`);
     return button;
   };
-  scrub.append(arrow(-5), input, element('span', 'scrub-unit', 'min'), arrow(5));
+  // Input first: a wrapping label hovers/focuses its first labelable child, which must not be an arrow.
+  scrub.append(input, element('span', 'scrub-unit', 'min'), arrow(-5), arrow(5));
   input.inputMode = 'numeric';
   const shift = () => scrub.style.setProperty('--shift', `${-(Number(nativeValue.get.call(input)) || 0) * SCRUB_PX}px`);
   Object.defineProperty(input, 'value', {

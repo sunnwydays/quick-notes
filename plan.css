@@ -311,7 +311,7 @@ dialog .scrub input {
   position: absolute; z-index: 1; top: 0; bottom: 0; width: 1.5rem; padding: 0; border: 0;
   background: white; color: #5a7c90; cursor: pointer; display: grid; place-items: center;
 }
-.scrub-step:first-child { left: 0; }
+.scrub-step[data-step^="-"] { left: 0; }
 .scrub-step:last-child { right: 0; }
 .scrub-step:hover { color: #2c7fb8; }
 .scrub-step::before {
