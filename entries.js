@@ -28,7 +28,8 @@ const REPLACE_ICON =
   '<path d="M4 8h15M15 4l4 4-4 4M20 16H5M9 12l-4 4 4 4"/></svg>';
 
 // Notes here aren't tasks to swap for the next one, so they get no Replace button.
-const NO_REPLACE = ['Journal', 'Thought', 'Bring'];
+// Todo has the Back burner arrow instead, to keep its notes uncluttered.
+const NO_REPLACE = ['Todo', 'Journal', 'Thought', 'Bring'];
 const replaces = (cat) => !NO_REPLACE.includes(cat);
 
 // One tap moves a note between Working on and Back burner, or from Todo to Back burner.

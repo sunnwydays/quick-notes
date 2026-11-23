@@ -103,6 +103,7 @@ body.still-held * { user-select: none !important; -webkit-user-select: none !imp
 #editor-recent .entry::after { content: ''; flex: none; width: 100px; height: 44px; }
 #editor-recent.no-replace .entry::after { width: 44px; }
 #editor-recent.moves .entry::after { width: 156px; }
+#editor-recent.moves.no-replace .entry::after { width: 100px; }
 #editor textarea, #pad {
   flex: 1 1 0;
   min-height: 120px;
