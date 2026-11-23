@@ -1,0 +1,55 @@
+@font-face {
+  font-family: Atkinson;
+  src: url('fonts/atkinson-400.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: Atkinson;
+  src: url('fonts/atkinson-700.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
+
+:root {
+  color: #222;
+  background: #eaf6ff;
+  font-family: Atkinson, sans-serif;
+  --ink: #222;
+  --muted: #485c68;
+  --line: #cadfe9;
+  --radius: 16px;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; }
+h1, h2, h3, p { margin: 0; }
+h1 { font-size: clamp(2rem, 4vw, 3rem); line-height: 1; }
+h2 { font-size: 1.2rem; }
+h3 { font-size: 1rem; }
+a { color: #245776; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button {
+  border: 1px solid #a8c6d5;
+  border-bottom-width: 3px;
+  border-radius: 10px;
+  background: #fff;
+  padding: .45rem .65rem;
+  cursor: pointer;
+}
+button:hover { background: #f4faff; }
+button:disabled { opacity: .55; cursor: default; }
+:focus-visible { outline: 3px solid #206599; outline-offset: 2px; }
+.primary { background: #bcf1d5; border-color: #81bd9f; font-weight: bold; }
+.primary:hover { background: #a6e8c5; }
+#planner { padding: clamp(.75rem, 2vw, 1.8rem); }
+.masthead, .actions { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+.masthead { justify-content: space-between; margin-bottom: 1.1rem; gap: 1rem; }
+.dash-link { display: inline-block; margin-bottom: .4rem; font-weight: bold; }
+#sync-status { display: inline-flex; align-items: center; gap: .3rem; }
+#sync-status svg { width: 24px; height: 24px; }
+.panel { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); }
+#login { max-width: 30rem; margin: 2rem auto; padding: 1.25rem; }
+#login > *, #login form > * { margin-bottom: .75rem; }

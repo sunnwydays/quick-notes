@@ -315,7 +315,7 @@ function showStatus() {
     (auth ? '' : '<span class="sync-login">Log in</span>');
   el.setAttribute('aria-label', statusText);
   el.title = statusText;
-  showPadStatus();
+  if (typeof showPadStatus === 'function') showPadStatus();
 }
 
 // Logged out, tapping the cloud opens the login screen; otherwise it explains the icon.

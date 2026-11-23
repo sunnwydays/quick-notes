@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#eaf6ff">
+  <title>Week planner · Dash</title>
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="plan.css">
+</head>
+<body>
+  <main id="planner">
+    <header class="masthead">
+      <div>
+        <a class="dash-link" href="./">← Dash</a>
+        <h1>Week planner</h1>
+      </div>
+      <div class="actions">
+        <button id="sync-status" type="button"></button>
+        <button id="login-btn" type="button" hidden>Log in</button>
+      </div>
+    </header>
+    <section id="week" aria-label="Week"></section>
+  </main>
+  <section id="login" class="panel" aria-labelledby="login-title" hidden>
+    <button id="login-back" type="button">← Planner</button>
+    <h1 id="login-title">Log in</h1>
+    <p>Use the same email as Dash to sync your notes.</p>
+    <form id="email-form">
+      <label>Email <input id="email" type="email" autocomplete="email" required></label>
+      <button class="primary">Send code</button>
+    </form>
+    <form id="code-form" hidden>
+      <p id="code-sent"></p>
+      <label>Code <input id="code" inputmode="numeric" autocomplete="one-time-code" required></label>
+      <button class="primary">Log in</button>
+    </form>
+    <p id="login-msg" role="status"></p>
+  </section>
+  <script src="data.js"></script>
+  <script src="sync.js"></script>
+  <script src="login.js"></script>
+  <script src="schedule.js"></script>
+  <script src="plan.js"></script>
+</body>
+</html>

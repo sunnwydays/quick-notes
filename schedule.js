@@ -463,7 +463,7 @@ function renderSchedule(state, fresh = false) {
 
 // Timers stall while the app is in the background, so catch up on return.
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) return;
+  if (document.hidden || !$('home-schedule')) return;
   if (!current) renderHomeSchedule();
   else if (current.view === 'schedule') renderSchedule(current);
 });
@@ -527,14 +527,14 @@ function renderHomeSchedule() {
   }, ms);
 }
 
-$('home-schedule').addEventListener('click', (e) => {
+$('home-schedule')?.addEventListener('click', (e) => {
   const held = e.target.closest('.glance-block');
   if (held && held.held) return; // the click that ends a hold
   go({ view: 'schedule', date: null });
 });
 
 for (const id of ['day-prev', 'day-next']) {
-  $(id).addEventListener('click', () => {
+  $(id)?.addEventListener('click', () => {
     const day = $(id).dataset.day;
     const state = { view: 'schedule', date: day === dayKey(new Date()) ? null : day };
     history.replaceState(state, '');
@@ -544,7 +544,7 @@ for (const id of ['day-prev', 'day-next']) {
 
 // Both are called straight from the tap, so the keyboard comes up. Edit adds a
 // blank line at the end, ready for another block.
-$('schedule-edit-btn').addEventListener('click', () => {
+$('schedule-edit-btn')?.addEventListener('click', () => {
   const key = current.date || dayKey(new Date());
   openEditor(SCHEDULE, `${editText(scheduleOn(key), key)}\n`);
 });
@@ -561,11 +561,11 @@ function freeDay(key) {
 
 // A blank schedule for the first unplanned day from the one on screen: today's
 // has no heading, and a later day's starts with its weekday so it's saved for that day.
-$('schedule-new-btn').addEventListener('click', () => {
+$('schedule-new-btn')?.addEventListener('click', () => {
   const today = dayKey(new Date());
   const key = freeDay(current.date || today);
   const head = key !== today ? `${keyDate(key).toLocaleDateString('en-US', { weekday: 'short' })}\n` : '';
   openEditor(SCHEDULE, head);
 });
 
-$('schedule-past-btn').addEventListener('click', () => go({ view: 'entries', cat: SCHEDULE }));
+$('schedule-past-btn')?.addEventListener('click', () => go({ view: 'entries', cat: SCHEDULE }));
