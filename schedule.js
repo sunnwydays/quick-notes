@@ -18,6 +18,7 @@ const TO_TIME = new RegExp(String.raw`^\s*(?:-|–|—|to)\s*` + TIME, 'i');
 // "17:00 dinner, 17:45 chess" is two blocks: a comma or semicolon followed by a time starts a new one.
 const NEXT_BLOCK = /[,;]\s+(?=\d{1,2}(?::[0-5]\d|\s*[ap]\.?\s?m\b|[ap]\b))/i;
 const DAY_END = 24 * 60;
+const REVIEW_START = 21 * 60 + 30;
 const DONE_PAGE = 3; // finished blocks shown per tap of "See more"
 
 let doneShown = 0; // finished blocks unfolded on today's schedule
@@ -441,6 +442,7 @@ function renderSchedule(state, fresh = false) {
   box.replaceChildren();
   const plan = entry ? parseSchedule(entry.text) : { head: null, intro: [], blocks: [] };
   const nowMin = now.getHours() * 60 + now.getMinutes();
+  $('schedule-review').hidden = !isToday || nowMin < REVIEW_START;
 
   if (!entry) {
     const how = ' Tap New, then paste one or type a line per block, like "9:00-11:30 Foosball".';
@@ -477,7 +479,7 @@ function renderSchedule(state, fresh = false) {
   // minute: each redraw flashes an e-ink screen.
   if (isToday) {
     const marks = plan.blocks.flatMap((b) => [b.start, b.until]).filter((m) => m > nowMin);
-    const next = Math.min(DAY_END, ...marks);
+    const next = Math.min(DAY_END, ...marks, nowMin < REVIEW_START ? REVIEW_START : DAY_END);
     const ms = (next - nowMin) * 60000 - now.getSeconds() * 1000 - now.getMilliseconds() + 1000;
     scheduleTimer = setTimeout(() => {
       if (current && current.view === 'schedule') renderSchedule(current);

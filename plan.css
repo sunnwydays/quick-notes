@@ -138,6 +138,13 @@ button:disabled { opacity: .55; cursor: default; }
   justify-content: center;
 }
 .split-prompt { display: block; margin-top: .25rem; font-size: .78rem; color: #70410f; }
+.review-row { padding: .65rem 0; border-bottom: 1px solid var(--line); }
+.review-row .block { display: flex; justify-content: space-between; align-items: center; gap: .75rem; }
+.review-row :is(time, .block-mark) { font-size: .82rem; color: var(--muted); }
+.review-row .block-mark { margin-inline-start: .5rem; }
+.review-row label { margin-top: .45rem; }
+.review-row .mark-btn { display: grid; place-items: center; }
+.review-row .mark-btn.primary { background: #222; color: #fff; }
 .timed-label { flex: 1; min-height: min(100%, 1.06rem); container-type: size; }
 .timed-label .tile-time { margin-top: .2rem; }
 .timed-label .tile-title {

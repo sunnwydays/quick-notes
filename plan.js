@@ -176,17 +176,24 @@ function weekKey(start) {
   return `${year}-W${String(number).padStart(2, '0')}`;
 }
 
-function plannerNote(category, key) {
+function plannerNotes(category) {
+  const notes = new Map();
   const versions = entriesFor(category).sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id));
   for (const entry of versions) {
     try {
       const note = JSON.parse(entry.text);
-      if (note?.key === key && note.value && typeof note.value === 'object') return { entry, value: note.value };
+      if (typeof note?.key === 'string' && !notes.has(note.key) && note.value && typeof note.value === 'object') {
+        notes.set(note.key, { entry, value: note.value });
+      }
     } catch {
       // Ignore a malformed version and look for the previous saved note.
     }
   }
-  return null;
+  return notes;
+}
+
+function plannerNote(category, key) {
+  return plannerNotes(category).get(key) ?? null;
 }
 
 function emptyDay() {
@@ -312,13 +319,21 @@ function saveWeek() {
   const days = { ...plan.days };
   const sources = { ...plan.sources };
   const dashDays = new Set();
+  const syncDays = new Set(plan.scheduleDirty);
   for (const key of plan.keys) {
     const entry = schedules.get(key);
     const changed = changedInDash(key, schedules) && (plan.dirtyDays.has(key) || plan.savedDates.has(key));
     if (changed && !confirm(`${dayLabel(key)} changed in Dash. OK keeps the planner version. Cancel uses Dash.`)) {
       days[key] = { ...dayFromSchedule(entry), phoneOff: days[key].phoneOff };
       dashDays.add(key);
-    } else if (plan.scheduleDirty.has(key) || changed) {
+      syncDays.delete(key);
+    } else if (changed) syncDays.add(key);
+    else if (changedInDash(key, schedules) && !syncDays.has(key)) days[key] = dayFromSchedule(entry);
+  }
+  const nextWeeks = carryNextAcrossWeeks(days, notes);
+  for (const key of plan.keys) {
+    const entry = schedules.get(key);
+    if (syncDays.has(key) || nextWeeks.has(key)) {
       if (layoutDay(days[key]).blocks.some((block) => block.start < 0 || block.until > DAY_END)) {
         $('plan-status').textContent = `${dayLabel(key)} has a block outside the day. Adjust its time before saving.`;
         return;
@@ -330,8 +345,6 @@ function saveWeek() {
         sources[key] = note.id;
         continue;
       }
-    } else if (changedInDash(key, schedules)) {
-      days[key] = dayFromSchedule(entry);
     }
     sources[key] = entry?.id ?? null;
   }
@@ -882,6 +895,160 @@ function keepDayTimes(day, blocks, timed, bumped = []) {
     pinLayout: { blocks: timed.map(({ id, start, until }) => ({ id, start, until })), bumped: bumped.map(({ id }) => id) } };
 }
 
+function carryProjectNext(days) {
+  const updates = {};
+  const nextByGoal = new Map();
+  const update = (key, id, changes) => {
+    const day = updates[key] ?? days[key];
+    updates[key] = { ...day, blocks: day.blocks.map((block) => block.id === id ? { ...block, ...changes } : block) };
+  };
+  for (const key of Object.keys(days).sort().reverse()) {
+    for (const block of layoutDay(days[key]).blocks.slice().reverse()) {
+      if (!block.goal) continue;
+      const target = nextByGoal.get(block.goal);
+      const next = block.next?.trim();
+      if (target && blockKind(block) === 'project' && next && block.nextApplied !== next) {
+        update(target.key, target.id, { text: next, kind: target.kind });
+        update(key, block.id, { nextApplied: next });
+      }
+      nextByGoal.set(block.goal, { key, id: block.id, kind: blockKind(block) || undefined });
+    }
+  }
+  return updates;
+}
+
+function carryNextAcrossWeeks(days, notes) {
+  const weeks = plannerNotes(PLAN_WEEK);
+  weeks.delete(plan.key);
+  const allDays = { ...days };
+  const external = new Map();
+  for (const [key, saved] of weeks) {
+    const ownDays = {};
+    for (const [date, day] of Object.entries(saved.value.days ?? {})) {
+      const schedule = scheduleOn(date);
+      if (Array.isArray(day?.blocks) && (schedule?.id ?? null) === (saved.value.sources?.[date] ?? null)) {
+        ownDays[date] = day;
+      }
+    }
+    if (!Object.keys(ownDays).length) continue;
+    Object.assign(allDays, ownDays);
+    external.set(key, saved);
+  }
+  const updates = carryProjectNext(allDays);
+  const changed = new Set();
+  for (const key of Object.keys(days)) {
+    if (!updates[key]) continue;
+    days[key] = updates[key];
+    changed.add(key);
+    delete updates[key];
+  }
+  for (const [key, { entry, value }] of external) {
+    const revised = { ...value, days: { ...value.days }, sources: { ...value.sources } };
+    let dirty = false;
+    for (const date of Object.keys(value.days)) {
+      if (!updates[date]) continue;
+      const day = revised.days[date] = updates[date];
+      const text = scheduleText(date, day);
+      if (changesSchedule(text)) {
+        const note = plannerEntry(SCHEDULE, text, scheduleOn(date));
+        notes.push(note);
+        revised.sources[date] = note.id;
+      }
+      dirty = true;
+    }
+    if (dirty) notes.push(plannerEntry(PLAN_WEEK, JSON.stringify({ key, value: revised }), entry));
+  }
+  return changed;
+}
+
+function reviewMarks(key) {
+  const marks = marksOn(key);
+  for (const mark of plan.pendingMarks) {
+    if (mark.day !== key) continue;
+    if (!marks.has(mark.blockStart) || marks.get(mark.blockStart).markedAt <= mark.markedAt) marks.set(mark.blockStart, mark);
+  }
+  return marks;
+}
+
+function refreshReviewStatus(layouts) {
+  const now = new Date();
+  const today = dayKey(now);
+  const minute = now.getHours() * 60 + now.getMinutes();
+  $('day-review').hidden = !plan.days[today] || minute < REVIEW_START;
+  let unmarked = 0;
+  for (const [i, key] of plan.keys.entries()) {
+    if (key > today) continue;
+    const marks = reviewMarks(key);
+    const blocks = layouts?.[i].blocks ?? layoutDay(plan.days[key]).blocks;
+    unmarked += blocks.filter((block) => (key < today || block.until <= minute) && !marks.has(blockKey(block.start))).length;
+  }
+  $('week-unmarked').textContent = `${unmarked} ${unmarked === 1 ? 'block' : 'blocks'} unmarked`;
+}
+
+function refreshReviewRows() {
+  if (!$('review-editor').open) return;
+  const key = $('review-form').dataset.day;
+  const blocks = new Map(layoutDay(plan.days[key]).blocks.map((block) => [block.id, block]));
+  const marks = reviewMarks(key);
+  const schedule = plan.schedules.get(key);
+  const saved = new Map((schedule ? parseSchedule(schedule.text).blocks : []).map((block) => [block.start, block]));
+  for (const row of $('review-list').children) {
+    const block = blocks.get(row.dataset.id);
+    if (!block) continue;
+    const lines = [block.done ? `${block.text} (done = ${block.done})` : block.text];
+    const scheduled = saved.get(block.start);
+    const matching = scheduled?.lines[0] === scheduleProse(lines[0]);
+    const view = { ...block, end: block.until, lines };
+    row.firstElementChild.replaceWith(blockRow(view, '', marks.get(blockKey(block.start)), matching ? key : null));
+  }
+}
+
+function openDayReview() {
+  const key = dayKey(new Date());
+  if (!plan.days[key]) changePlannerWeek(weekMonday(keyDate(key)));
+  if (!plan.days[key]) return;
+  $('review-form').dataset.day = key;
+  $('review-title').textContent = `Review · ${dayLabel(key)}`;
+  const blocks = layoutDay(plan.days[key]).blocks;
+  const rows = blocks.map((block) => {
+    const row = element('div', 'review-row');
+    row.dataset.id = block.id;
+    row.append(element('div'));
+    if (blockKind(block) === 'project' && block.goal) {
+      const label = element('label', '', 'NEXT');
+      const input = element('input');
+      input.value = block.next ?? '';
+      input.placeholder = 'First step for the next block';
+      label.append(input);
+      row.append(label);
+    }
+    return row;
+  });
+  $('review-list').replaceChildren(...rows);
+  $('review-empty').hidden = Boolean(rows.length);
+  $('review-editor').showModal();
+  refreshReviewRows();
+}
+
+function applyDayReview(event) {
+  event.preventDefault();
+  const key = event.target.dataset.day;
+  const fields = new Map([...$('review-list').children].flatMap((row) => {
+    const input = row.querySelector('input');
+    return input ? [[row.dataset.id, input.value.trim()]] : [];
+  }));
+  const day = plan.days[key];
+  if (day.blocks.some((block) => fields.has(block.id) && fields.get(block.id) !== (block.next ?? ''))) {
+    plan.days[key] = { ...day, blocks: day.blocks.map((block) => fields.has(block.id)
+      ? { ...block, next: fields.get(block.id),
+        nextApplied: fields.get(block.id) === block.next ? block.nextApplied : undefined } : block) };
+    plan.dirtyDays.add(key);
+    plan.scheduleDirty.add(key);
+    markEdited();
+  }
+  $('review-editor').close();
+}
+
 function lockRestackTimes(blocks, timed) {
   const times = new Map(timed.map((block) => [block.id, block]));
   return blocks.map((block) => {
@@ -1321,6 +1488,8 @@ function renderPlanner() {
   const layouts = plan.keys.map((key) => layoutDay(plan.days[key]));
   const loads = layouts.map((layout, i) => dayLoad(plan.days[plan.keys[i]], layout.blocks));
   renderGoals(layouts, loads);
+  refreshReviewStatus(layouts);
+  refreshReviewRows();
   const all = layouts.flatMap((layout) => layout.blocks);
   const from = Math.floor(Math.min(PLAN_START, ...all.map((b) => b.start)) / 60) * 60;
   const until = Math.ceil(Math.max(DEFAULT_TIMELINE_END, ...all.map((b) => b.until)) / 60) * 60;
@@ -1521,6 +1690,9 @@ function startPlanner() {
   $('now-form').addEventListener('submit', applyPopup);
   $('now-form').elements.todo.addEventListener('change', fillPopupFields);
   $('now-cancel').addEventListener('click', () => $('now-editor').close());
+  $('day-review').addEventListener('click', openDayReview);
+  $('review-form').addEventListener('submit', applyDayReview);
+  $('review-cancel').addEventListener('click', () => $('review-editor').close());
   $('block-form').addEventListener('submit', applyBlockEditor);
   $('block-form').addEventListener('change', updateEditorFields);
   $('block-cancel').addEventListener('click', () => $('block-editor').close());
@@ -1564,6 +1736,14 @@ function startPlanner() {
   window.addEventListener('popstate', (event) => showPlannerScreen(event.state));
   showPlannerScreen(history.state);
   refreshView();
+  const url = new URL(location.href);
+  if (url.searchParams.get('review') === '1') {
+    url.searchParams.delete('review');
+    history.replaceState(history.state, '', url);
+    openDayReview();
+  }
+  setInterval(refreshReviewStatus, 30000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshReviewStatus(); });
   showStatus();
   sync();
   navigator.storage?.persist?.();

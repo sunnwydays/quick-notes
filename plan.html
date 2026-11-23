@@ -20,6 +20,7 @@
         <button id="week-today" type="button">This week</button>
         <button id="week-next" type="button" aria-label="Next week">›</button>
         <button id="plan-now" type="button">Now…</button>
+        <button id="day-review" type="button" hidden>Review today</button>
         <button class="primary" id="save-week" type="button">Save to Dash</button>
         <button id="sync-status" type="button"></button>
         <button id="login-btn" type="button" hidden>Log in</button>
@@ -27,6 +28,7 @@
     </header>
     <div class="week-overview">
       <h2 id="week-range"></h2>
+      <p class="muted" id="week-unmarked"></p>
       <p class="muted" id="plan-status" role="status"></p>
       <section id="goals" aria-label="Working on"></section>
     </div>
@@ -146,7 +148,19 @@
       </div>
     </form>
   </dialog>
+  <dialog id="review-editor" aria-labelledby="review-title">
+    <form id="review-form">
+      <h2 id="review-title"></h2>
+      <p id="review-empty" class="muted" hidden>No timed blocks today.</p>
+      <div id="review-list"></div>
+      <div class="actions">
+        <button class="primary">Apply NEXT</button>
+        <button id="review-cancel" type="button">Close</button>
+      </div>
+    </form>
+  </dialog>
   <script src="data.js"></script>
+  <script src="gestures.js"></script>
   <script src="sync.js"></script>
   <script src="login.js"></script>
   <script src="schedule.js"></script>

@@ -90,7 +90,7 @@ function onHoldRelease(btn, action, ms = HOLD_TO_WRITE_MS) {
 
 // The notes and schedule screens, where these back gestures work.
 function onListScreen() {
-  return Boolean(current) && (current.view === 'entries' || current.view === 'schedule');
+  return typeof current !== 'undefined' && Boolean(current) && (current.view === 'entries' || current.view === 'schedule');
 }
 
 // Double-tapping anywhere on the notes screen goes back, except on a button,
