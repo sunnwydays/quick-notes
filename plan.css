@@ -253,6 +253,8 @@ button:disabled { opacity: .55; cursor: default; }
   box-shadow: 0 5px 14px #24485a44; transform: rotate(-2deg) scale(1.04);
   transition: none; overflow: hidden;
 }
+.tile.drag-live { z-index: 10; pointer-events: none; box-shadow: 0 5px 14px #24485a44; transition: none; }
+.tile.drag-hidden { visibility: hidden; }
 .tray.drop-target, .tray-box.drop-target, .shelf.drop-target { outline: 2px dashed #387fa6; outline-offset: -3px; }
 .tile.drop-target { border-top: 3px dashed #387fa6; }
 .tile.drop-after { border-top: 1px solid #172e431c; border-bottom: 3px dashed #387fa6; }
@@ -314,11 +316,12 @@ dialog .scrub input {
 .field-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .45rem; }
 .pin-fields { display: flex; gap: .45rem; align-items: end; }
 .pin-fields > label { flex: 1; min-width: 0; }
-.pin-toggle { display: inline-flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; padding: 0; box-sizing: border-box; cursor: pointer; border-radius: .4rem; }
+/* Same box as the Done and Delete buttons beside it. */
+.pin-toggle { display: inline-flex; align-items: center; justify-content: center; border: 1px solid transparent; border-bottom-width: 3px; border-radius: 10px; cursor: pointer; }
+.pin-toggle:hover { background: #d8ebf5; }
 .pin-toggle[hidden] { display: none; }
 .pin-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
-.pin-toggle span { filter: grayscale(1); opacity: .45; }
-.pin-toggle:has(input:checked) { background: #d8ebf5; }
+.pin-toggle span { display: grid; place-items: center; width: 22px; height: 22px; font-size: 1.1rem; line-height: 1; filter: grayscale(1); opacity: .45; }
 .pin-toggle:has(input:checked) span { filter: none; opacity: 1; }
 .pin-toggle:has(input:focus-visible) { outline: 2px solid currentColor; }
 #block-where { margin: -.25rem 0 0; }
