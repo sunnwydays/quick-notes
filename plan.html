@@ -118,8 +118,19 @@
         <label>Wake <input name="wake" type="time" required></label>
         <label class="check"><input name="event" type="checkbox"> Asks for an event</label>
       </div>
-      <div id="template-anchors" class="anchor-rows"></div>
-      <button id="template-add-anchor" type="button">Add event</button>
+      <p class="muted">Click or drag on the day to add a block. Drag a block to move it; tap it to edit.</p>
+      <div class="panel template-day-scroll">
+        <div id="template-day" class="timeline"></div>
+      </div>
+      <div id="template-block" class="template-block" hidden>
+        <label>Title <input data-f="text" maxlength="80" placeholder="e.g. Gym"></label>
+        <div class="template-block-row">
+          <label>Starts <input data-f="time" type="time"></label>
+          <label>Minutes <input data-f="mins" type="number" min="5" max="960" step="5"></label>
+          <label>Kind <select data-f="kind"></select></label>
+        </div>
+        <button id="template-block-delete" type="button">Remove block</button>
+      </div>
       <p id="template-def-error" class="warning" role="alert" hidden></p>
       <div class="actions">
         <button type="submit" class="primary">Save template</button>

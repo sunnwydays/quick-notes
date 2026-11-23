@@ -577,28 +577,149 @@ function renderTemplateChoices(selected) {
 
 const ANCHOR_KINDS = ['routine', 'meal', 'exercise', 'free', 'buffer', 'event'];
 let editingTemplate = null;
+// The template being edited, laid out like a day: { id, start, duration, text, kind, tail }.
+let tplBlocks = [];
+let tplSelected = null;
+let tplDrag = null;
+let tplPointer = '';
+let tplSkipClick = false;
 
-function anchorRow([pinned = '', duration = 30, text = '', kind = 'routine', tail = 0] = []) {
-  const row = element('div', 'anchor-row');
-  row.dataset.tail = tail;
-  const field = (tag, name, label, props) => {
-    const el = Object.assign(document.createElement(tag), props);
-    el.dataset.f = name;
-    el.setAttribute('aria-label', label);
-    return el;
-  };
-  const kinds = ANCHOR_KINDS.includes(kind) ? ANCHOR_KINDS : [...ANCHOR_KINDS, kind];
-  const select = field('select', 'kind', 'Kind', {});
-  fillOptions(select, kinds.map((name) => [name, name]), kind);
-  row.append(
-    field('input', 'time', 'Time', { type: 'time', value: pinned, required: true }),
-    field('input', 'mins', 'Minutes', { type: 'number', min: 5, max: 960, step: 5, value: duration, required: true }),
-    field('input', 'text', 'Title', { type: 'text', value: text, placeholder: 'Title', required: true, maxLength: 80 }),
-    select,
-    plannerButton('×', () => row.remove()),
-  );
-  row.lastChild.setAttribute('aria-label', 'Remove event');
-  return row;
+function templateField(name) {
+  return $('template-block').querySelector(`[data-f="${name}"]`);
+}
+
+function templateRange() {
+  const wake = planMinutes($('template-def-form').elements.wake.value) ?? PLAN_START;
+  return [Math.floor(Math.min(wake, PLAN_START, ...tplBlocks.map((block) => block.start)) / 60) * 60, DAY_END];
+}
+
+function renderTemplateDay() {
+  const timeline = $('template-day');
+  const [from, until] = templateRange();
+  timeline.dataset.from = from;
+  timeline.dataset.until = until;
+  timeline.style.setProperty('--minutes', until - from);
+  const parts = [];
+  for (let hour = from; hour < until; hour += 60) {
+    const line = element('span', 'hour');
+    line.append(element('span', 'hour-label', blockKey(hour)));
+    line.style.setProperty('--minute', hour - from);
+    parts.push(line);
+  }
+  for (const block of tplBlocks) {
+    const tile = renderTile(planBlock(block.id, block.text || 'Untitled', { kind: block.kind, tier: 'fixed' }));
+    timeTile(tile, block.start, block.start + block.duration, from);
+    tile.classList.toggle('selected', block.id === tplSelected);
+    parts.push(tile);
+  }
+  if (tplDrag?.preview) parts.push(tplDrag.preview);
+  timeline.replaceChildren(...parts);
+}
+
+function showTemplateBlock() {
+  const block = tplBlocks.find((item) => item.id === tplSelected);
+  $('template-block').hidden = !block;
+  if (!block) return;
+  templateField('text').value = block.text;
+  templateField('time').value = blockKey(block.start);
+  templateField('mins').value = block.duration;
+  const kinds = ANCHOR_KINDS.includes(block.kind) ? ANCHOR_KINDS : [...ANCHOR_KINDS, block.kind];
+  fillOptions(templateField('kind'), kinds.map((kind) => [kind, kind]), block.kind);
+}
+
+function selectTemplateBlock(id, focus = false) {
+  tplSelected = id;
+  renderTemplateDay();
+  showTemplateBlock();
+  if (focus) templateField('text').focus();
+}
+
+function addTemplateBlock(start, duration = 30) {
+  const block = { id: newId(), start: Math.max(0, Math.min(start, DAY_END - duration)), duration, text: '', kind: 'routine', tail: 0 };
+  tplBlocks.push(block);
+  selectTemplateBlock(block.id, true);
+}
+
+function editTemplateBlock(event) {
+  const block = tplBlocks.find((item) => item.id === tplSelected);
+  const field = event.target.dataset.f;
+  if (!block || !field) return;
+  const value = event.target.value;
+  if (field === 'text') block.text = value;
+  if (field === 'kind') block.kind = value;
+  if (field === 'time' && planMinutes(value) != null) block.start = planMinutes(value);
+  if (field === 'mins' && Number.isInteger(Number(value)) && Number(value) >= 5) block.duration = Number(value);
+  renderTemplateDay();
+}
+
+function deleteTemplateBlock() {
+  tplBlocks = tplBlocks.filter((block) => block.id !== tplSelected);
+  selectTemplateBlock(null);
+}
+
+// Like a day column: drag on empty space sketches a block, drag a block to move it.
+function templatePointerDown(event) {
+  tplPointer = event.pointerType;
+  if (event.button !== 0 || tplDrag) return;
+  const timeline = $('template-day');
+  const tile = event.target.closest('.tile[data-id]');
+  if (tile) {
+    event.preventDefault();
+    const grab = event.clientY - tile.getBoundingClientRect().top;
+    tplDrag = { id: tile.dataset.id, grab, y: event.clientY, moved: false, pointer: event.pointerId };
+  } else {
+    if (event.pointerType === 'touch') return;
+    event.preventDefault();
+    const anchor = Math.min(timelineMinute(timeline, event.clientY, Math.floor), DAY_END - 15);
+    tplDrag = { sketch: true, anchor, current: anchor, y: event.clientY, moved: false, pointer: event.pointerId };
+  }
+  timeline.setPointerCapture(event.pointerId);
+}
+
+function templatePointerMove(event) {
+  if (tplDrag?.pointer !== event.pointerId) return;
+  if (!tplDrag.moved && Math.abs(event.clientY - tplDrag.y) < 6) return;
+  tplDrag.moved = true;
+  const timeline = $('template-day');
+  if (tplDrag.sketch) {
+    tplDrag.current = timelineMinute(timeline, event.clientY);
+    const [start, end] = draftRange(tplDrag);
+    tplDrag.preview ??= element('div', 'tile timed draft');
+    tplDrag.preview.style.setProperty('--minute', start - Number(timeline.dataset.from));
+    tplDrag.preview.style.setProperty('--duration', end - start);
+    tplDrag.preview.textContent = `${blockKey(start)}–${blockKey(end)}`;
+    if (!tplDrag.preview.isConnected) timeline.append(tplDrag.preview);
+    return;
+  }
+  const block = tplBlocks.find((item) => item.id === tplDrag.id);
+  const start = Math.min(timelineMinute(timeline, event.clientY - tplDrag.grab), DAY_END - block.duration);
+  if (start === block.start && tplSelected === block.id) return;
+  block.start = start;
+  selectTemplateBlock(block.id);
+}
+
+function templatePointerUp(event) {
+  if (tplDrag?.pointer !== event.pointerId) return;
+  const drag = tplDrag;
+  tplDrag = null;
+  drag.preview?.remove();
+  if (event.type !== 'pointerup') return;
+  tplSkipClick = true;
+  setTimeout(() => { tplSkipClick = false; }, 0);
+  if (!drag.sketch) selectTemplateBlock(drag.id);
+  else if (!drag.moved) addTemplateBlock(drag.anchor);
+  else {
+    const [start, end] = draftRange(drag);
+    addTemplateBlock(start, end - start);
+  }
+}
+
+function templateDayClick(event) {
+  if (tplSkipClick) return;
+  const tile = event.target.closest('.tile[data-id]');
+  // Keyboard activation selects a block; on a phone a tap on empty space adds one.
+  if (tile) selectTemplateBlock(tile.dataset.id);
+  else if (tplPointer === 'touch') addTemplateBlock(timelineMinute($('template-day'), event.clientY, Math.floor));
 }
 
 function openTemplateDef(name) {
@@ -610,10 +731,17 @@ function openTemplateDef(name) {
   fields.hint.value = template.hint ?? '';
   fields.wake.value = template.wake || '07:00';
   fields.event.checked = Boolean(template.event);
-  $('template-anchors').replaceChildren(...(template.anchors || []).map((anchor) => anchorRow(anchor)));
+  tplBlocks = (template.anchors || []).filter(([pinned]) => planMinutes(pinned) != null)
+    .map(([pinned, duration, text, kind = 'routine', tail = 0]) => ({ id: newId(), start: planMinutes(pinned), duration, text, kind, tail }));
   $('template-def-delete').hidden = name == null;
   $('template-def-error').hidden = true;
   $('template-def').showModal();
+  selectTemplateBlock(null);
+  // Open scrolled to the first block or the wake time.
+  const timeline = $('template-day');
+  const [from, until] = templateRange();
+  const first = Math.min(planMinutes(fields.wake.value) ?? PLAN_START, ...tplBlocks.map((block) => block.start));
+  timeline.parentElement.scrollTop = (first - from) * (timeline.clientHeight - 8) / (until - from) - 16;
 }
 
 function templateDefError(message) {
@@ -642,25 +770,19 @@ function saveTemplateDef(event) {
   const name = fields.name.value.trim();
   if (!name) return templateDefError('Give the template a name.');
   if (name !== editingTemplate && getTemplate(name)) return templateDefError('A template with that name already exists.');
-  const anchors = [];
-  for (const row of $('template-anchors').children) {
-    const get = (key) => row.querySelector(`[data-f="${key}"]`).value;
-    const start = planMinutes(get('time'));
-    const minutes = Number(get('mins'));
-    const text = get('text').trim();
-    if (start == null || !text || !Number.isInteger(minutes) || minutes < 5) {
-      return templateDefError('Each event needs a time, a length of at least 5 minutes, and a title.');
-    }
-    if (start + minutes > DAY_END) return templateDefError(`${text} runs past midnight.`);
-    const tail = Number(row.dataset.tail) || 0;
-    anchors.push([get('time'), minutes, text, get('kind'), ...(tail ? [tail] : [])]);
+  const blocks = [...tplBlocks].sort((a, b) => a.start - b.start);
+  const fail = (block, message) => {
+    selectTemplateBlock(block.id);
+    templateDefError(message);
+  };
+  for (const [i, block] of blocks.entries()) {
+    if (!block.text.trim()) return fail(block, 'Give every block a title.');
+    if (block.start + block.duration > DAY_END) return fail(block, `${block.text} runs past midnight.`);
+    const before = blocks[i - 1];
+    if (before && block.start < before.start + before.duration) return fail(block, `${block.text} overlaps ${before.text}.`);
   }
-  anchors.sort((a, b) => planMinutes(a[0]) - planMinutes(b[0]));
-  for (let i = 1; i < anchors.length; i++) {
-    if (planMinutes(anchors[i][0]) < planMinutes(anchors[i - 1][0]) + anchors[i - 1][1]) {
-      return templateDefError(`${anchors[i][2]} overlaps ${anchors[i - 1][2]}.`);
-    }
-  }
+  const anchors = blocks.map((block) => [blockKey(block.start), block.duration, block.text.trim(), block.kind,
+    ...(block.tail ? [block.tail] : [])]);
   const { deleted, ...base } = (editingTemplate == null ? null : getTemplate(editingTemplate)) ?? {};
   const value = { ...base, name, hint: fields.hint.value.trim() || undefined, wake: fields.wake.value,
     event: fields.event.checked || undefined, anchors };
@@ -1201,7 +1323,22 @@ function renderTile(block, date) {
   return tile;
 }
 
-function renderDay(key, { blocks, bumped }, load, from, until, ghosts, drift) {
+// Places a tile on a timeline and puts its start–end time above the title.
+function timeTile(tile, start, until, from) {
+  tile.classList.add('timed');
+  tile.style.setProperty('--minute', start - from);
+  tile.style.setProperty('--duration', until - start);
+  const range = `${blockKey(start)}–${blockKey(until)}`;
+  const time = element('time', 'tile-time', blockKey(start));
+  time.append(element('span', 'tile-end', `–${blockKey(until)}`));
+  const label = element('span', 'timed-label');
+  label.append(time, tile.firstElementChild);
+  tile.prepend(label);
+  tile.title = `${range}\n${tile.title}`;
+  return time;
+}
+
+function renderDay(key,{ blocks, bumped }, load, from, until, ghosts, drift) {
   const date = keyDate(key);
   const day = plan.days[key];
   const column = element('article', 'panel day');
@@ -1251,20 +1388,10 @@ function renderDay(key, { blocks, bumped }, load, from, until, ghosts, drift) {
   }
   for (const [i, block] of blocks.entries()) {
     const tile = renderTile(block, key);
-    tile.classList.add('timed');
     Object.assign(tile.dataset, { start: block.start, until: block.until });
     tile.classList.toggle('late', afterDeadline(key, block));
-    tile.style.setProperty('--minute', block.start - from);
-    tile.style.setProperty('--duration', block.until - block.start);
-    const start = blockKey(block.start);
-    const end = `–${blockKey(block.until)}`;
-    const time = element('time', 'tile-time', start);
-    time.append(element('span', 'tile-end', end));
+    const time = timeTile(tile, block.start, block.until, from);
     if (block.actualUntil != null) time.append(element('span', 'over-badge', '↗'));
-    const label = element('span', 'timed-label');
-    label.append(time, tile.firstElementChild);
-    tile.prepend(label);
-    tile.title = `${start}${end}\n${tile.title}`;
     if (block.tail > 0) {
       tile.style.setProperty('--tail', block.tail);
       tile.append(element('span', 'tail', `+${block.tail}m`));
@@ -1684,11 +1811,14 @@ function startPlanner() {
   $('template-def-form').addEventListener('submit', saveTemplateDef);
   $('template-def-cancel').addEventListener('click', () => $('template-def').close());
   $('template-def-delete').addEventListener('click', deleteTemplateDef);
-  $('template-add-anchor').addEventListener('click', () => {
-    const row = anchorRow();
-    $('template-anchors').append(row);
-    row.firstChild.focus();
-  });
+  $('template-block').addEventListener('input', editTemplateBlock);
+  $('template-block-delete').addEventListener('click', deleteTemplateBlock);
+  $('template-def-form').elements.wake.addEventListener('input', renderTemplateDay);
+  $('template-day').addEventListener('pointerdown', templatePointerDown);
+  $('template-day').addEventListener('pointermove', templatePointerMove);
+  $('template-day').addEventListener('pointerup', templatePointerUp);
+  $('template-day').addEventListener('pointercancel', templatePointerUp);
+  $('template-day').addEventListener('click', templateDayClick);
   $('goal-form').addEventListener('submit', applyGoalEditor);
   $('goal-cancel').addEventListener('click', () => $('goal-editor').close());
   $('restack-form').addEventListener('submit', applyRestack);

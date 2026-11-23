@@ -279,14 +279,17 @@ label.choice:has(input:checked) { border-color: #5b8aa6; background: #eef6fb; }
 .choice input { grid-row: span 2; margin-top: .2rem; }
 .choice b { font-size: .9rem; }
 .choice .muted { font-size: .8rem; }
-.anchor-rows { display: grid; gap: .35rem; max-height: 40vh; overflow-y: auto; }
-.anchor-row { display: grid; grid-template-columns: 5.5rem 3.5rem minmax(0, 1fr) 5.5rem auto; gap: .25rem; }
-.anchor-row input, .anchor-row select { font-size: .85rem; }
-.anchor-row button { padding: 0 .4rem; }
-@media (max-width: 700px) {
-  .anchor-row { grid-template-columns: 5.5rem 3.5rem minmax(0, 1fr) auto; }
-  .anchor-row select { grid-column: 1 / 4; }
-}
+#template-def { width: min(34rem, calc(100vw - 1rem)); }
+#template-def .muted { margin: 0; }
+.template-day-scroll { max-height: 48vh; overflow-y: auto; overscroll-behavior: contain; --minute-height: 1.2px; padding-top: .4rem; }
+.template-day-scroll .hour { inset-inline: 0; }
+.template-day-scroll .hour-label { display: inline; }
+.template-day-scroll .tile.timed { inset-inline: 2.8rem .4rem; }
+.tile.timed.selected { box-shadow: 0 0 0 2px #387fa6; z-index: 1; }
+.template-block { display: grid; gap: .45rem; padding: .55rem; background: #f5faff; border: 1px solid var(--line); border-radius: 9px; }
+.template-block[hidden] { display: none; }
+.template-block-row { display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: .4rem; }
+.template-block > button { justify-self: start; }
 @media (max-width: 700px) {
   #planner { padding: .5rem .5rem 0; }
   .masthead { margin-bottom: .4rem; gap: .4rem; }
