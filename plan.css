@@ -44,6 +44,13 @@ button:disabled { opacity: .55; cursor: default; }
 :focus-visible { outline: 3px solid #206599; outline-offset: 2px; }
 .primary { background: #bcf1d5; border-color: #81bd9f; font-weight: bold; }
 .primary:hover { background: #a6e8c5; }
+.quiet { border-color: transparent; background: transparent; color: var(--muted); }
+.quiet:hover { background: #d8ebf5; }
+.icon { border-color: transparent; background: transparent; padding: .3rem .45rem; font-size: 1.15rem; line-height: 1; }
+.icon:hover:not(:disabled) { background: #d8ebf5; }
+.system-actions { display: flex; align-items: center; gap: .1rem; margin-inline-start: .6rem; }
+.week-nav { display: flex; align-items: center; gap: .15rem; }
+.week-nav h2 { margin-inline: .2rem; }
 #planner {
   display: grid; grid-template-rows: auto auto auto minmax(0, 1fr);
   height: 100dvh; padding: clamp(.75rem, 2vw, 1.8rem);
@@ -313,10 +320,10 @@ label.choice:has(input:checked) { border-color: #5b8aa6; background: #eef6fb; }
   #planner { padding: .5rem .5rem 0; }
   .masthead { margin-bottom: .4rem; gap: .4rem; }
   .masthead h1 { display: none; }
-  .masthead > div:first-child, .masthead .actions { display: contents; }
+  .masthead > div:first-child, .masthead .actions, .system-actions { display: contents; }
   .masthead { justify-content: flex-start; gap: .3rem; }
   .dash-link { margin: 0 .3rem 0 0; }
-  .masthead button { padding: .3rem .5rem; }
+  .masthead button:not(.icon) { padding: .3rem .5rem; }
   #sync-status svg { width: 20px; height: 20px; }
   .week-overview { gap: .3rem .6rem; margin-bottom: .4rem; }
   .week-overview h2 { font-size: 1rem; }

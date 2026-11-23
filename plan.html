@@ -16,20 +16,24 @@
         <h1>Week planner</h1>
       </div>
       <div class="actions">
-        <button id="week-prev" type="button" aria-label="Previous week">‹</button>
-        <button id="week-today" type="button">This week</button>
-        <button id="week-next" type="button" aria-label="Next week">›</button>
-        <button id="plan-now" type="button">Now…</button>
-        <button id="week-routine" type="button" title="Pick a template for each day this week">Routine</button>
+        <button id="week-routine" class="quiet" type="button" title="Pick a template for each day this week">Routine</button>
         <button id="day-review" type="button" hidden>Review today</button>
-        <button id="plan-undo-btn" type="button" aria-label="Undo" title="Undo" disabled>↶</button>
-        <button id="sync-status" type="button"></button>
-        <button id="login-btn" type="button" hidden>Log in</button>
-        <button id="hard-refresh" type="button" aria-label="Hard refresh" title="Hard refresh">⟳</button>
+        <button id="plan-now" class="primary" type="button">Now…</button>
+        <span class="system-actions">
+          <button id="plan-undo-btn" class="icon" type="button" aria-label="Undo" title="Undo" disabled>↶</button>
+          <button id="sync-status" class="icon" type="button"></button>
+          <button id="login-btn" type="button" hidden>Log in</button>
+          <button id="hard-refresh" class="icon" type="button" aria-label="Hard refresh" title="Hard refresh">⟳</button>
+        </span>
       </div>
     </header>
     <div class="week-overview">
-      <h2 id="week-range"></h2>
+      <div class="week-nav">
+        <button id="week-prev" class="icon" type="button" aria-label="Previous week">‹</button>
+        <h2 id="week-range"></h2>
+        <button id="week-next" class="icon" type="button" aria-label="Next week">›</button>
+        <button id="week-today" class="quiet" type="button" hidden>This week</button>
+      </div>
       <p class="muted" id="week-unmarked"></p>
       <p class="muted" id="plan-status" role="status"></p>
       <section id="goals" aria-label="Working on"></section>

@@ -1543,6 +1543,7 @@ function renderPlanner() {
   const end = addDays(monday, 6);
   const formatter = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
   $('week-range').textContent = formatter.formatRange(monday, end);
+  $('week-today').hidden = dayKey(monday) === dayKey(homeMonday());
   const layouts = plan.keys.map((key) => layoutDay(plan.days[key]));
   const loads = layouts.map((layout, i) => dayLoad(plan.days[plan.keys[i]], layout.blocks));
   renderGoals(layouts, loads);
