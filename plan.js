@@ -492,6 +492,10 @@ function openBlockEditor(source, target = blockTarget(source)) {
   $('block-delete').hidden = Boolean(source.fresh);
   $('block-done').hidden = !source.copy;
   quickDelete = !$('block-delete').hidden;
+  // Existing planned or parked blocks can be copied onto another day of this week.
+  $('block-copy-row').hidden = Boolean(source.fresh || source.copy);
+  fillOptions($('block-copy'), [['', 'Another day…'],
+    ...Object.keys(plan.days).filter((key) => key !== date).map((key) => [key, dayLabel(key)])], '');
   $('block-error').hidden = true;
   updateEditorFields();
   $('block-editor').showModal();
@@ -2148,6 +2152,16 @@ function startPlanner() {
   $('block-form').addEventListener('change', updateEditorFields);
   $('block-cancel').addEventListener('click', () => $('block-editor').close());
   $('block-delete').addEventListener('click', () => { deleteBlock(editedBlock); $('block-editor').close(); });
+  $('block-copy').addEventListener('change', (event) => {
+    const date = event.target.value;
+    if (!date) return;
+    const { block } = editedBlock;
+    const error = moveBlock(editedBlock, { date, shelf: Boolean(block.shelf) }, {}, { copy: true });
+    if (!error) { $('block-editor').close(); selectDay(date); return; }
+    event.target.value = '';
+    $('block-error').textContent = error;
+    $('block-error').hidden = false;
+  });
   // On the document, since clicking a blank part of the dialog can leave focus on <body>.
   document.addEventListener('keydown', (event) => {
     if (!$('block-editor').open || ['Shift', 'Control', 'Alt', 'Meta'].includes(event.key)) return;
