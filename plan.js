@@ -4,12 +4,45 @@ const PLAN_END = 23 * 60;
 const SCREENS_OFF = 22 * 60;
 const PLAN_SIZES = [30, 45, 60, 90];
 const PLAN_TIERS = ['low', 'medium', 'high', 'must', 'fixed'];
+const WIND_DOWN = ['22:00', 60, 'Screens off · read, walk or paper'];
+const TEMPLATES = {
+  Weekday: {
+    wake: '07:00', startOffset: 0, deepCap: 4, anchors: [
+      ['07:00', 45, 'Wake + breakfast + routine'], ['07:45', 30, 'Walk outside'],
+      ['11:30', 50, 'Lunch + dishes + read', 'meal'], ['12:20', 25, 'Free', 'free'],
+      ['14:10', 30, 'Afternoon cardio', 'exercise', 30], ['15:10', 45, 'Buffer', 'buffer'],
+      ['17:00', 50, 'Dinner + dishes', 'meal'], ['21:30', 15, 'Review'], WIND_DOWN,
+    ],
+  },
+  'Exam / interview': {
+    wake: '07:00', startOffset: 0, deepCap: 4, event: true, noNewAfter: 16 * 60,
+    hint: 'Light recall only. Allow 30 minutes to get there and settle.',
+    anchors: [['12:20', 25, 'Free', 'free'], ['21:30', 15, 'Review'], WIND_DOWN],
+  },
+  'Recovery / social': {
+    wake: '09:30', startOffset: 0, deepCap: 2, workCap: 2, noGhosts: true,
+    hint: 'Wake at 09:30 and keep it to two work blocks.',
+    anchors: [['11:30', 50, 'Lunch + dishes + read', 'meal'], ['12:20', 25, 'Free', 'free'],
+      ['15:10', 45, 'Buffer', 'buffer'], ['17:00', 50, 'Dinner + dishes', 'meal'], WIND_DOWN],
+  },
+  'Welding Sunday': {
+    wake: '07:00', startOffset: 0, deepCap: 1, workCap: 1, workStart: 17 * 60,
+    hint: 'Welding from 09:00 to 17:00, then an evening review.',
+    anchors: [['09:00', 480, 'Welding', 'event'], ['21:30', 15, 'Review'], WIND_DOWN],
+  },
+  'Game day': {
+    wake: '07:00', startOffset: 0, deepCap: 4, event: true, workBeforeEvent: true,
+    hint: 'Allow 30 minutes for travel. Keep work before the game.',
+    anchors: [WIND_DOWN],
+  },
+};
 
 let monday;
 let plan;
 let activeDrag;
 let editedBlock;
 let tileClick;
+let templateDate;
 
 function planMinutes(time) {
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time ?? '')) return null;
@@ -25,7 +58,7 @@ function gapAfter(block) {
 }
 
 function placeBlocks(day, stack) {
-  const wake = (planMinutes(day.wake) ?? PLAN_START) + (day.startOffset ?? 0);
+  const wake = Math.max((planMinutes(day.wake) ?? PLAN_START) + (day.startOffset ?? 0), day.workStart ?? 0);
   const anchors = stack.flatMap((block) => {
     const start = block.actualStart ?? planMinutes(block.pinned);
     return start === null ? [] : [{ ...block, start, until: block.actualUntil ?? start + blockDuration(block) }];
@@ -63,14 +96,16 @@ function layoutDay(day) {
     };
   }
   const wake = planMinutes(day.wake) ?? PLAN_START;
+  const cutoff = day.workEnd ?? SCREENS_OFF;
   let stack = day.blocks.filter((block) => !block.shelf);
   const bumped = stack.filter((block) => {
     const pin = planMinutes(block.pinned);
-    return block.tier !== 'fixed' && pin !== null && (pin < wake || pin + blockDuration(block) > SCREENS_OFF);
+    return block.tier !== 'fixed' && pin !== null && (pin < Math.max(wake, day.workStart ?? 0) || pin + blockDuration(block) > cutoff);
   });
   stack = stack.filter((block) => !bumped.includes(block));
   let blocks = placeBlocks(day, stack);
-  while (blocks.some((block) => block.tier !== 'fixed' && block.actualStart == null && block.until > SCREENS_OFF)) {
+  while (blocks.some((block) => block.tier !== 'fixed' && block.actualStart == null && block.until > cutoff) ||
+      blocks.filter((block) => block.tier !== 'fixed' && block.actualStart == null).length > (day.workCap ?? Infinity)) {
     const candidates = blocks.filter((block) => block.tier !== 'fixed' && block.actualStart == null);
     const lowest = candidates.reduce((a, b) => PLAN_TIERS.indexOf(a.tier) < PLAN_TIERS.indexOf(b.tier) ? a : b);
     const removed = stack.find((block) => block.id === lowest.id);
@@ -158,13 +193,17 @@ function openPlannerWeek() {
     days[date] = Array.isArray(day?.blocks) ? day : dayFromSchedule(schedule);
     sources[date] = Array.isArray(day?.blocks) ? saved.value.sources?.[date] ?? null : schedule?.id ?? null;
   }
-  plan = { key, keys, days, sources, schedules, version: saved?.entry.id ?? null, dirtyDays: new Set(),
+  plan = { key, keys, days, sources, schedules, version: saved?.entry.id ?? null, dirtyDays: new Set(), scheduleDirty: new Set(),
     tray: Array.isArray(saved?.value.tray?.week) ? saved.value.tray.week : [], trayDirty: false,
     savedDates: new Set(Object.keys(saved?.value.days || {})) };
 }
 
 function changedInDash(key, schedules = plan.schedules) {
   return (schedules.get(key)?.id ?? null) !== plan.sources[key];
+}
+
+function getTemplate(name) {
+  return plannerNote(PLAN_TEMPLATE, name)?.value ?? TEMPLATES[name];
 }
 
 // Prevent prose containing “, 10:30” from being read as a second block.
@@ -214,8 +253,8 @@ function saveWeek() {
     const entry = schedules.get(key);
     const changed = changedInDash(key, schedules) && (plan.dirtyDays.has(key) || plan.savedDates.has(key));
     if (changed && !confirm(`${dayLabel(key)} changed in Dash. OK keeps the planner version. Cancel uses Dash.`)) {
-      days[key] = dayFromSchedule(entry);
-    } else if (plan.dirtyDays.has(key) || changed) {
+      days[key] = { ...dayFromSchedule(entry), phoneOff: days[key].phoneOff };
+    } else if (plan.scheduleDirty.has(key) || changed) {
       const text = scheduleText(key, days[key]);
       if ((entry || days[key].blocks.length) && changesSchedule(text)) {
         const note = plannerEntry(SCHEDULE, text, entry);
@@ -230,6 +269,12 @@ function saveWeek() {
   }
   const text = JSON.stringify({ key: plan.key, value: { days, sources, tray: { week: plan.tray } } });
   if (text !== previous?.entry.text) notes.push(plannerEntry(PLAN_WEEK, text, previous?.entry));
+  const templates = new Set(Object.values(days).map((day) => day.template).filter((name) => Object.hasOwn(TEMPLATES, name)));
+  for (const name of templates) {
+    if (plannerNote(PLAN_TEMPLATE, name)) continue;
+    const value = { name, ...TEMPLATES[name] };
+    notes.push(plannerEntry(PLAN_TEMPLATE, JSON.stringify({ key: name, value })));
+  }
   if (localStorage.getItem(STORE_KEY) !== originalStore) {
     $('plan-status').textContent = 'Notes changed while saving. Try again to review the latest versions.';
     return;
@@ -244,6 +289,7 @@ function saveWeek() {
   }
   const count = notes.filter((entry) => entry.category === SCHEDULE).length;
   plan.dirtyDays.clear();
+  plan.scheduleDirty.clear();
   plan.trayDirty = false;
   refreshView();
   $('plan-status').textContent = count ? `Saved ${count} ${count === 1 ? 'day' : 'days'} to Dash.` : 'Week saved. No Schedule changes.';
@@ -297,6 +343,7 @@ function storeDay(key, day) {
   plan.days[key] = { ...day, blocks: day.blocks.map((block) => bumpedIds.has(block.id)
     ? { ...untimedBlock(block), bumped: true } : block) };
   plan.dirtyDays.add(key);
+  plan.scheduleDirty.add(key);
 }
 
 function blockSource(tile) {
@@ -386,7 +433,9 @@ function openBlockEditor(source, date) {
   const sizes = PLAN_SIZES.map((size) => [size, `${size} min`]);
   if (block.duration != null) sizes.unshift(['original', `${block.duration} min (original)`]);
   fillOptions(fields.size, sizes, block.duration != null ? 'original' : String(block.size));
-  fillOptions(fields.tier, PLAN_TIERS.map((tier) => [tier, tier[0].toUpperCase() + tier.slice(1)]), block.tier);
+  const weekend = [0, 6].includes(keyDate(date).getDay());
+  const tier = weekend && (source.fresh || source.copy) ? 'must' : block.tier;
+  fillOptions(fields.tier, PLAN_TIERS.map((key) => [key, key[0].toUpperCase() + key.slice(1)]), tier);
   const goals = plannerGoals().map((item) => [item.id, bare(item.text)]);
   if (block.goal && !goals.some(([id]) => id === block.goal)) goals.push([block.goal, 'Archived goal']);
   fillOptions(fields.goal, [['', 'No goal'], ...goals], block.goal || '');
@@ -423,6 +472,10 @@ function applyBlockEditor(event) {
   let before = next;
   if (date && !shelf && pinned && (pinned !== original.pinned || oldIndex < 0)) {
     before = layoutDay(day).blocks.find((b) => b.id !== original.id && b.start >= planMinutes(pinned))?.id;
+  } else if (date && !shelf && (oldIndex < 0 || original.shelf)) {
+    const stack = layoutDay(day).blocks;
+    const afterWork = stack.findIndex((b) => b.pinned && b.start >= 17 * 60 && b.start >= (day.workStart ?? 0));
+    before = stack[afterWork]?.id;
   }
   const size = fields.size.value;
   const changes = {
@@ -439,6 +492,96 @@ function applyBlockEditor(event) {
   } else {
     $('block-editor').close();
   }
+}
+
+function templateAnchor([pinned, duration, text, kind = 'routine', tail = 0]) {
+  return planBlock(newId(), text, { pinned, duration, kind, tail, tier: 'fixed', templateAnchor: true });
+}
+
+function recoverySuggested(key) {
+  return entriesFor('Journal').some((entry) => {
+    const timestamp = new Date(entry.createdAt);
+    const minute = timestamp.getHours() * 60 + timestamp.getMinutes();
+    return dayKey(timestamp) === key && minute > 30 && minute < PLAN_START;
+  });
+}
+
+function openTemplateEditor(key) {
+  templateDate = key;
+  const day = plan.days[key];
+  const fields = $('template-form').elements;
+  const name = day.template || (recoverySuggested(key) ? 'Recovery / social' : keyDate(key).getDay() === 0 ? 'Welding Sunday' : 'Weekday');
+  fillOptions(fields.template, [['', 'No template'], ...Object.keys(TEMPLATES).map((key) => [key, key])], name);
+  const event = day.blocks.find((block) => block.templateAnchor && block.kind === 'event');
+  fields.event.value = event?.text || '';
+  fields.start.value = event?.pinned || '';
+  fillOptions(fields.duration, PLAN_SIZES.map((size) => [size, `${size} min`]), String(event?.duration || 60));
+  $('template-error').hidden = true;
+  updateTemplateFields();
+  $('template-editor').showModal();
+}
+
+function updateTemplateFields() {
+  const fields = $('template-form').elements;
+  const template = getTemplate(fields.template.value);
+  const needsEvent = Boolean(template?.event);
+  $('event-fields').hidden = !needsEvent;
+  for (const field of [fields.event, fields.start, fields.duration]) {
+    field.disabled = !needsEvent;
+    field.required = needsEvent;
+  }
+  $('template-note').textContent = template?.hint || (fields.template.value ? '' : 'Remove the template anchors and keep your blocks.');
+}
+
+function replaceTemplate(day, name, template, event) {
+  const positions = new Map(layoutDay(day).blocks.map((block) => [block.id, block.start]));
+  const kept = day.blocks.filter((block) => !block.templateAnchor);
+  let anchors = (template?.anchors || []).map(templateAnchor);
+  const eventAt = event ? planMinutes(event.start) : null;
+  if (event) {
+    const travel = template.workBeforeEvent ? 'Travel to game' : 'Go + settle';
+    const eventAnchors = [
+      templateAnchor([blockKey(eventAt - 30), 30, travel, 'travel']),
+      templateAnchor([event.start, event.duration, event.text, 'event']),
+    ];
+    anchors = [...anchors.filter((anchor) => !pinCollision(anchor, eventAnchors)), ...eventAnchors];
+  }
+  for (const anchor of anchors) {
+    if (pinCollision(anchor, [...kept, ...anchors.filter((block) => block !== anchor)])) {
+      return { error: `${anchor.text} overlaps a pinned block. Move the pin or choose another event time.` };
+    }
+    positions.set(anchor.id, planMinutes(anchor.pinned));
+  }
+  const blocks = [...kept, ...anchors].sort((a, b) => (positions.get(a.id) ?? Infinity) - (positions.get(b.id) ?? Infinity));
+  return { day: editDay({
+    ...day, template: name, wake: template?.wake || '07:00', startOffset: template?.startOffset,
+    deepCap: template?.deepCap, workStart: template?.workStart, workCap: template?.workCap,
+    workEnd: template?.workBeforeEvent ? eventAt - 30 : undefined,
+    noNewAfter: template?.noNewAfter, noGhosts: template?.noGhosts,
+  }, blocks) };
+}
+
+function applyTemplateEditor(event) {
+  event.preventDefault();
+  const fields = event.target.elements;
+  const name = fields.template.value;
+  const template = getTemplate(name);
+  const details = template?.event ? { text: fields.event.value.trim(), start: fields.start.value, duration: Number(fields.duration.value) } : null;
+  const at = details && planMinutes(details.start);
+  let result;
+  if (details && (!details.text || at == null || at < 30 || at + details.duration > DAY_END)) {
+    result = { error: 'Enter an event name and a time that leaves room for travel and ends by midnight.' };
+  } else {
+    result = replaceTemplate(plan.days[templateDate], name, template, details);
+  }
+  if (result.error) {
+    $('template-error').textContent = result.error;
+    $('template-error').hidden = false;
+    return;
+  }
+  storeDay(templateDate, result.day);
+  $('template-editor').close();
+  markEdited();
 }
 
 function renderGoals() {
@@ -512,6 +655,16 @@ function renderDay(key, { blocks, bumped }, from, until) {
   if (changedInDash(key)) head.append(element('span', 'warning', 'Changed on phone'));
   const pins = blocks.filter((block) => block.pinned && block.tier === 'fixed');
   if (pins.length) head.append(element('p', 'day-info', `★ ${pins.map((block) => block.pinned).join(' · ')}`));
+  const dayActions = element('div', 'day-actions');
+  const phone = plannerButton(day.phoneOff ? 'Phone off' : 'Phone on', () => {
+    plan.days[key] = { ...plan.days[key], phoneOff: !plan.days[key].phoneOff };
+    plan.dirtyDays.add(key);
+    markEdited();
+  }, 'day-action');
+  phone.setAttribute('aria-pressed', String(Boolean(day.phoneOff)));
+  const template = plannerButton(recoverySuggested(key) && !day.template ? 'Recovery?' : 'Template', () => openTemplateEditor(key), 'day-action');
+  dayActions.append(template, phone);
+  head.append(dayActions);
   const shelf = element('div', 'shelf');
   shelf.dataset.shelf = '';
   shelf.append(element('h4', 'shelf-title', 'Untimed'));
@@ -539,6 +692,10 @@ function renderDay(key, { blocks, bumped }, from, until) {
     tile.style.setProperty('--minute', block.start - from);
     tile.style.setProperty('--duration', block.until - block.start);
     tile.prepend(element('time', 'tile-time', `${blockKey(block.start)}–${blockKey(block.until)}`));
+    if (block.tail > 0) {
+      tile.style.setProperty('--tail', block.tail);
+      tile.append(element('span', 'tail', `+${block.tail}m`));
+    }
     timeline.append(tile);
   }
   column.append(head, shelf, timeline);
@@ -709,6 +866,9 @@ function startPlanner() {
   $('block-form').addEventListener('change', updateEditorFields);
   $('block-cancel').addEventListener('click', () => $('block-editor').close());
   $('block-delete').addEventListener('click', () => { deleteBlock(editedBlock); $('block-editor').close(); });
+  $('template-form').addEventListener('submit', applyTemplateEditor);
+  $('template-form').addEventListener('change', updateTemplateFields);
+  $('template-cancel').addEventListener('click', () => $('template-editor').close());
   $('week').addEventListener('pointerdown', startDrag);
   window.addEventListener('pointermove', moveDrag, { passive: false });
   window.addEventListener('pointerup', endDrag);

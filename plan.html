@@ -84,6 +84,25 @@
       </div>
     </form>
   </dialog>
+  <dialog id="template-editor" aria-labelledby="template-title">
+    <form id="template-form">
+      <h2 id="template-title">Day template</h2>
+      <label>Template <select name="template"></select></label>
+      <p id="template-note" class="muted"></p>
+      <div id="event-fields" hidden>
+        <label>Event name <input name="event"></label>
+        <div class="field-row">
+          <label>Starts <input name="start" type="time"></label>
+          <label>Length <select name="duration"></select></label>
+        </div>
+      </div>
+      <p id="template-error" class="warning" role="alert" hidden></p>
+      <div class="actions">
+        <button class="primary">Apply template</button>
+        <button id="template-cancel" type="button">Cancel</button>
+      </div>
+    </form>
+  </dialog>
   <script src="data.js"></script>
   <script src="sync.js"></script>
   <script src="login.js"></script>
