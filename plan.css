@@ -293,25 +293,37 @@ dialog input:not([type="checkbox"]), dialog select, #login input {
   --shift: 0px;
   position: relative; display: flex; align-items: center; justify-content: center; gap: .2rem;
   min-height: 2rem; border: 1px solid #a8c6d5; border-radius: 7px; overflow: hidden;
-  cursor: ew-resize; touch-action: none; user-select: none; font-weight: normal;
+  padding: 0 1.6rem .4rem; cursor: ew-resize; touch-action: none; user-select: none; font-weight: normal;
   background:
     linear-gradient(90deg, white, #fff0 30%, #fff0 70%, white),
-    linear-gradient(90deg, #172e4366 1px, transparent 1px) var(--shift) 100% / 60px 40% repeat-x,
-    linear-gradient(90deg, #172e4333 1px, transparent 1px) var(--shift) 100% / 20px 22% repeat-x,
+    linear-gradient(90deg, #172e4340 1px, transparent 1px) var(--shift) 100% / 8px 22% repeat-x,
     white;
 }
 .scrub::after {
   content: ''; position: absolute; left: 50%; bottom: 0; width: 2px;
-  margin-left: -1px; height: 38%; background: #2c7fb8; border-radius: 1px; pointer-events: none;
+  margin-left: -1px; height: 30%; background: #2c7fb8; border-radius: 1px; pointer-events: none;
 }
 .scrub.dragging { border-color: #2c7fb8; }
 dialog .scrub input {
   position: relative; z-index: 1; width: 4ch; min-height: 0; padding: 0; border: 0;
-  background: transparent; text-align: right; font-weight: bold; text-shadow: 0 0 3px white, 0 0 3px white; cursor: inherit; -moz-appearance: textfield;
+  border-radius: 0; background: transparent; text-align: right; font-weight: bold; cursor: inherit; -moz-appearance: textfield;
 }
 .scrub input:focus { cursor: text; outline: none; }
 .scrub:focus-within { border-color: #2c7fb8; cursor: text; }
 .scrub input::-webkit-inner-spin-button, .scrub input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.scrub-step {
+  position: absolute; z-index: 1; top: 0; bottom: 0; width: 1.5rem; padding: 0; border: 0;
+  background: white; color: #5a7c90; cursor: pointer; display: grid; place-items: center;
+}
+.scrub-step:first-child { left: 0; }
+.scrub-step:last-child { right: 0; }
+.scrub-step:hover { color: #2c7fb8; }
+.scrub-step::before {
+  content: ''; width: 7px; height: 10px; background: currentColor;
+  clip-path: polygon(100% 0, 100% 100%, 0 50%);
+}
+.scrub-step:last-child::before { clip-path: polygon(0 0, 0 100%, 100% 50%); }
+.scrub:has(input:disabled) { opacity: .5; cursor: default; }
 .scrub-unit { position: relative; z-index: 1; color: var(--muted); font-size: .85rem; }
 .field-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .45rem; }
 .pin-fields { display: flex; gap: .45rem; align-items: end; }

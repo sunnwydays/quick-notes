@@ -455,7 +455,7 @@ function openBlockEditor(source, target = blockTarget(source)) {
   fields.next.value = block.next;
   fields.tail.value = block.tail;
   fillOptions(fields.kind, Object.entries(BLOCK_KINDS), block.kind || '');
-  setScrub(fields.size, block.duration ?? block.size);
+  fields.size.value = block.duration ?? block.size;
   const goals = plannerGoals().map((item) => [item.id, bare(item.text)]);
   if (block.goal && !goals.some(([id]) => id === block.goal)) goals.push([block.goal, 'Archived goal']);
   fillOptions(fields.goal, [['', 'No goal'], ...goals], block.goal || '');
@@ -488,19 +488,36 @@ function openBlockEditor(source, target = blockTarget(source)) {
   $('block-editor').showModal();
 }
 
-// Length is a scrub field: drag sideways to change it, or click to type a number.
-const SCRUB_PX = 4; // pixels of drag per minute
-
-function setScrub(input, value) {
-  input.value = value;
-  input.closest('.scrub').style.setProperty('--shift', `${-value * SCRUB_PX}px`);
-}
+// Minute fields are scrub sliders: drag sideways (1 min per SCRUB_PX), click to type, or use the arrows (±5).
+// initScrub wraps any <input data-scrub> in the slider; setting .value moves the ticks too.
+const SCRUB_PX = 4;
+const nativeValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
 
 function initScrub(input) {
-  const scrub = input.closest('.scrub');
+  const scrub = element('span', 'scrub');
+  input.replaceWith(scrub);
+  const arrow = (step) => {
+    const button = element('button', 'scrub-step');
+    button.type = 'button';
+    button.dataset.step = step;
+    button.setAttribute('aria-label', `${Math.abs(step)} minutes ${step > 0 ? 'more' : 'less'}`);
+    return button;
+  };
+  scrub.append(arrow(-5), input, element('span', 'scrub-unit', 'min'), arrow(5));
+  input.inputMode = 'numeric';
+  const shift = () => scrub.style.setProperty('--shift', `${-(Number(nativeValue.get.call(input)) || 0) * SCRUB_PX}px`);
+  Object.defineProperty(input, 'value', {
+    get() { return nativeValue.get.call(this); },
+    set(value) { nativeValue.set.call(this, value); shift(); },
+  });
+  const clamp = (value) => Math.min(Number(input.max || Infinity), Math.max(Number(input.min || 0), value));
+  const change = (value, type = 'input') => {
+    if (value !== Number(input.value)) input.value = value;
+    input.dispatchEvent(new Event(type, { bubbles: true }));
+  };
   let drag = null;
   scrub.addEventListener('pointerdown', (event) => {
-    if (document.activeElement === input) return;
+    if (input.disabled || document.activeElement === input || event.target.closest('.scrub-step')) return;
     event.preventDefault();
     drag = { x: event.clientX, value: Number(input.value) || 0, moved: false };
     scrub.setPointerCapture(event.pointerId);
@@ -511,21 +528,33 @@ function initScrub(input) {
     const dx = event.clientX - drag.x;
     if (Math.abs(dx) > 3) drag.moved = true;
     if (!drag.moved) return;
-    const steps = Math.round(dx / SCRUB_PX);
-    const value = Math.min(Number(input.max), Math.max(Number(input.min), drag.value + steps));
-    if (value !== Number(input.value)) setScrub(input, value);
+    const value = clamp(drag.value + Math.round(dx / SCRUB_PX));
+    if (value !== Number(input.value)) change(value);
   });
   const end = () => {
     if (!drag) return;
-    if (!drag.moved) { input.focus(); input.select(); }
+    if (drag.moved) change(Number(input.value), 'change');
+    else { input.focus(); input.select(); }
     drag = null;
     scrub.classList.remove('dragging');
   };
   scrub.addEventListener('pointerup', end);
   scrub.addEventListener('pointercancel', end);
   // Stops the surrounding label from focusing the field after a drag.
-  scrub.addEventListener('click', (event) => { if (event.target !== input) event.preventDefault(); });
-  input.addEventListener('input', () => setScrub(input, input.value));
+  scrub.addEventListener('click', (event) => { if (event.target === scrub) event.preventDefault(); });
+  input.addEventListener('input', shift);
+  // The arrows jump to the next multiple of 5 minutes either way.
+  for (const button of scrub.querySelectorAll('.scrub-step')) {
+    button.addEventListener('click', () => {
+      if (input.disabled) return;
+      const value = Number(input.value) || 0;
+      const step = Number(button.dataset.step);
+      const next = step > 0 ? Math.floor(value / 5) * 5 + 5 : Math.ceil(value / 5) * 5 - 5;
+      change(clamp(next));
+      change(Number(input.value), 'change');
+    });
+  }
+  shift();
 }
 
 function updateEditorFields() {
@@ -710,7 +739,7 @@ function openTemplateEditor(key) {
   const event = day.blocks.find((block) => block.templateAnchor && block.kind === 'event');
   fields.event.value = event?.text || '';
   fields.start.value = event?.pinned || '';
-  fillOptions(fields.duration, PLAN_SIZES.map((size) => [size, `${size} min`]), String(event?.duration || 60));
+  fields.duration.value = event?.duration || 60;
   $('template-error').hidden = true;
   updateTemplateFields();
   $('template-editor').showModal();
@@ -2079,7 +2108,7 @@ function startPlanner() {
   $('review-form').addEventListener('submit', applyDayReview);
   $('review-cancel').addEventListener('click', () => $('review-editor').close());
   $('block-form').addEventListener('submit', applyBlockEditor);
-  initScrub($('block-form').elements.size);
+  for (const input of document.querySelectorAll('input[data-scrub]')) initScrub(input);
   $('block-form').addEventListener('change', updateEditorFields);
   $('block-cancel').addEventListener('click', () => $('block-editor').close());
   $('block-delete').addEventListener('click', () => { deleteBlock(editedBlock); $('block-editor').close(); });

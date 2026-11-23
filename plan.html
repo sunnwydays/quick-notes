@@ -71,7 +71,7 @@
       <label>Item <input name="text" required autofocus placeholder="e.g. Gym, or Lab 3 intro written"></label>
       <p id="block-where" class="muted"></p>
       <div id="block-main-row" class="field-row">
-        <label id="block-length">Length <span class="scrub"><input name="size" type="number" min="5" max="720" step="1" inputmode="numeric" required><span class="scrub-unit">min</span></span></label>
+        <label id="block-length">Length <input name="size" type="number" min="5" max="720" required data-scrub></label>
         <label>Goal <select name="goal"></select></label>
       </div>
       <details id="block-more">
@@ -79,7 +79,7 @@
         <div class="more-fields">
           <label>Next <input name="next" placeholder="First step for the next block"></label>
           <div class="field-row">
-            <label>Tail (min) <input name="tail" type="number" min="0" max="120" step="5"></label>
+            <label>Tail <input name="tail" type="number" min="0" max="120" data-scrub></label>
             <label>Kind <select name="kind"></select></label>
           </div>
           <div id="pin-fields" class="pin-fields">
@@ -122,7 +122,7 @@
         <label>Event name <input name="event"></label>
         <div class="field-row">
           <label>Starts <input name="start" type="time"></label>
-          <label>Length <select name="duration"></select></label>
+          <label>Length <input name="duration" type="number" min="5" max="720" data-scrub></label>
         </div>
       </div>
       <p id="template-error" class="warning" role="alert" hidden></p>
@@ -150,8 +150,8 @@
           <div id="template-block" class="template-block" hidden>
             <label>Title <input data-f="text" maxlength="80" placeholder="e.g. Gym"></label>
             <label>Starts <input data-f="time" type="time"></label>
-            <label>Minutes <input data-f="mins" type="number" min="5" max="960" step="5"></label>
-            <label>Tail (min) <input data-f="tail" type="number" min="0" max="120" step="5"></label>
+            <label>Length <input data-f="mins" type="number" min="5" max="960" data-scrub></label>
+            <label>Tail <input data-f="tail" type="number" min="0" max="120" data-scrub></label>
             <label>Kind <select data-f="kind"></select></label>
             <button id="template-block-delete" type="button">Remove block</button>
           </div>
@@ -194,7 +194,7 @@
       <h2 id="now-title">Now…</h2>
       <label id="now-source">Todo <select name="todo"></select></label>
       <label>Block title <input name="title" required autofocus></label>
-      <label>Minutes <input type="number" name="duration" min="1" max="180" required></label>
+      <label>Length <input type="number" name="duration" min="1" max="180" required data-scrub></label>
       <p id="now-error" class="warning" role="alert" hidden></p>
       <div class="actions">
         <button class="primary">Fit into today</button>
