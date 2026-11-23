@@ -710,6 +710,11 @@ function editTemplateBlock(event) {
   renderTemplateDay();
 }
 
+function templateEdges(skipId) {
+  return tplBlocks.filter((block) => block.id !== skipId)
+    .flatMap((block) => [block.start, block.start + block.duration + block.tail]);
+}
+
 function deleteTemplateBlock() {
   tplBlocks = tplBlocks.filter((block) => block.id !== tplSelected);
   selectTemplateBlock(null);
@@ -732,7 +737,7 @@ function templatePointerDown(event) {
   } else {
     if (event.pointerType === 'touch') return;
     event.preventDefault();
-    const anchor = Math.min(timelineMinute(timeline, event.clientY, Math.floor), DAY_END - 15);
+    const anchor = Math.min(timelineMinute(timeline, event.clientY, { round: Math.floor, edges: templateEdges() }), DAY_END - 15);
     tplDrag = { sketch: true, anchor, current: anchor, y: event.clientY, moved: false, pointer: event.pointerId };
   }
   timeline.setPointerCapture(event.pointerId);
@@ -745,7 +750,7 @@ function templatePointerMove(event) {
   const timeline = $('template-day');
   if (tplDrag.resize) {
     const block = tplBlocks.find((item) => item.id === tplDrag.id);
-    const end = Math.min(timelineMinute(timeline, event.clientY), DAY_END);
+    const end = Math.min(timelineMinute(timeline, event.clientY, { edges: templateEdges(block.id) }), DAY_END);
     const duration = Math.max(15, end - block.start - block.tail);
     if (duration === block.duration && tplSelected === block.id) return;
     block.duration = duration;
@@ -753,7 +758,7 @@ function templatePointerMove(event) {
     return;
   }
   if (tplDrag.sketch) {
-    tplDrag.current = timelineMinute(timeline, event.clientY);
+    tplDrag.current = timelineMinute(timeline, event.clientY, { edges: templateEdges() });
     const [start, end] = draftRange(tplDrag);
     tplDrag.preview ??= element('div', 'tile timed draft');
     tplDrag.preview.style.setProperty('--minute', start - Number(timeline.dataset.from));
@@ -763,7 +768,8 @@ function templatePointerMove(event) {
     return;
   }
   const block = tplBlocks.find((item) => item.id === tplDrag.id);
-  const start = Math.min(timelineMinute(timeline, event.clientY - tplDrag.grab), DAY_END - block.duration - block.tail);
+  const edges = movingEdges(templateEdges(block.id), block.duration + block.tail);
+  const start = Math.min(timelineMinute(timeline, event.clientY - tplDrag.grab, { edges }), DAY_END - block.duration - block.tail);
   if (start === block.start && tplSelected === block.id) return;
   block.start = start;
   selectTemplateBlock(block.id);
@@ -790,7 +796,7 @@ function templateDayClick(event) {
   const tile = event.target.closest('.tile[data-id]');
   // Keyboard activation selects a block; on a phone a tap on empty space adds one.
   if (tile) selectTemplateBlock(tile.dataset.id);
-  else if (tplPointer === 'touch') addTemplateBlock(timelineMinute($('template-day'), event.clientY, Math.floor));
+  else if (tplPointer === 'touch') addTemplateBlock(timelineMinute($('template-day'), event.clientY, { round: Math.floor, edges: templateEdges() }));
 }
 
 function openTemplateDef(name) {
@@ -1621,11 +1627,10 @@ function plannerDropTarget(event, source) {
     const next = stack.slice(index + Number(after)).find((block) => block.id !== source.block.id);
     return { date, before: next?.id, pinned: null, indicator: tile, after };
   }
-  const rect = slot.getBoundingClientRect();
-  const from = Number(slot.dataset.from);
-  const until = Number(slot.dataset.until);
-  const scale = (rect.height - 8) / (until - from);
-  const time = Math.max(from, Math.min(PLAN_END - 5, from + 5 * Math.round((event.clientY - rect.top) / scale / 5)));
+  const dragged = activeDrag?.tile;
+  const length = dragged?.dataset.until ? Number(dragged.dataset.until) - Number(dragged.dataset.start) : 0;
+  const edges = movingEdges(timelineEdges(slot, source.block.id), length);
+  const time = Math.min(PLAN_END - 5, timelineMinute(slot, event.clientY, { edges }));
   const before = stack.find((block) => block.start >= time && block.id !== source.block.id);
   return { date, pinned: blockKey(time), before: before?.id, time, indicator: slot };
 }
@@ -1640,12 +1645,34 @@ function showDropTarget(target) {
   activeDrag.target = target;
 }
 
-function timelineMinute(timeline, clientY, round = Math.round) {
+// Times are free to the minute, but land on a nearby edge (another block's start or
+// end) when the pointer is within a finger's width of it, so blocks still stack flush.
+const EDGE_SNAP_PX = 10;
+
+function timelineMinute(timeline, clientY, { round = Math.round, edges = [] } = {}) {
   const rect = timeline.getBoundingClientRect();
   const from = Number(timeline.dataset.from);
   const until = Number(timeline.dataset.until);
   const scale = (rect.height - 8) / (until - from);
-  return Math.max(from, Math.min(until, from + 15 * round((clientY - rect.top) / scale / 15)));
+  const raw = from + (clientY - rect.top) / scale;
+  let minute = from + round(raw - from);
+  let best = EDGE_SNAP_PX / scale;
+  for (const edge of edges) {
+    if (Math.abs(edge - raw) <= best) { minute = edge; best = Math.abs(edge - raw); }
+  }
+  return Math.max(from, Math.min(until, minute));
+}
+
+// Start and end minutes of the timed blocks on a planner timeline, apart from one.
+function timelineEdges(timeline, skipId) {
+  return [...timeline.querySelectorAll('.tile.timed[data-id]')]
+    .filter((tile) => tile.dataset.id !== skipId)
+    .flatMap((tile) => [Number(tile.dataset.start), Number(tile.dataset.until)]);
+}
+
+// For a moved block, its top may snap to an edge or its bottom may, so offer both.
+function movingEdges(edges, length) {
+  return length ? [...edges, ...edges.map((edge) => edge - length)] : edges;
 }
 
 // Press on an empty part of a day and drag to sketch a new item, like a calendar.
@@ -1662,16 +1689,17 @@ function startDraft(event) {
   const timeline = event.target.closest('.timeline');
   if (!timeline || event.target.closest('.tile') || event.pointerType === 'touch') return;
   event.preventDefault();
-  const anchor = Math.min(timelineMinute(timeline, event.clientY, Math.floor), PLAN_END - 15);
+  const edges = timelineEdges(timeline);
+  const anchor = Math.min(timelineMinute(timeline, event.clientY, { round: Math.floor, edges }), PLAN_END - 15);
   const preview = element('div', 'tile timed draft');
-  activeDrag = { draft: true, timeline, preview, anchor, current: anchor, pointer: event.pointerId, y: event.clientY, moved: false };
+  activeDrag = { draft: true, timeline, preview, edges, anchor, current: anchor, pointer: event.pointerId, y: event.clientY, moved: false };
 }
 
 function moveDraft(event) {
   if (!activeDrag.moved && Math.abs(event.clientY - activeDrag.y) < 6) return;
   if (!activeDrag.moved) activeDrag.timeline.append(activeDrag.preview);
   activeDrag.moved = true;
-  activeDrag.current = Math.min(timelineMinute(activeDrag.timeline, event.clientY), PLAN_END);
+  activeDrag.current = Math.min(timelineMinute(activeDrag.timeline, event.clientY, { edges: activeDrag.edges }), PLAN_END);
   const [start, end] = draftRange(activeDrag);
   const from = Number(activeDrag.timeline.dataset.from);
   activeDrag.preview.style.setProperty('--minute', start - from);
@@ -1749,7 +1777,8 @@ function moveDrag(event) {
     event.preventDefault();
     const drag = activeDrag;
     const tail = drag.source.block.tail ?? 0;
-    drag.end = Math.min(Math.max(timelineMinute(drag.timeline, event.clientY), drag.start + tail + 15), DAY_END);
+    drag.edges ??= timelineEdges(drag.timeline, drag.source.block.id);
+    drag.end = Math.min(Math.max(timelineMinute(drag.timeline, event.clientY, { edges: drag.edges }), drag.start + tail + 15), DAY_END);
     drag.moved = true;
     drag.tile.style.setProperty('--duration', drag.end - drag.start);
     return;
@@ -1985,7 +2014,7 @@ function startPlanner() {
     const timeline = event.target.closest('.timeline');
     // Phones scroll on a drag, so a tap on an empty part of a day adds an item there.
     if (lastPointerType === 'touch' && timeline && !event.target.closest('.tile')) {
-      openDraft(timeline.closest('[data-day]').dataset.day, Math.min(timelineMinute(timeline, event.clientY, Math.floor), PLAN_END - 15));
+      openDraft(timeline.closest('[data-day]').dataset.day, Math.min(timelineMinute(timeline, event.clientY, { round: Math.floor, edges: timelineEdges(timeline) }), PLAN_END - 15));
       return;
     }
     const tile = event.target.closest('.tile[data-id]');
