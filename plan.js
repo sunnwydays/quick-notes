@@ -289,7 +289,17 @@ function blockSource(tile) {
   if (source === 'parked') return { parked: true, block: plan.tray.find((block) => block.id === id) };
   const entry = entriesFor(source).find((item) => item.id === id);
   if (!entry) return null;
-  return { copy: true, block: trayTodo(entry) };
+  return { copy: true, category: source, entry, block: trayTodo(entry) };
+}
+
+// Same delete-plus-new-copy move as the notes screen, between Todo and Someday.
+function moveNote(entry, category) {
+  const now = new Date().toISOString();
+  touch(entry, { deletedAt: now, deletedHow: 'moved' });
+  data.entries.push({ id: newId(), category, text: entry.text, createdAt: now, updatedAt: now, deletedAt: null, dirty: true });
+  persist();
+  sync();
+  renderPlanner();
 }
 
 function trayTodo(entry, goals = plannerGoals()) {
@@ -1392,6 +1402,11 @@ function plannerDropTarget(event, source) {
   const under = document.elementFromPoint(event.clientX, event.clientY);
   const tab = under?.closest('[data-tab-day]');
   if (tab) return { date: tab.dataset.tabDay, pinned: null, indicator: tab };
+  const box = source.copy && under?.closest('.tray-box');
+  if (box) {
+    const category = box.matches('.someday') ? BACK_BURNER : 'Todo';
+    return category === source.category ? null : { moveTo: category, indicator: box };
+  }
   const slot = under?.closest('[data-shelf], .timeline');
   if (!slot) {
     return source.date && under?.closest('#planner') ? { indicator: $('week').querySelector('[data-tray]') } : null;
@@ -1561,6 +1576,10 @@ function endDrag(event) {
   if (target?.time != null && (!source.date || source.block.shelf)) {
     const { pinned, ...rest } = target;
     target = { ...rest, place: pinned };
+  }
+  if (target?.moveTo) {
+    moveNote(source.entry, target.moveTo);
+    return;
   }
   const error = target && moveBlock(source, target);
   if (!error && target?.indicator?.matches('[data-tab-day]')) selectDay(target.date);
