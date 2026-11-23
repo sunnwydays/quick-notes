@@ -2,6 +2,10 @@
 
 See README.md for how the app works and how it deploys (every push to `main` goes live).
 
+## Supabase
+
+- To query or change this app's Supabase DB, use `node dash.mjs "<sql>"` (or `-f file.sql`) instead of the Supabase MCP wherever possible. It's gitignored and reads its credentials from `vibe/resume-framework/.env.local`.
+
 ## Commits
 
 - One commit per feature or fix. When one request covers several changes, split them into separate commits, even if they touch the same files.
