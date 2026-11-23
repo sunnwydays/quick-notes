@@ -131,8 +131,11 @@ button:disabled { opacity: .55; cursor: default; }
 .day-action { padding: .1rem .3rem; font-size: .72rem; border-bottom-width: 2px; }
 .day-action[aria-pressed="true"] { background: #e5dcfa; border-style: solid; }
 .warning { display: inline-block; background: #fff1bd; border-radius: 6px; padding: .15rem .3rem; font-size: .72rem; }
-.shelf { background: white; border-bottom: 1px solid var(--line); padding: .35rem .4rem .5rem; cursor: pointer; }
-.shelf-title { margin: 0 0 .25rem; font-size: .75rem; color: var(--muted); }
+.shelf {
+  background: #f3f1eb; border-bottom: 2px solid #a6a193;
+  padding: .45rem .5rem .65rem; cursor: pointer;
+}
+.shelf-title { margin: 0 0 .25rem; font-size: .8rem; color: #514d43; }
 .shelf .tile + .tile { margin-top: .25rem; }
 .day-add { padding: .08rem .4rem; margin-top: .18rem; font-weight: bold; }
 .timeline { position: relative; height: calc(var(--minutes) * var(--minute-height) + .5rem); }
