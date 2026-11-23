@@ -402,6 +402,11 @@ function openBlockEditor(source, target = blockTarget(source)) {
   $('block-where').textContent = !date ? 'This week tray' : `${dayLabel(date)} · ${timed ? `${start}–${end}` : 'Untimed'}`;
   $('pin-fields').hidden = !timed;
   $('block-more').open = false;
+  // A drag already chose the length, so it moves under More there.
+  const dragged = Boolean(source.fresh && target.place);
+  if (dragged) $('block-more').querySelector('.more-fields').prepend($('block-length'));
+  else $('block-main-row').prepend($('block-length'));
+  $('block-main-row').classList.toggle('field-row', !dragged);
   $('block-editor-title').textContent = source.fresh ? 'Add item' : 'Edit item';
   $('block-delete').hidden = Boolean(source.copy || source.fresh);
   $('block-over').hidden = !source.date || block.shelf;
