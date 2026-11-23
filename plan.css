@@ -137,6 +137,7 @@ button:disabled { opacity: .55; cursor: default; }
   background: color-mix(in srgb, var(--tile-colour) 55%, white);
   justify-content: center;
 }
+.split-prompt { display: block; margin-top: .25rem; font-size: .78rem; color: #70410f; }
 .timed-label { flex: 1; min-height: min(100%, 1.06rem); container-type: size; }
 .timed-label .tile-time { margin-top: .2rem; }
 .timed-label .tile-title {

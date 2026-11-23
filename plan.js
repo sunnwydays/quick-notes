@@ -1166,6 +1166,10 @@ function renderTray() {
   someday.append(element('summary', '', 'Someday'));
   const copied = new Set(Object.values(plan.days).flatMap((day) => day.blocks.map((block) => block.todoId)));
   const parked = new Set(plan.tray.map((block) => block.todoId));
+  const now = Date.now();
+  const todos = entriesFor('Todo');
+  const old = new Set(todos.filter((entry) => now - Date.parse(entry.createdAt) >= 5 * 86400000).map((entry) => entry.id));
+  const splitPrompt = (tile) => tile.append(element('span', 'split-prompt', '✂ Split into a first step'));
   for (const [category, section] of [['Todo', tray], [BACK_BURNER, someday]]) {
     const entries = entriesFor(category).filter((entry) => !parked.has(entry.id));
     if (!entries.length && (category !== 'Todo' || !plan.tray.length)) {
@@ -1182,6 +1186,7 @@ function renderTray() {
         clockBadge.title = 'Copied to the plan';
         tile.append(clockBadge);
       }
+      if (category === 'Todo' && old.has(entry.id)) splitPrompt(tile);
       section.append(tile);
     }
   }
@@ -1189,6 +1194,7 @@ function renderTray() {
     const tile = renderTile(block);
     tile.classList.add('tray-tile');
     tile.dataset.source = 'parked';
+    if (old.has(block.todoId)) splitPrompt(tile);
     tray.append(tile);
   }
   tray.append(someday);
@@ -1215,7 +1221,7 @@ function renderTile(block, date) {
   return tile;
 }
 
-function renderDay(key, { blocks, bumped }, load, from, until, ghosts) {
+function renderDay(key, { blocks, bumped }, load, from, until, ghosts, drift) {
   const date = keyDate(key);
   const day = plan.days[key];
   const column = element('article', 'panel day');
@@ -1225,6 +1231,7 @@ function renderDay(key, { blocks, bumped }, load, from, until, ghosts) {
   heading.append(element('span', 'day-date', date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })));
   const info = [day.wake && `Wake ${day.wake}`, day.template].filter(Boolean);
   head.append(heading, element('p', 'day-info', info.join(' · ')));
+  if (drift >= 10) head.append(element('span', 'warning', `Drift · ${drift} AI tutor ideas`));
   if (changedInDash(key)) head.append(element('span', 'warning', 'Changed on phone'));
   const events = blocks.filter((block) => block.pinned && (block.kind === 'event' || block.tier === 'fixed' && !block.templateAnchor));
   for (const event of events) head.append(element('p', 'day-info day-event', `★ ${event.pinned} ${event.text}`));
@@ -1331,8 +1338,16 @@ function renderPlanner() {
   const budgets = Object.fromEntries(goals.map((entry) => [entry.id, goalHours(entry)]));
   const ghosts = suggestGhosts(plan.days, [...plan.tray, ...todos], budgets, earliest,
     Object.fromEntries(plan.keys.map((key, i) => [key, layouts[i]])));
+  const drift = new Map();
+  for (const entry of data.entries) {
+    if (entry.category !== 'ai-tutor') continue;
+    const date = new Date(entry.createdAt);
+    if (Number.isNaN(date.getTime())) continue;
+    const key = dayKey(date);
+    drift.set(key, (drift.get(key) ?? 0) + 1);
+  }
   $('week').replaceChildren(renderTray(), ...plan.keys.map((key, i) =>
-    renderDay(key, layouts[i], loads[i], from, until, ghosts.filter((ghost) => ghost.key === key))));
+    renderDay(key, layouts[i], loads[i], from, until, ghosts.filter((ghost) => ghost.key === key), drift.get(key))));
 }
 
 function refreshView() {
