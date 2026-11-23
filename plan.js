@@ -293,7 +293,9 @@ function blockSource(tile) {
 }
 
 // Same delete-plus-new-copy move as the notes screen, between Todo and Someday.
-function moveNote(entry, category) {
+function moveNote(id, category) {
+  const entry = data.entries.find((item) => item.id === id && !item.deletedAt);
+  if (!entry) return;
   const now = new Date().toISOString();
   touch(entry, { deletedAt: now, deletedHow: 'moved' });
   data.entries.push({ id: newId(), category, text: entry.text, createdAt: now, updatedAt: now, deletedAt: null, dirty: true });
@@ -1133,14 +1135,14 @@ function renderTray() {
   tray.dataset.tray = '';
   const addItem = () => openBlockEditor({ fresh: true, block: planBlock(newId(), '') }, {});
   const add = plannerButton('+', addItem, 'day-add');
-  add.setAttribute('aria-label', 'Add an item to this week');
-  tray.append(element('h3', '', 'This week'), add);
+  add.setAttribute('aria-label', 'Add an item to To Do');
+  tray.append(element('h3', '', 'To Do'), add);
   tray.addEventListener('click', (event) => {
     if (!event.target.closest('button, summary')) addItem();
   });
   const someday = element('details', 'panel tray-box someday');
   someday.open = $('week').querySelector('.someday')?.open ?? false;
-  someday.append(element('summary', '', 'Someday'));
+  someday.append(element('summary', '', 'Back Burner'));
   const copied = new Set(Object.values(plan.days).flatMap((day) => day.blocks.map((block) => block.todoId)));
   const parked = new Set(plan.tray.map((block) => block.todoId));
   const now = Date.now();
@@ -1402,7 +1404,11 @@ function plannerDropTarget(event, source) {
   const under = document.elementFromPoint(event.clientX, event.clientY);
   const tab = under?.closest('[data-tab-day]');
   if (tab) return { date: tab.dataset.tabDay, pinned: null, indicator: tab };
-  const box = source.copy && under?.closest('.tray-box');
+  const inside = (el) => {
+    const r = el.getBoundingClientRect();
+    return event.clientX >= r.left && event.clientX <= r.right && event.clientY >= r.top && event.clientY <= r.bottom;
+  };
+  const box = source.copy && [...document.querySelectorAll('.tray-box')].find(inside);
   if (box) {
     const category = box.matches('.someday') ? BACK_BURNER : 'Todo';
     return category === source.category ? null : { moveTo: category, indicator: box };
@@ -1578,7 +1584,7 @@ function endDrag(event) {
     target = { ...rest, place: pinned };
   }
   if (target?.moveTo) {
-    moveNote(source.entry, target.moveTo);
+    moveNote(source.entry.id, target.moveTo);
     return;
   }
   const error = target && moveBlock(source, target);
