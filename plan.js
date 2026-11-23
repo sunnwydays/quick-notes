@@ -1204,7 +1204,6 @@ function dayWarnings(key, day, blocks) {
       warnings.add(next.start < block.until ? 'Overlapping pins' : 'Gap under 5m');
     }
     if (block.actualUntil > block.until) warnings.add('Ran into a fixed time');
-    if (kind === 'project' && (!next || (blockKind(next) !== 'meal' && !next.pinned))) warnings.add('Project needs a meal or anchor after it');
     if (kind === 'project' && next && blockKind(next) === 'study') warnings.add('Put study before project work');
     if (kind === 'prep' && project && block.start > project.start && (block.deadline?.startsWith(tomorrow) || examTomorrow)) {
       warnings.add('Put next-day prep before project work');
