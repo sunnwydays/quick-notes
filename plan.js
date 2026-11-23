@@ -8,6 +8,7 @@ const BLOCK_KINDS = {
 const FIRST_WEEK_GOALS = { chess: 6, lab: 2, fitness: 6.5, study: 20 };
 const PLAN_START = 7 * 60;
 const PLAN_END = 24 * 60;
+const DEFAULT_TIMELINE_END = 23 * 60;
 const SCREENS_OFF = 22 * 60;
 const PLAN_SIZES = [30, 45, 60, 90];
 const PLAN_TIERS = ['low', 'medium', 'high', 'must', 'fixed'];
@@ -1051,7 +1052,7 @@ function renderPlanner() {
   renderGoals(layouts, loads);
   const all = layouts.flatMap((layout) => layout.blocks);
   const from = Math.floor(Math.min(PLAN_START, ...all.map((b) => b.start)) / 60) * 60;
-  const until = Math.ceil(Math.max(PLAN_END, ...all.map((b) => b.until)) / 60) * 60;
+  const until = Math.ceil(Math.max(DEFAULT_TIMELINE_END, ...all.map((b) => b.until)) / 60) * 60;
   $('week').replaceChildren(renderTray(), ...plan.keys.map((key, i) => renderDay(key, layouts[i], loads[i], from, until)));
 }
 
