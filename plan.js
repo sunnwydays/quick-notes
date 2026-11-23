@@ -1469,6 +1469,11 @@ function renderTray() {
   $('tray').replaceChildren(tray, someday);
 }
 
+function lengthLabel(minutes) {
+  const h = Math.floor(minutes / 60), m = minutes % 60;
+  return h && m ? `${h}h ${m}m` : h ? `${h}h` : `${m}m`;
+}
+
 function renderTile(block, date) {
   const tile = element('button', 'tile');
   tile.type = 'button';
@@ -1479,6 +1484,7 @@ function renderTile(block, date) {
   tile.append(element('span', 'tile-title', block.text));
   if (block.bumped) tile.append(element('span', 'bumped', block.bumpedFrom
     ? ` · Bumped from ${block.bumpedFrom === dayKey(new Date()) ? 'today' : dayLabel(block.bumpedFrom, false)}` : ' · Bumped'));
+  if (!date || block.shelf) tile.append(element('span', 'tile-size', lengthLabel(block.duration ?? block.size)));
   if (planMinutes(block.pinned) != null) {
     const pin = element('span', 'pin', '📌');
     pin.title = `Pinned at ${block.pinned}`;

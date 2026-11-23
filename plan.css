@@ -184,6 +184,9 @@ button:disabled { opacity: .55; cursor: default; }
 }
 .tile-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
 .tile-time { display: block; font-size: .68rem; margin-bottom: .12rem; }
+.tile:has(.tile-size) { display: flex; align-items: baseline; gap: .3rem; }
+.tile:has(.tile-size) .tile-title { flex: 1; }
+.tile-size { flex: none; font-size: .68rem; color: var(--muted); }
 .pin { position: absolute; top: .2rem; right: .22rem; font-size: .7rem; }
 .tile:has(.pin) { padding-right: 1rem; }
 .tile.timed {
