@@ -14,6 +14,7 @@ Live: https://dash-notes.vercel.app
 - A folder's name or a word for it goes there and is removed: `bring blender` → `- blender` in Bring. Words, including Gboard mishearings, are in `FOLDER_WORDS` in `autofile.js`.
 - A project's own name works too.
 - `I think …` / `I feel …` → Thought, `today was …` → Journal, keeping the words (`FOLDER_CUES`).
+- `now call the dentist` or `asap call the dentist` → Todo as `now: call the dentist`. The planner offers it under **Now…**.
 - Anything else → Todo. Schedule is never picked.
 
 **Home screen:** built-in categories are circles in a "flower" round **Add note**; projects sit above them. Icons are SVG so they stay sharp on e-ink. Under the header are a few to-dos (newest, then the oldest with its age) and today's schedule (the block on now in black). Hold a to-do or schedule line to tick it (`HOLD_TO_DONE_MS`). The document icon opens **Transfer** and the calendar icon opens the **Week planner**. The ☰ menu holds **New project**, **Export**, **Help** and **Log in**. Help's text lives in `index.html`, so update it when behaviour changes.
@@ -39,7 +40,18 @@ No new material after that, early night
 - A block starts with a time or range (`9:00`, `9am`, `10:30 to 12`, or bare `10`/`830` if it follows the block above). Without am/pm, a time earlier than the last one counts as afternoon. Lines without a time are notes under the block above; a comma then a time starts another block.
 - A line starting with a day (`Sun`, `Tomorrow`, `Tue 27 Oct`) starts that day's schedule, so a multi-day paste saves one note per day.
 - Each save adds a version; the newest per day is shown, and unchanged saves are skipped. **All saved** lists every version. ‹ › or swiping steps through days.
-- The box beside each block cycles unmarked → Done → Skipped. Holding it marks **Ran over**, asking for the end time and an optional reason. Marks go to `qn_block_marks`.
+- Tap the box beside a block to mark it **Skipped** or clear that mark. Hold it to mark **Ran over** and enter the actual end time and an optional reason. Marks go to `qn_block_marks`.
+- Use **Woke at…** to restack after a late start. **Ran over…** acts on the current or most recently started block. You can also hold a specific block's mark box. Entering an end time in today's Schedule saves the mark and retimes the rest of the day. Fixed commitments keep their time. Type `Fixed:` at the start of a block title in a handwritten Schedule to preserve its time.
+- At 21:30, **Review today** opens the day review in the planner.
+
+### Week planner
+
+Open the **calendar icon** in Dash's home header. Drag a Todo onto a day's **Untimed** shelf to commit to the day, or into the timeline to give it a time. Scheduling copies the Todo. You can still tick the original in Dash. Click a block to set its goal, pin its time, or describe what finished looks like in **Done =**. Use **Template** to add routine anchors and click a **Working on** goal to set its weekly hours.
+
+- Dashed blocks are suggestions. The planner checks the day's shelf first, then the week tray. It stays below 75% load and respects goal budgets. Click a ghost to schedule it. Old Todos prompt you to split off a first step, and days with at least ten parked AI tutor ideas show a drift badge.
+- **Now…** fits an interruption into today. Up to 15 minutes uses a gap, free time, or a buffer. Longer interruptions restack the day and return bumped blocks to the tray.
+- **Review today** shows the day's blocks with Dash's marks. The week header counts finished blocks that are still unmarked. Apply **NEXT** on a project block and use **Save to Dash** to carry the text into the next timed block for that goal.
+- **Save to Dash** writes the changed days as normal Schedule notes. Log in on both devices to see the saved plan on your phone or Boox.
 
 **Transfer:** three text boxes for copying text between computers, at `/#transfer/1` to `/#transfer/3`. They sync like notes (needs login on both sides), autosave a second after typing, and poll every 5 s (`PAD_POLL_MS`). **Previous** swaps in the last overwritten text (two kept, `PAD_KEEP`). No file support.
 
@@ -67,7 +79,9 @@ Plain HTML, CSS and JS: no framework, no build step. The JS files are plain `<sc
 | `search.js` | Search. |
 | `entries.js` | Notes screen. |
 | `transfer.js` | Transfer pads (hidden categories `Transfer 1`–`3`). |
-| `schedule.js` | Schedule parsing, screen, block marks, home schedule column. Redraws only when a block starts or ends (e-ink flash). |
+| `schedule.js` | Schedule parsing, versioning, restack actions, block marks, and the home schedule column. |
+| `plan.html`, `plan.css`, `plan.js` | Week planner, tray, templates, budgets, and review. |
+| `plan-engine.js` | Timing and restacking shared by the planner and Schedule. |
 | `export.js` | Export and Copy all. |
 | `sync.js` | Supabase sync. |
 | `login.js` | Email-code login. |
