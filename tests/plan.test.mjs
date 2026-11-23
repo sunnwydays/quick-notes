@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { applyOverrun, dayLoad, layoutDay } from '../plan.js';
+import { applyOverrun, dayLoad, editDayWithPin, layoutDay } from '../plan.js';
 
 const block = (id, size, fields = {}) => ({ id, size, tier: 'medium', ...fields });
 const times = ({ blocks }) => blocks.map(({ id, start, until }) => [id, start, until]);
@@ -58,6 +58,19 @@ test('bumps lower priority work first and only fixed pins survive a later wake u
 test('preserves an imported Schedule until the planner changes the day', () => {
   const day = { imported: true, blocks: [block('early', 45, { importedStart: 360, duration: 25 })] };
   assert.deepEqual(times(layoutDay(day)), [['early', 360, 385]]);
+});
+
+test('pinning a block in an imported Schedule preserves the times of nonoverlapping blocks', () => {
+  const task = block('task', 45, { importedStart: 1245 });
+  const review = block('review', 15, { importedStart: 1290 });
+  const windDown = block('wind down', 60, { importedStart: 1320 });
+  const day = { imported: true, wake: '20:45', blocks: [task, review, windDown] };
+  const pinned = { ...windDown, pinned: '22:00' };
+  const updated = editDayWithPin(day, [task, review, pinned], pinned);
+  const layout = layoutDay(updated);
+  assert.deepEqual(times(layout), times(layoutDay(day)));
+  assert.deepEqual(layout.blocks.map((item) => item.pinned ?? null), [null, null, '22:00']);
+  assert.deepEqual(layout.bumped, []);
 });
 
 test('uses the set size for a break even when exercise has a tail', () => {

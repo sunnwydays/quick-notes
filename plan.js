@@ -402,12 +402,25 @@ function markEdited() {
   renderPlanner();
 }
 
-function editDay(day, blocks, preservePrefix = false) {
+function editDay(day, blocks, preserveRestack = false) {
   return {
     ...day, imported: false,
-    blocks: blocks.map(({ importedStart, restackStart, restackUntil, ...block }) => preservePrefix
+    blocks: blocks.map(({ importedStart, restackStart, restackUntil, ...block }) => preserveRestack
       ? { ...block, restackStart, restackUntil } : block),
   };
+}
+
+function editDayWithPin(day, blocks, pinnedBlock) {
+  const pin = planMinutes(pinnedBlock.pinned);
+  const pinEnd = pin + blockDuration(pinnedBlock);
+  const updated = blocks.map(({ restackStart, restackUntil, ...block }) => {
+    const start = day.imported ? block.importedStart : restackStart;
+    if (block.id === pinnedBlock.id || block.shelf || start == null) return block;
+    const end = day.imported ? start + blockDuration(block) : restackUntil ?? start + blockDuration(block);
+    if (end > pin && start < pinEnd) return block;
+    return { ...block, restackStart: start, restackUntil: end };
+  });
+  return editDay(day, updated, true);
 }
 
 function untimedBlock(block) {
@@ -493,7 +506,9 @@ function moveBlock(source, target, changes = {}) {
     plan.tray = plan.tray.filter((item) => item.id !== old.id);
     plan.trayDirty = true;
   }
-  storeDay(target.date, editDay(day, blocks));
+  const updatedDay = pin != null && Object.hasOwn(target, 'pinned')
+    ? editDayWithPin(day, blocks, block) : editDay(day, blocks);
+  storeDay(target.date, updatedDay);
   markEdited();
   return '';
 }
@@ -1254,5 +1269,5 @@ function startPlanner() {
   navigator.storage?.persist?.();
 }
 
-if (typeof module !== 'undefined' && module.exports) module.exports = { layoutDay, applyOverrun, dayLoad };
+if (typeof module !== 'undefined' && module.exports) module.exports = { layoutDay, applyOverrun, dayLoad, editDayWithPin };
 if (typeof document !== 'undefined') startPlanner();
