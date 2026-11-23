@@ -134,7 +134,7 @@ $('home-todos').addEventListener('click', (e) => {
 $('add-project-btn').addEventListener('click', () => {
   const name = (prompt('Project name') || '').trim();
   if (!name) return;
-  if ([...categoryNames(), AUTO].some((c) => c.toLowerCase() === name.toLowerCase())) {
+  if ([...categoryNames(), ...HIDDEN_CATEGORIES, AUTO].some((c) => c.toLowerCase() === name.toLowerCase())) {
     alert(`"${name}" already exists.`);
     return;
   }

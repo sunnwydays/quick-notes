@@ -20,6 +20,10 @@ const BUILT_IN = [...FLOWER, BACK_BURNER];
 // in search or in Export.
 const TRANSFER = 'Transfer';
 const PADS = [1, 2, 3].map((n) => `${TRANSFER} ${n}`);
+const PLAN_WEEK = 'Plan week';
+const PLAN_TEMPLATE = 'Plan template';
+const PLAN_GOALS = 'Plan goals';
+const HIDDEN_CATEGORIES = [...PADS, PLAN_WEEK, PLAN_TEMPLATE, PLAN_GOALS];
 // Line icons (SVG path data, 24x24), drawn in the text colour so they stay crisp
 // on e-ink and turn white on a black button. Display only; the stored (and
 // synced) category name stays plain text. Projects all share the folder.
@@ -161,7 +165,7 @@ function setLabel(el, cat, text = cat) {
 }
 
 function categoryNames() {
-  return data.categories.filter((c) => !c.deletedAt && !PADS.includes(c.name)).map((c) => c.name);
+  return data.categories.filter((c) => !c.deletedAt && !HIDDEN_CATEGORIES.includes(c.name)).map((c) => c.name);
 }
 
 // Projects first (each is its own button), then the built-in categories in BUILT_IN order.
