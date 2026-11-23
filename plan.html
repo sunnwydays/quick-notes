@@ -16,11 +16,20 @@
         <h1>Week planner</h1>
       </div>
       <div class="actions">
+        <button id="week-prev" type="button" aria-label="Previous week">‹</button>
+        <button id="week-today" type="button">This week</button>
+        <button id="week-next" type="button" aria-label="Next week">›</button>
         <button id="sync-status" type="button"></button>
         <button id="login-btn" type="button" hidden>Log in</button>
       </div>
     </header>
-    <section id="week" aria-label="Week"></section>
+    <div class="week-overview">
+      <h2 id="week-range"></h2>
+      <section id="goals" aria-label="Working on"></section>
+    </div>
+    <div class="board-scroll">
+      <section id="week" aria-labelledby="week-range"></section>
+    </div>
   </main>
   <section id="login" class="panel" aria-labelledby="login-title" hidden>
     <button id="login-back" type="button">← Planner</button>
