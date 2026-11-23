@@ -442,7 +442,7 @@ function blockTarget(source) {
   return source.date ? { date: source.date, shelf: Boolean(source.block.shelf) } : {};
 }
 
-// Pressing Delete as the very first thing after opening an existing item deletes it.
+// Pressing Delete as the very first thing after opening an existing item deletes it (as does Delete outside a text field).
 let quickDelete = false;
 
 function openBlockEditor(source, target = blockTarget(source)) {
@@ -2038,11 +2038,14 @@ function startPlanner() {
   $('block-form').addEventListener('change', updateEditorFields);
   $('block-cancel').addEventListener('click', () => $('block-editor').close());
   $('block-delete').addEventListener('click', () => { deleteBlock(editedBlock); $('block-editor').close(); });
-  $('block-editor').addEventListener('keydown', (event) => {
-    if (['Shift', 'Control', 'Alt', 'Meta'].includes(event.key)) return;
+  // On the document, since clicking a blank part of the dialog can leave focus on <body>.
+  document.addEventListener('keydown', (event) => {
+    if (!$('block-editor').open || ['Shift', 'Control', 'Alt', 'Meta'].includes(event.key)) return;
     const armed = quickDelete;
     quickDelete = false;
-    if (armed && event.key === 'Delete' && !event.repeat) {
+    // Outside a text field, Delete always deletes.
+    const typing = event.target.matches('textarea, select, input:not([type=checkbox]):not([type=radio])');
+    if ((armed || !typing) && event.key === 'Delete' && !event.repeat && !$('block-delete').hidden) {
       event.preventDefault();
       $('block-delete').click();
     }
