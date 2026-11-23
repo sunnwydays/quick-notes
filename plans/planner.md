@@ -78,6 +78,17 @@ The week tray needs no storage: **This week** = live `Todo`, **Someday** = `Back
 - Day header: date, phone-off toggle (📵), wake time, template name, pinned events (★).
 - Day footer: load bar and warnings (see Rules).
 
+## Look
+
+Playful and pastel, not Dash's e-ink black-on-white: this page is laptop-only, so it can have colour. Think the cheerfulness of a casual mobile game (bright sky, soft greens, warm sand), without pixel art.
+
+- **Palette:** a pale sky background (`#eaf6ff`-ish), day columns on white with soft rounded corners (12–16px) and a faint pastel border. One pastel per goal: mint, peach, lavender, butter yellow, powder blue, pink. Anchors (meals, routine, sleep) in a warm sand/cream so they read as "ground", gaps as thin pale-grey strips, free/buffer blocks in a very light green, ghosts as a dashed outline in the goal's pastel. Text stays near-black (`#222`) on every block for contrast.
+- **Blocks:** chunky rounded rectangles with a slightly darker bottom edge (2–3px) so they look like physical tiles you pick up. Dragging lifts the block (small scale + soft shadow), the drop target shows a dashed slot. Pins show a small pushpin on the top-right corner; fixed-tier blocks get a thin striped edge.
+- **Type:** Atkinson Hyperlegible (already in `fonts/`) for everything, a bit larger and bolder for block titles. No pixel font.
+- **Feedback:** short, soft transitions (120–180ms) on drop, re-time and load-bar changes. A gentle shake on an invalid drop. The load bar is a rounded pill that goes green → amber → coral, never a harsh red. Warnings are small coloured chips under the day, not banners.
+- **Day headers:** weekday in big friendly text, date small; the phone-off toggle and pinned events (★) sit beside it like badges.
+- Everything still works without colour (shapes, dashes and icons carry the meaning) in case it's ever opened on the Boox.
+
 ## Core mechanics
 
 ### Stacking and timing
