@@ -431,6 +431,9 @@ function blockTarget(source) {
   return source.date ? { date: source.date, shelf: Boolean(source.block.shelf) } : {};
 }
 
+// Pressing Delete as the very first thing after opening an existing item deletes it.
+let quickDelete = false;
+
 function openBlockEditor(source, target = blockTarget(source)) {
   editedBlock = { ...source, target };
   const block = source.block;
@@ -469,6 +472,7 @@ function openBlockEditor(source, target = blockTarget(source)) {
   $('block-main-row').classList.toggle('field-row', !dragged);
   $('block-editor-title').textContent = source.fresh ? 'Add item' : 'Edit item';
   $('block-delete').hidden = Boolean(source.copy || source.fresh);
+  quickDelete = !$('block-delete').hidden;
   $('block-over').hidden = !source.date || block.shelf;
   $('block-error').hidden = true;
   updateEditorFields();
@@ -2023,6 +2027,16 @@ function startPlanner() {
   $('block-form').addEventListener('change', updateEditorFields);
   $('block-cancel').addEventListener('click', () => $('block-editor').close());
   $('block-delete').addEventListener('click', () => { deleteBlock(editedBlock); $('block-editor').close(); });
+  $('block-editor').addEventListener('keydown', (event) => {
+    if (['Shift', 'Control', 'Alt', 'Meta'].includes(event.key)) return;
+    const armed = quickDelete;
+    quickDelete = false;
+    if (armed && event.key === 'Delete' && !event.repeat) {
+      event.preventDefault();
+      $('block-delete').click();
+    }
+  });
+  $('block-editor').addEventListener('pointerdown', () => { quickDelete = false; });
   $('block-over').addEventListener('click', () => {
     $('block-editor').close();
     openRestack(editedBlock.date, editedBlock.block.id);
