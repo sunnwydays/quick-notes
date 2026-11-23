@@ -1715,21 +1715,13 @@ function renderDay(key,{ blocks, bumped }, load, from, until, ghosts) {
     column.classList.add('today');
     timeline.append(element('span', 'now-line'));
   }
-  for (const [i, block] of blocks.entries()) {
+  for (const block of blocks) {
     const tile = renderTile(block, key);
     Object.assign(tile.dataset, { start: block.start, until: block.until });
     tile.classList.toggle('late', afterDeadline(key, block));
     const time = timeTile(tile, block.start, block.until, from);
     if (block.actualUntil != null) time.append(element('span', 'over-badge', '↗'));
     timeline.append(tile);
-    const gap = Math.min(gapAfter(block), (blocks[i + 1]?.start ?? until) - block.until);
-    if (gap > 0 && blocks[i + 1]) {
-      const strip = element('span', 'gap');
-      strip.style.setProperty('--minute', block.until - from);
-      strip.style.setProperty('--duration', gap);
-      strip.title = `${gap} min gap`;
-      timeline.append(strip);
-    }
   }
   for (const ghost of ghosts) {
     const { block } = ghost;

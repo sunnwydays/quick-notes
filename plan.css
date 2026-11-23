@@ -229,11 +229,6 @@ button:disabled { opacity: .55; cursor: default; }
   .timed-label .tile-title { clip-path: inset(50%); }
 }
 .tile.late, .tile.late:hover { background-color: #dddfe1; border-color: #8b9298; text-decoration: line-through; }
-.gap {
-  position: absolute; inset-inline: .32rem 8%; top: calc(var(--minute) * var(--minute-height));
-  height: calc(var(--duration) * var(--minute-height)); border-block: 1px solid #edf0f2;
-  background: #f6f7f8; border-radius: 3px; pointer-events: none;
-}
 .day-footer { padding: .45rem; background: #f8fbfd; border-top: 1px solid var(--line); border-radius: 0 0 var(--radius) var(--radius); }
 .day-footer .warning { margin: .2rem .15rem 0 0; }
 .meter {
