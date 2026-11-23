@@ -306,8 +306,9 @@ document.addEventListener('keydown', (event) => {
   $('plan-undo-btn').click();
 });
 
-function removeFromDay(key, day, remaining) {
-  storeDay(key, day.imported ? { ...day, blocks: remaining } : editDay(day, remaining));
+function removeFromDay(key, id) {
+  const day = plan.days[key];
+  storeDay(key, lockShownTimes(day, day.blocks.filter((block) => block.id !== id)));
 }
 
 function storeDay(key, day, bumpToTray = false) {
@@ -388,10 +389,19 @@ function moveBlock(source, target, changes = {}, { copy = false } = {}) {
     delete changed.actualStart;
     delete changed.actualUntil;
   }
+  // Every other block keeps the time it shows now; only this one moves.
+  const sameDay = source.date === target.date && !copy;
+  if (sameDay) {
+    const shown = layoutDay(plan.days[source.date]).blocks.find((block) => block.id === old.id);
+    if (shown && !old.pinned && old.actualStart == null) changed.restackStart = shown.start;
+  } else {
+    delete changed.restackStart;
+    delete changed.restackUntil;
+  }
   const origin = source.date && plan.days[source.date];
   const remaining = origin?.blocks.filter((block) => block.id !== old.id);
   if (!target.date) {
-    if (origin && !copy) removeFromDay(source.date, origin, remaining);
+    if (origin && !copy) removeFromDay(source.date, old.id);
     plan.tray = plan.tray.filter((block) => block.id !== old.id);
     plan.tray.push(untimedBlock(changed));
     plan.trayDirty = true;
@@ -403,26 +413,29 @@ function moveBlock(source, target, changes = {}, { copy = false } = {}) {
   // A block that is placed or (un)pinned starts fresh: its old actual times no longer apply.
   const moved = !target.shelf && (target.at != null || target.pin != null);
   let block;
+  let stay = null;
   if (target.shelf) block = untimedBlock(changed);
   else if (!moved) block = { ...changed, shelf: false };
   else {
-    const { actualStart, actualUntil, ...fresh } = changed;
+    const { actualStart, actualUntil, restackStart, restackUntil, ...fresh } = changed;
     const pinned = target.pin ?? planMinutes(changed.pinned) != null;
     block = { ...fresh, shelf: false, pinned: pinned ? target.at ?? changed.pinned : null };
+    // Unpinning without a new time leaves the block where it was.
+    if (sameDay && target.at == null) stay = restackStart ?? planMinutes(changed.pinned);
   }
-  const placeAt = target.shelf ? null : planMinutes(target.at) ?? planMinutes(block.pinned);
+  const placeAt = target.shelf ? null : planMinutes(target.at) ?? planMinutes(block.pinned) ?? stay;
   if (placeAt != null && placeAt + blockDuration(block) > DAY_END) return 'Choose a time that ends by midnight.';
   const probe = placeAt != null ? { ...block, pinned: blockKey(placeAt) } : block;
   const keepsActual = !copy && source.date === target.date && block.actualStart != null;
   if (!keepsActual && pinCollision(probe, blocks)) return 'That time overlaps another pinned block.';
   const index = blocks.findIndex((item) => item.id === target.before);
   blocks.splice(index < 0 ? blocks.length : index, 0, block);
-  if (origin && source.date !== target.date && !copy) removeFromDay(source.date, origin, remaining);
+  if (origin && source.date !== target.date && !copy) removeFromDay(source.date, old.id);
   if (source.parked && !copy) {
     plan.tray = plan.tray.filter((item) => item.id !== old.id);
     plan.trayDirty = true;
   }
-  storeDay(target.date, moved && placeAt != null ? placeInDay(day, blocks, block, placeAt) : editDay(day, blocks));
+  storeDay(target.date, moved && placeAt != null ? placeInDay(day, blocks, block, placeAt) : lockShownTimes(day, blocks));
   markEdited();
   return '';
 }
@@ -468,8 +481,7 @@ function deleteBlock(source) {
   if (source.copy) removeNote(source.entry.id, 'deleted');
   else if (source.date) {
     removeNote(source.block.todoId, 'deleted');
-    const day = plan.days[source.date];
-    removeFromDay(source.date, day, day.blocks.filter((block) => block.id !== source.block.id));
+    removeFromDay(source.date, source.block.id);
   } else {
     removeNote(source.block.todoId, 'deleted');
     plan.tray = plan.tray.filter((block) => block.id !== source.block.id);
@@ -662,7 +674,7 @@ function applyBlockEditor(event) {
     before = stack.find((b) => b.pinned && b.start >= cutoff)?.id;
   }
   const target = { date, shelf, before };
-  if (date && (date !== editedBlock.date || pinChanged || resized)) Object.assign(target, { at: time ?? undefined, pin: pinned != null });
+  if (date && (date !== editedBlock.date || pinChanged)) Object.assign(target, { at: time ?? undefined, pin: pinned != null });
   const todo = editedBlock.fresh && !original.todoId && !NOT_TASKS.has(changes.kind) ? linkTodo(text) : null;
   if (todo) changes.todoId = todo.entry.id;
   const error = moveBlock(editedBlock, target, changes);
@@ -1122,7 +1134,8 @@ function updateTemplateFields() {
 
 function replaceTemplate(day, name, template, event) {
   const positions = new Map(layoutDay(day).blocks.map((block) => [block.id, block.start]));
-  const kept = day.blocks.filter((block) => !block.templateAnchor);
+  const shown = lockShownTimes(day);
+  let kept = shown.blocks.filter((block) => !block.templateAnchor);
   let anchors = (template?.anchors || []).map(templateAnchor);
   const eventAt = event ? planMinutes(event.start) : null;
   if (event) {
@@ -1139,13 +1152,16 @@ function replaceTemplate(day, name, template, event) {
     }
     positions.set(anchor.id, planMinutes(anchor.pinned));
   }
+  // Blocks keep their times, except ones a new anchor lands on: those move to the next free spot.
+  const lockedAt = (block) => block.restackStart != null ? { ...block, pinned: blockKey(block.restackStart) } : block;
+  kept = kept.map((block) => pinCollision(lockedAt(block), anchors) ? unlocked(block) : block);
   const blocks = [...kept, ...anchors].sort((a, b) => (positions.get(a.id) ?? Infinity) - (positions.get(b.id) ?? Infinity));
   return { day: editDay({
     ...day, template: name, wake: template?.wake || '07:00', startOffset: template?.startOffset,
     deepCap: template?.deepCap, workStart: template?.workStart, workCap: template?.workCap,
     workEnd: template?.workBeforeEvent ? eventAt - 30 : undefined,
     noNewAfter: template?.noNewAfter, noGhosts: template?.noGhosts,
-  }, blocks) };
+  }, blocks, true) };
 }
 
 function applyTemplateEditor(event) {
@@ -1643,6 +1659,29 @@ document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') closeDayMenus();
 });
 
+// Overlapping blocks share the column side by side: [lane, lanes in its overlap group].
+function overlapLanes(blocks) {
+  const lanes = new Map();
+  let group = [];
+  let ends = [];
+  let groupEnd = -Infinity;
+  const close = () => group.forEach(([id, lane]) => lanes.set(id, [lane, ends.length]));
+  for (const block of blocks) {
+    if (block.start >= groupEnd) {
+      close();
+      group = [];
+      ends = [];
+    }
+    let lane = ends.findIndex((end) => end <= block.start);
+    if (lane < 0) lane = ends.length;
+    ends[lane] = block.until;
+    group.push([block.id, lane]);
+    groupEnd = Math.max(groupEnd, block.until);
+  }
+  close();
+  return lanes;
+}
+
 function renderDay(key,{ blocks, bumped }, load, from, until, ghosts) {
   const date = keyDate(key);
   const day = plan.days[key];
@@ -1709,9 +1748,16 @@ function renderDay(key,{ blocks, bumped }, load, from, until, ghosts) {
     column.classList.add('today');
     timeline.append(element('span', 'now-line'));
   }
+  const lanes = overlapLanes(blocks);
   for (const [i, block] of blocks.entries()) {
     const tile = renderTile(block, key);
     Object.assign(tile.dataset, { start: block.start, until: block.until });
+    const [lane, laneCount] = lanes.get(block.id);
+    if (laneCount > 1) {
+      tile.classList.add('laned');
+      tile.style.setProperty('--lane', lane);
+      tile.style.setProperty('--lanes', laneCount);
+    }
     tile.classList.toggle('late', afterDeadline(key, block));
     const time = timeTile(tile, block.start, block.until, from);
     if (block.actualUntil != null) time.append(element('span', 'over-badge', '↗'));
@@ -1862,12 +1908,14 @@ function plannerDropTarget(event, source) {
   if (tile && date === source.date && tile.dataset.id === source.block.id) return null;
   if (slot.matches('[data-shelf]')) return { date, shelf: true, before: tile?.dataset.id, indicator: slot };
   const stack = layoutDay(plan.days[date]).blocks;
+  // Dropped on a tile: sit right after it (or end right as it starts), leaving it where it is.
   if (tile) {
     const index = stack.findIndex((block) => block.id === tile.dataset.id);
     const rect = tile.getBoundingClientRect();
     const after = event.clientY > rect.top + rect.height / 2;
     const next = stack.slice(index + Number(after)).find((block) => block.id !== source.block.id);
-    return { date, before: next?.id, pin: false, indicator: tile, after };
+    const at = after ? Number(tile.dataset.until) : Math.max(0, Number(tile.dataset.start) - blockDuration(source.block));
+    return { date, before: next?.id, at: blockKey(at), pin: false, indicator: tile, after };
   }
   const dragged = activeDrag?.tile;
   const length = dragged?.dataset.until ? Number(dragged.dataset.until) - Number(dragged.dataset.start) : 0;
@@ -1883,7 +1931,7 @@ function showDropTarget(target) {
   const indicator = target?.indicator;
   indicator?.classList.add('drop-target');
   if (target?.after) indicator.classList.add('drop-after');
-  if (target?.at != null) indicator.style.setProperty('--drop-minute', planMinutes(target.at) - Number(indicator.dataset.from));
+  if (target?.at != null && indicator.dataset.from) indicator.style.setProperty('--drop-minute', planMinutes(target.at) - Number(indicator.dataset.from));
   activeDrag.target = target;
 }
 

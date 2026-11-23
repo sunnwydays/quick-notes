@@ -36,7 +36,7 @@ function placeBlocks(day, stack) {
   const wake = Math.max((planMinutes(day.wake) ?? PLAN_START) + (day.startOffset ?? 0), day.workStart ?? 0);
   const anchors = stack.flatMap((block) => {
     const start = block.actualStart ?? block.restackStart ?? planMinutes(block.pinned);
-    return start === null ? [] : [{ ...block, start, until: block.actualUntil ?? block.restackUntil ?? start + blockDuration(block) }];
+    return start === null ? [] : [{ ...block, start, until: block.actualUntil ?? start + blockDuration(block) }];
   }).sort((a, b) => a.start - b.start);
   const byId = new Map(anchors.map((block) => [block.id, block]));
   let cursor = wake;
@@ -117,7 +117,7 @@ function applyOverrun(day, id, endedAt) {
   const timed = layout.blocks.find((block) => block.id === id);
   if (!timed || !Number.isInteger(endedAt) || endedAt <= timed.start || endedAt >= PLAN_END) return null;
   const locked = layout.blocks.filter((block) => block.start < timed.start || block.tier === 'fixed');
-  const blocks = lockRestackTimes(day.blocks, locked).map((block) => block.id === id
+  const blocks = lockRestackTimes(day.blocks.map(unlocked), locked).map((block) => block.id === id
     ? { ...block, actualStart: timed.start, actualUntil: endedAt } : block);
   const starts = new Map(layout.blocks.map((block) => [block.id, block.start]));
   blocks.sort((a, b) => (starts.get(a.id) ?? Infinity) - (starts.get(b.id) ?? Infinity));
@@ -187,19 +187,30 @@ function toggleBlockPin(day, id, pinned) {
   };
 }
 
-// Place a block at a time and keep the rest of the day where it is. An
-// unpinned block holds the time only until the stack is next re-timed.
+function unlocked({ restackStart, restackUntil, ...block }) {
+  return block;
+}
+
+// Write each timed block's shown time onto it (`blocks` is the day's edited list),
+// so an edit moves only the block it touches. Bumped blocks go to the shelf.
+function lockShownTimes(day, blocks = day.blocks) {
+  const { blocks: timed, bumped } = layoutDay(day);
+  const starts = new Map(timed.map((block) => [block.id, block.start]));
+  const bumpedIds = new Set(bumped.map((block) => block.id));
+  return editDay(day, blocks.map((block) => {
+    if (bumpedIds.has(block.id) && !block.shelf) return { ...untimedBlock(block), bumped: true };
+    const start = block.restackStart ?? starts.get(block.id);
+    if (block.shelf || block.pinned || block.actualStart != null || start == null) return block;
+    return { ...block, restackStart: start, restackUntil: start + blockDuration(block) };
+  }), true);
+}
+
+// Place a block at a time and keep the rest of the day where it is, overlaps included.
 function placeInDay(day, blocks, placed, at = planMinutes(placed.pinned)) {
-  const end = at + blockDuration(placed);
-  const updated = blocks.map(({ restackStart, restackUntil, ...block }) => {
-    if (block.id === placed.id) return block.pinned ? block : { ...block, restackStart: at, restackUntil: end };
-    const start = day.imported ? block.importedStart : restackStart;
-    if (block.shelf || start == null) return block;
-    const until = day.imported ? start + blockDuration(block) : restackUntil ?? start + blockDuration(block);
-    if (until > at && start < end) return block;
-    return { ...block, restackStart: start, restackUntil: until };
-  });
-  return editDay(day, updated, true);
+  const rest = blocks.map((block) => block.id === placed.id ? unlocked(block) : block);
+  const locked = lockShownTimes(day, rest);
+  return { ...locked, blocks: locked.blocks.map((block) => block.id !== placed.id || block.pinned ? block
+    : { ...block, restackStart: at, restackUntil: at + blockDuration(block) }) };
 }
 
 function untimedBlock(block) {
@@ -398,7 +409,7 @@ function insertPopup(day, popup, minute) {
   const displaced = blocks.filter((block) => block.pinned && !keep.includes(block) &&
     block.start < start + duration && start < block.until);
   const displacedIds = new Set(displaced.map((block) => block.id));
-  const stack = lockRestackTimes(day.blocks.filter((block) => !displacedIds.has(block.id)), keep);
+  const stack = lockRestackTimes(day.blocks.filter((block) => !displacedIds.has(block.id)).map(unlocked), keep);
   const next = blocks.find((block) => block.start >= boundary && !displacedIds.has(block.id));
   const at = next ? stack.findIndex((block) => block.id === next.id) : stack.length;
   stack.splice(at, 0, { ...popup, restackStart: start, restackUntil: start + duration });
@@ -410,6 +421,6 @@ function insertPopup(day, popup, minute) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { layoutDay, applyOverrun, applyWake, dayLoad, placeInDay, toggleBlockPin, suggestGhosts, insertPopup,
-    restackBeforeScreensOff };
+  module.exports = { layoutDay, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, toggleBlockPin, suggestGhosts,
+    insertPopup, restackBeforeScreensOff };
 }

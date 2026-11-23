@@ -191,9 +191,15 @@ button:disabled { opacity: .55; cursor: default; }
 .pin { position: absolute; top: .2rem; right: .22rem; font-size: .7rem; }
 .tile:has(.pin) { padding-right: 1rem; }
 .tile.timed {
-  position: absolute; inset-inline: .32rem 8%; overflow: hidden; width: auto;
+  --tile-left: .32rem; --tile-right: 8%;
+  position: absolute; inset-inline: var(--tile-left) var(--tile-right); overflow: hidden; width: auto;
   height: calc(var(--duration) * var(--minute-height)); padding-block: 0; font-size: .94rem;
   display: flex; flex-direction: column;
+}
+.tile.timed.laned {
+  --span: calc(100% - var(--tile-left) - var(--tile-right));
+  inset-inline: calc(var(--tile-left) + var(--span) * var(--lane) / var(--lanes))
+    calc(var(--tile-right) + var(--span) * (var(--lanes) - var(--lane) - 1) / var(--lanes));
 }
 .tile.ghost:hover { opacity: .6; }
 .tile.ghost { cursor: pointer; opacity: .35; }
@@ -408,7 +414,7 @@ label.choice:has(input:checked) { border-color: #5b8aa6; background: #eef6fb; }
   .time-gutter { display: none; }
   .hour { inset-inline: 0; }
   .hour-label { display: inline; }
-  .tile.timed { inset-inline-start: 2.6rem; }
+  .tile.timed { --tile-left: 2.6rem; }
   .gap, .now-line { inset-inline-start: 2.6rem; }
   .day.selected { display: block; grid-row: 1; overflow-y: auto; overscroll-behavior: contain; }
   .day-head h3 { font-size: 1.05rem; }

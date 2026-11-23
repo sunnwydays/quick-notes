@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { applyOverrun, applyWake, dayLoad, placeInDay, insertPopup, layoutDay, restackBeforeScreensOff, suggestGhosts, toggleBlockPin } from '../plan-engine.js';
+import { applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, insertPopup, layoutDay, restackBeforeScreensOff, suggestGhosts, toggleBlockPin } from '../plan-engine.js';
 
 const block = (id, size, fields = {}) => ({ id, size, tier: 'medium', ...fields });
 const times = ({ blocks }) => blocks.map(({ id, start, until }) => [id, start, until]);
@@ -206,4 +206,20 @@ test('a block placed at a time without a pin keeps that time until the stack is 
   const layout = layoutDay(updated);
   assert.deepEqual(times(layout).find(([id]) => id === 'drop'), ['drop', 840, 885]);
   assert.equal(layout.blocks.find((item) => item.id === 'drop').pinned, null);
+});
+
+test('deleting or resizing a block leaves every other block at the time it showed', () => {
+  const day = toggleBlockPin({ blocks: [
+    block('breakfast', 30), block('commute', 46, { restackStart: 809 }), block('cardio', 45, { pinned: '14:15', tail: 10 }),
+  ] }, 'cardio', '14:15');
+  const deleted = lockShownTimes(day, day.blocks.filter(({ id }) => id !== 'cardio'));
+  assert.deepEqual(times(layoutDay(deleted)), [['breakfast', 420, 450], ['commute', 809, 855]]);
+  const resized = lockShownTimes(day, day.blocks.map((b) => b.id === 'breakfast' ? { ...b, size: 90 } : b));
+  assert.deepEqual(times(layoutDay(resized)), [['breakfast', 420, 510], ['commute', 809, 855], ['cardio', 855, 910]]);
+});
+
+test('placing a block over another leaves the other one where it was', () => {
+  const day = { blocks: [block('one', 30), block('two', 60, { restackStart: 600 })] };
+  const placed = placeInDay(day, day.blocks, day.blocks[0], 610);
+  assert.deepEqual(times(layoutDay(placed)), [['two', 600, 660], ['one', 610, 640]]);
 });
