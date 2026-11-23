@@ -156,12 +156,14 @@ function toggleBlockPin(day, id, pinned) {
   };
 }
 
-function editDayWithPin(day, blocks, pinnedBlock) {
-  const pin = planMinutes(pinnedBlock.pinned);
+// Place a block at a time and keep the rest of the day where it is. An
+// unpinned block holds the time only until the stack is next re-timed.
+function editDayWithPin(day, blocks, pinnedBlock, pin = planMinutes(pinnedBlock.pinned)) {
   const pinEnd = pin + blockDuration(pinnedBlock);
   const updated = blocks.map(({ restackStart, restackUntil, ...block }) => {
+    if (block.id === pinnedBlock.id) return block.pinned ? block : { ...block, restackStart: pin, restackUntil: pinEnd };
     const start = day.imported ? block.importedStart : restackStart;
-    if (block.id === pinnedBlock.id || block.shelf || start == null) return block;
+    if (block.shelf || start == null) return block;
     const end = day.imported ? start + blockDuration(block) : restackUntil ?? start + blockDuration(block);
     if (end > pin && start < pinEnd) return block;
     return { ...block, restackStart: start, restackUntil: end };

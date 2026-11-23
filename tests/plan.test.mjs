@@ -188,3 +188,12 @@ test('a short interruption uses only the time it needs from a pinned buffer', ()
     ['buffer', 600, 610], ['popup', 610, 625], ['popup-free', 625, 645], ['meal', 645, 675],
   ]);
 });
+
+test('a block placed at a time without a pin keeps that time until the stack is re-timed', () => {
+  const day = { blocks: [block('lunch', 50, { pinned: '11:30', tier: 'fixed' }), block('free', 30)] };
+  const dropped = block('drop', 45, { pinned: null });
+  const updated = editDayWithPin(day, [...day.blocks, dropped], dropped, 14 * 60);
+  const layout = layoutDay(updated);
+  assert.deepEqual(times(layout).find(([id]) => id === 'drop'), ['drop', 840, 885]);
+  assert.equal(layout.blocks.find((item) => item.id === 'drop').pinned, null);
+});

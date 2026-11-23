@@ -291,8 +291,11 @@ function moveBlock(source, target, changes = {}) {
     block = { ...unpinned, pinned: target.pinned };
   }
   const pin = planMinutes(block.pinned);
-  if (pin != null && pin + blockDuration(block) > DAY_END) return 'Choose a time that ends by midnight.';
-  if (!(source.date === target.date && block.actualStart != null && !Object.hasOwn(target, 'pinned')) && pinCollision(block, blocks)) {
+  // A drop from the tray or Untimed lands at the time without pinning.
+  const at = pin ?? (target.shelf ? null : planMinutes(target.place));
+  if (at != null && at + blockDuration(block) > DAY_END) return 'Choose a time that ends by midnight.';
+  const probe = pin == null && at != null ? { ...block, pinned: target.place } : block;
+  if (!(source.date === target.date && block.actualStart != null && !Object.hasOwn(target, 'pinned')) && pinCollision(probe, blocks)) {
     return 'That time overlaps another pinned block.';
   }
   const at = blocks.findIndex((item) => item.id === target.before);
@@ -302,8 +305,8 @@ function moveBlock(source, target, changes = {}) {
     plan.tray = plan.tray.filter((item) => item.id !== old.id);
     plan.trayDirty = true;
   }
-  const updatedDay = pin != null && Object.hasOwn(target, 'pinned')
-    ? editDayWithPin(day, blocks, block) : editDay(day, blocks);
+  const updatedDay = at != null && (Object.hasOwn(target, 'pinned') || pin == null)
+    ? editDayWithPin(day, blocks, block, at) : editDay(day, blocks);
   storeDay(target.date, updatedDay);
   markEdited();
   return '';
@@ -1225,7 +1228,11 @@ function endDrag(event) {
   if (!moved || event.type !== 'pointerup') return;
   tile.dataset.dragged = 'true';
   setTimeout(() => delete tile.dataset.dragged, 0);
-  const target = plannerDropTarget(event, source);
+  let target = plannerDropTarget(event, source);
+  if (target?.time != null && (!source.date || source.block.shelf)) {
+    const { pinned, ...rest } = target;
+    target = { ...rest, place: pinned };
+  }
   const error = target && moveBlock(source, target);
   if (!error && target?.indicator?.matches('[data-tab-day]')) selectDay(target.date);
   if (error) {
