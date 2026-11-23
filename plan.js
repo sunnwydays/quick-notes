@@ -452,7 +452,7 @@ function openBlockEditor(source, target = blockTarget(source)) {
   fields.pin.checked = Boolean(block.pinned);
   fields.time.value = start;
   const end = blockKey(planMinutes(start) + blockDuration(block));
-  $('block-where').textContent = !date ? 'This week tray' : `${dayLabel(date)} · ${timed ? `${start}–${end}` : 'Untimed'}`;
+  $('block-where').textContent = !date ? 'This week tray' : `${dayLabel(date)} · ${timed ? `${start}–${end}` : 'To do'}`;
   $('pin-fields').hidden = !timed;
   $('block-more').open = false;
   // A drag already chose the time and length, so they sit at the top of More there.
@@ -1510,7 +1510,7 @@ function renderDay(key,{ blocks, bumped }, load, from, until, ghosts) {
   if (dayActions.children.length) head.append(dayActions);
   const shelf = element('div', 'shelf');
   shelf.dataset.shelf = '';
-  shelf.append(element('h4', 'shelf-title', 'Untimed'));
+  shelf.append(element('h4', 'shelf-title', 'To do'));
   for (const block of day.blocks.filter((block) => block.shelf)) shelf.append(renderTile(block, key));
   for (const block of bumped) {
     const tile = renderTile(block, key);

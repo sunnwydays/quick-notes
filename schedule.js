@@ -255,7 +255,7 @@ function scheduleText(key, day) {
   const lines = [datedScheduleHeading(key)];
   for (const block of untimed) {
     const text = block.done ? `${block.text} (done = ${block.done})` : block.text;
-    lines.push(scheduleNoteLine(text, 'Untimed'));
+    lines.push(scheduleNoteLine(text, 'To do'));
   }
   for (const block of blocks) {
     const text = block.done ? `${block.text} (done = ${block.done})` : block.text;
@@ -331,7 +331,7 @@ function restackSavedSchedule(key, expectedId, { wake, over, fields }) {
   const status = $('schedule-restack-status');
   status.dataset.day = key;
   status.hidden = false;
-  status.textContent = bumped.length ? `Moved to Untimed · ${bumped.map((block) => block.text).join(', ')}` : 'Schedule restacked.';
+  status.textContent = bumped.length ? `Moved to To do · ${bumped.map((block) => block.text).join(', ')}` : 'Schedule restacked.';
   sync();
 }
 

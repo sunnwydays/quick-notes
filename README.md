@@ -53,7 +53,7 @@ Open the **calendar icon** in Dash's home header. Drag a Todo onto a day's **Unt
 - **Review today** shows the day's blocks with Dash's marks. The week header counts finished blocks that are still unmarked. Apply **NEXT** on a project block to carry the text into the next timed block for that goal.
 - On a phone or Boox (under 700px wide) the planner shows the tray beside one day. Switch days with the tabs, or drop a block on a tab to move it to that day. Tap **Goals** to show the goal chips.
 - The planner saves itself a second after each change, writing changed days as normal Schedule notes (no save button). Log in on both devices to see the plan on your phone or Boox.
-- Items added in the planner (**+**, an Untimed shelf, or drawing on a timeline) are also added to Todo, unless their kind is Free, Buffer, Meal or Routine; an existing Todo with the same text is linked instead.
+- Items added in the planner (**+**, a To do shelf, or drawing on a timeline) are also added to Todo, unless their kind is Free, Buffer, Meal or Routine; an existing Todo with the same text is linked instead.
 
 **Transfer:** three text boxes for copying text between computers, at `/#transfer/1` to `/#transfer/3`. They sync like notes (needs login on both sides), autosave a second after typing, and poll every 5 s (`PAD_POLL_MS`). **Previous** swaps in the last overwritten text (two kept, `PAD_KEEP`). No file support.
 
