@@ -178,7 +178,10 @@ button:disabled { opacity: .55; cursor: default; }
 .tile.timed {
   --tile-left: .32rem; --tile-right: 8%;
   position: absolute; inset-inline: var(--tile-left) var(--tile-right); overflow: hidden; width: auto;
-  height: calc(var(--duration) * var(--minute-height)); padding-block: 0; border-bottom-width: 1px; font-size: .94rem;
+  height: calc(var(--duration) * var(--minute-height)); border-bottom-width: 1px; font-size: .94rem;
+  /* Taper the top padding on short blocks so the title still fits. */
+  padding-block: clamp(0px, calc(var(--duration) * var(--minute-height) - 1.25rem), .25rem) 0;
+  padding-left: .65rem;
   display: flex; flex-direction: column;
 }
 .tile.ghost:hover { opacity: .6; }
