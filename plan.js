@@ -455,9 +455,7 @@ function openBlockEditor(source, target = blockTarget(source)) {
   fields.next.value = block.next;
   fields.tail.value = block.tail;
   fillOptions(fields.kind, Object.entries(BLOCK_KINDS), block.kind || '');
-  const sizes = PLAN_SIZES.map((size) => [size, `${size} min`]);
-  if (block.duration != null) sizes.unshift(['original', `${block.duration} min${source.fresh ? '' : ' (original)'}`]);
-  fillOptions(fields.size, sizes, block.duration != null ? 'original' : String(block.size));
+  setScrub(fields.size, block.duration ?? block.size);
   const goals = plannerGoals().map((item) => [item.id, bare(item.text)]);
   if (block.goal && !goals.some(([id]) => id === block.goal)) goals.push([block.goal, 'Archived goal']);
   fillOptions(fields.goal, [['', 'No goal'], ...goals], block.goal || '');
@@ -490,6 +488,46 @@ function openBlockEditor(source, target = blockTarget(source)) {
   $('block-editor').showModal();
 }
 
+// Length is a scrub field: drag sideways to change it, or click to type a number.
+const SCRUB_PX = 6; // pixels of drag per 5 minutes
+
+function setScrub(input, value) {
+  input.value = value;
+  input.closest('.scrub').style.setProperty('--shift', `${-value / 5 * SCRUB_PX}px`);
+}
+
+function initScrub(input) {
+  const scrub = input.closest('.scrub');
+  let drag = null;
+  scrub.addEventListener('pointerdown', (event) => {
+    if (document.activeElement === input) return;
+    event.preventDefault();
+    drag = { x: event.clientX, value: Number(input.value) || 0, moved: false };
+    scrub.setPointerCapture(event.pointerId);
+    scrub.classList.add('dragging');
+  });
+  scrub.addEventListener('pointermove', (event) => {
+    if (!drag) return;
+    const dx = event.clientX - drag.x;
+    if (Math.abs(dx) > 3) drag.moved = true;
+    if (!drag.moved) return;
+    const steps = Math.round(dx / SCRUB_PX);
+    const value = Math.min(Number(input.max), Math.max(Number(input.min), Math.round(drag.value / 5) * 5 + steps * 5));
+    if (value !== Number(input.value)) setScrub(input, value);
+  });
+  const end = () => {
+    if (!drag) return;
+    if (!drag.moved) { input.focus(); input.select(); }
+    drag = null;
+    scrub.classList.remove('dragging');
+  };
+  scrub.addEventListener('pointerup', end);
+  scrub.addEventListener('pointercancel', end);
+  // Stops the surrounding label from focusing the field after a drag.
+  scrub.addEventListener('click', (event) => { if (event.target !== input) event.preventDefault(); });
+  input.addEventListener('input', () => setScrub(input, input.value));
+}
+
 function updateEditorFields() {
   const fields = $('block-form').elements;
   fields.pin.disabled = $('pin-fields').hidden;
@@ -510,12 +548,13 @@ function applyBlockEditor(event) {
   // A dragged item keeps the time it was drawn at (or the one typed over it), pinned or not.
   const time = pinned ?? (editedBlock.target.at == null ? null : fields.time.value);
   const day = plan.days[date];
-  const size = fields.size.value;
+  const size = Number(fields.size.value);
+  const resized = size !== (original.duration ?? original.size);
   // Done and deadline are no longer edited here, so existing values carry over untouched.
   const changes = {
     text, next: fields.next.value.trim(), goal: fields.goal.value || null,
     tail: Number(fields.tail.value), kind: fields.kind.value || undefined,
-    ...size === 'original' ? {} : { size: Number(size), duration: undefined },
+    ...resized ? { size, duration: undefined } : {},
   };
   const unchanged = (key) => (changes[key] ?? null) === (original[key] ?? null);
   if (!editedBlock.fresh && Object.keys(changes).every(unchanged)) {
@@ -543,7 +582,6 @@ function applyBlockEditor(event) {
     before = stack.find((b) => b.pinned && b.start >= cutoff)?.id;
   }
   const target = { date, shelf, before };
-  const resized = size !== 'original' && Number(size) !== original.size;
   if (date && (date !== editedBlock.date || pinChanged || resized)) Object.assign(target, { at: time ?? undefined, pin: pinned != null });
   const todo = editedBlock.fresh && !original.todoId && !NOT_TASKS.has(changes.kind) ? linkTodo(text) : null;
   if (todo) changes.todoId = todo.entry.id;
@@ -2035,6 +2073,7 @@ function startPlanner() {
   $('review-form').addEventListener('submit', applyDayReview);
   $('review-cancel').addEventListener('click', () => $('review-editor').close());
   $('block-form').addEventListener('submit', applyBlockEditor);
+  initScrub($('block-form').elements.size);
   $('block-form').addEventListener('change', updateEditorFields);
   $('block-cancel').addEventListener('click', () => $('block-editor').close());
   $('block-delete').addEventListener('click', () => { deleteBlock(editedBlock); $('block-editor').close(); });
