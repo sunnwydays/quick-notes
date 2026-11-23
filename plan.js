@@ -1044,8 +1044,10 @@ function renderDay(key, { blocks, bumped }, load, from, until, ghosts, drift) {
   for (const ghost of ghosts) {
     const { block } = ghost;
     const time = blockKey(block.start);
-    const tile = plannerButton(`${time} · ${block.text}`, () => acceptGhost(ghost), 'tile timed ghost');
-    tile.title = `Schedule ${block.text} at ${time}`;
+    const tile = plannerButton('', () => acceptGhost(ghost), 'tile timed ghost');
+    tile.append(element('span', 'ghost-text', `${time} · ${block.text}`));
+    tile.title = `Schedule at ${time}
+${block.text}`;
     tile.style.setProperty('--tile-colour', blockColour(block));
     tile.style.setProperty('--minute', block.start - from);
     tile.style.setProperty('--duration', block.until - block.start);

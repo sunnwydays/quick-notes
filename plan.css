@@ -275,3 +275,4 @@ dialog input:not([type="checkbox"]), dialog select, #login input {
   .tile, .meter-fill { transition: none; }
   .invalid-drop { animation-duration: 1ms; }
 }
+.ghost-text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
