@@ -292,9 +292,9 @@ function moveBlock(source, target, changes = {}) {
   }
   const pin = planMinutes(block.pinned);
   // A drop from the tray or Untimed lands at the time without pinning.
-  const at = pin ?? (target.shelf ? null : planMinutes(target.place));
-  if (at != null && at + blockDuration(block) > DAY_END) return 'Choose a time that ends by midnight.';
-  const probe = pin == null && at != null ? { ...block, pinned: target.place } : block;
+  const placeAt = pin ?? (target.shelf ? null : planMinutes(target.place));
+  if (placeAt != null && placeAt + blockDuration(block) > DAY_END) return 'Choose a time that ends by midnight.';
+  const probe = pin == null && placeAt != null ? { ...block, pinned: target.place } : block;
   if (!(source.date === target.date && block.actualStart != null && !Object.hasOwn(target, 'pinned')) && pinCollision(probe, blocks)) {
     return 'That time overlaps another pinned block.';
   }
@@ -305,8 +305,8 @@ function moveBlock(source, target, changes = {}) {
     plan.tray = plan.tray.filter((item) => item.id !== old.id);
     plan.trayDirty = true;
   }
-  const updatedDay = at != null && (Object.hasOwn(target, 'pinned') || pin == null)
-    ? editDayWithPin(day, blocks, block, at) : editDay(day, blocks);
+  const updatedDay = placeAt != null && (Object.hasOwn(target, 'pinned') || pin == null)
+    ? editDayWithPin(day, blocks, block, placeAt) : editDay(day, blocks);
   storeDay(target.date, updatedDay);
   markEdited();
   return '';
