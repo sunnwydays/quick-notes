@@ -1446,6 +1446,7 @@ function renderDay(key,{ blocks, bumped }, load, from, until, ghosts, drift) {
       tile.style.setProperty('--tail', block.tail);
       tile.append(element('span', 'tail', `+${block.tail}m`));
     }
+    tile.append(element('span', 'resize'));
     timeline.append(tile);
     const gap = Math.min(gapAfter(block), (blocks[i + 1]?.start ?? until) - block.until);
     if (gap > 0 && blocks[i + 1]) {
@@ -1680,6 +1681,19 @@ function endDraft(event) {
 function startDrag(event) {
   lastPointerType = event.pointerType;
   if (event.button !== 0 || activeDrag) return;
+  const handle = event.target.closest('.resize');
+  if (handle) {
+    const tile = handle.closest('.tile');
+    const source = blockSource(tile);
+    if (!source?.block) return;
+    event.preventDefault();
+    clearTimeout(tileClick);
+    handle.setPointerCapture(event.pointerId);
+    activeDrag = { resize: true, tile, source, timeline: tile.closest('.timeline'), pointer: event.pointerId,
+      start: Number(tile.dataset.start), until: Number(tile.dataset.until), moved: false };
+    activeDrag.end = activeDrag.until;
+    return;
+  }
   const tile = event.target.closest('.tile[data-id]');
   if (!tile) {
     startDraft(event);
@@ -1694,6 +1708,15 @@ function moveDrag(event) {
   if (activeDrag?.pointer !== event.pointerId) return;
   if (activeDrag.draft) {
     moveDraft(event);
+    return;
+  }
+  if (activeDrag.resize) {
+    event.preventDefault();
+    const drag = activeDrag;
+    const tail = drag.source.block.tail ?? 0;
+    drag.end = Math.min(Math.max(timelineMinute(drag.timeline, event.clientY), drag.start + tail + 15), DAY_END);
+    drag.moved = true;
+    drag.tile.style.setProperty('--duration', drag.end - drag.start);
     return;
   }
   if (!activeDrag.moved) {
@@ -1745,6 +1768,22 @@ function endDrag(event) {
   if (activeDrag?.pointer !== event.pointerId) return;
   if (activeDrag.draft) {
     endDraft(event);
+    return;
+  }
+  if (activeDrag.resize) {
+    const { tile, source, moved, end, until } = activeDrag;
+    activeDrag = null;
+    tile.dataset.dragged = 'true';
+    setTimeout(() => delete tile.dataset.dragged, 0);
+    if (!moved || event.type !== 'pointerup' || end === until) {
+      tile.style.setProperty('--duration', until - Number(tile.dataset.start));
+      return;
+    }
+    const day = plan.days[source.date];
+    const duration = end - Number(tile.dataset.start) - (source.block.tail ?? 0);
+    const blocks = day.blocks.map((block) => block.id === source.block.id ? { ...block, duration } : block);
+    storeDay(source.date, editDay(day, blocks));
+    markEdited();
     return;
   }
   const { tile, source, moved, preview } = activeDrag;
