@@ -158,15 +158,15 @@ function toggleBlockPin(day, id, pinned) {
 
 // Place a block at a time and keep the rest of the day where it is. An
 // unpinned block holds the time only until the stack is next re-timed.
-function editDayWithPin(day, blocks, pinnedBlock, pin = planMinutes(pinnedBlock.pinned)) {
-  const pinEnd = pin + blockDuration(pinnedBlock);
+function placeInDay(day, blocks, placed, at = planMinutes(placed.pinned)) {
+  const end = at + blockDuration(placed);
   const updated = blocks.map(({ restackStart, restackUntil, ...block }) => {
-    if (block.id === pinnedBlock.id) return block.pinned ? block : { ...block, restackStart: pin, restackUntil: pinEnd };
+    if (block.id === placed.id) return block.pinned ? block : { ...block, restackStart: at, restackUntil: end };
     const start = day.imported ? block.importedStart : restackStart;
     if (block.shelf || start == null) return block;
-    const end = day.imported ? start + blockDuration(block) : restackUntil ?? start + blockDuration(block);
-    if (end > pin && start < pinEnd) return block;
-    return { ...block, restackStart: start, restackUntil: end };
+    const until = day.imported ? start + blockDuration(block) : restackUntil ?? start + blockDuration(block);
+    if (until > at && start < end) return block;
+    return { ...block, restackStart: start, restackUntil: until };
   });
   return editDay(day, updated, true);
 }
@@ -379,6 +379,6 @@ function insertPopup(day, popup, minute) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { layoutDay, applyOverrun, applyWake, dayLoad, editDayWithPin, toggleBlockPin, suggestGhosts, insertPopup,
+  module.exports = { layoutDay, applyOverrun, applyWake, dayLoad, placeInDay, toggleBlockPin, suggestGhosts, insertPopup,
     restackBeforeScreensOff };
 }

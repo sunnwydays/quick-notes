@@ -323,7 +323,13 @@ function pinCollision(block, blocks) {
   });
 }
 
-// Build the replacement stacks before changing either day.
+// Move a block, building the replacement stacks before changing either day.
+// target says where it goes:
+//   date    the day (none means the week tray)
+//   shelf   the day's Untimed shelf instead of its timeline
+//   before  id of the block it stacks in front of
+//   at      'HH:MM' to place it at on the timeline
+//   pin     true pins it at `at`, false unpins it; left out, it keeps the pin it had
 function moveBlock(source, target, changes = {}) {
   if (!source?.block) return 'That block is no longer available.';
   const old = source.block;
@@ -340,29 +346,29 @@ function moveBlock(source, target, changes = {}) {
   }
   const day = plan.days[target.date];
   const blocks = source.date === target.date ? remaining : [...day.blocks];
-  let block = target.shelf ? untimedBlock(changed) : { ...changed, shelf: false };
-  if (!target.shelf && (Object.hasOwn(target, 'pinned') || target.place != null)) {
-    const { actualStart, actualUntil, ...unpinned } = block;
-    block = Object.hasOwn(target, 'pinned') ? { ...unpinned, pinned: target.pinned } : unpinned;
+  // A block that is placed or (un)pinned starts fresh: its old actual times no longer apply.
+  const moved = !target.shelf && (target.at != null || target.pin != null);
+  let block;
+  if (target.shelf) block = untimedBlock(changed);
+  else if (!moved) block = { ...changed, shelf: false };
+  else {
+    const { actualStart, actualUntil, ...fresh } = changed;
+    const pinned = target.pin ?? planMinutes(changed.pinned) != null;
+    block = { ...fresh, shelf: false, pinned: pinned ? target.at ?? changed.pinned : null };
   }
-  const pin = planMinutes(block.pinned);
-  // A drop from the tray or Untimed lands at the time without pinning.
-  const placeAt = pin ?? (target.shelf ? null : planMinutes(target.place));
+  const placeAt = target.shelf ? null : planMinutes(target.at) ?? planMinutes(block.pinned);
   if (placeAt != null && placeAt + blockDuration(block) > DAY_END) return 'Choose a time that ends by midnight.';
-  const probe = pin == null && placeAt != null ? { ...block, pinned: target.place } : block;
-  if (!(source.date === target.date && block.actualStart != null && !Object.hasOwn(target, 'pinned')) && pinCollision(probe, blocks)) {
-    return 'That time overlaps another pinned block.';
-  }
-  const at = blocks.findIndex((item) => item.id === target.before);
-  blocks.splice(at < 0 ? blocks.length : at, 0, block);
+  const probe = placeAt != null ? { ...block, pinned: blockKey(placeAt) } : block;
+  const keepsActual = source.date === target.date && block.actualStart != null;
+  if (!keepsActual && pinCollision(probe, blocks)) return 'That time overlaps another pinned block.';
+  const index = blocks.findIndex((item) => item.id === target.before);
+  blocks.splice(index < 0 ? blocks.length : index, 0, block);
   if (origin && source.date !== target.date) removeFromDay(source.date, origin, remaining);
   if (source.parked) {
     plan.tray = plan.tray.filter((item) => item.id !== old.id);
     plan.trayDirty = true;
   }
-  const updatedDay = placeAt != null && (Object.hasOwn(target, 'pinned') || pin == null)
-    ? editDayWithPin(day, blocks, block, placeAt) : editDay(day, blocks);
-  storeDay(target.date, updatedDay);
+  storeDay(target.date, moved && placeAt != null ? placeInDay(day, blocks, block, placeAt) : editDay(day, blocks));
   markEdited();
   return '';
 }
@@ -405,7 +411,7 @@ function openBlockEditor(source, target = blockTarget(source)) {
   const goals = plannerGoals().map((item) => [item.id, bare(item.text)]);
   if (block.goal && !goals.some(([id]) => id === block.goal)) goals.push([block.goal, 'Archived goal']);
   fillOptions(fields.goal, [['', 'No goal'], ...goals], block.goal || '');
-  const start = target.place ?? block.pinned ??
+  const start = target.at ?? block.pinned ??
     (source.date ? blockKey(layoutDay(plan.days[source.date]).blocks.find((b) => b.id === block.id)?.start ?? PLAN_START) : '07:00');
   fields.pin.checked = Boolean(block.pinned);
   fields.time.value = start;
@@ -414,7 +420,7 @@ function openBlockEditor(source, target = blockTarget(source)) {
   $('pin-fields').hidden = !timed;
   $('block-more').open = false;
   // A drag already chose the time and length, so they sit at the top of More there.
-  const dragged = Boolean(source.fresh && target.place);
+  const dragged = Boolean(source.fresh && target.at);
   const more = $('block-more').querySelector('.more-fields');
   if (dragged) {
     more.prepend($('pin-fields'));
@@ -437,7 +443,7 @@ function updateEditorFields() {
   const fields = $('block-form').elements;
   fields.pin.disabled = $('pin-fields').hidden;
   // A dragged item's time can be adjusted without pinning it.
-  fields.time.disabled = fields.pin.disabled || !fields.pin.checked && editedBlock.target.place == null;
+  fields.time.disabled = fields.pin.disabled || !fields.pin.checked && editedBlock.target.at == null;
   fields.time.required = !fields.time.disabled;
 }
 
@@ -447,20 +453,22 @@ function applyBlockEditor(event) {
   const text = fields.text.value.trim();
   if (!text) return;
   const { date = null, shelf = false } = editedBlock.target;
-  const place = editedBlock.target.place == null ? undefined : fields.time.value;
   const original = editedBlock.block;
   const pinned = !fields.pin.disabled && fields.pin.checked ? fields.time.value : null;
+  const pinChanged = pinned !== (original.pinned ?? null);
+  // A dragged item keeps the time it was drawn at (or the one typed over it), pinned or not.
+  const time = pinned ?? (editedBlock.target.at == null ? null : fields.time.value);
   const day = plan.days[date];
   const size = fields.size.value;
   // Done and deadline are no longer edited here, so existing values carry over untouched.
   const changes = {
     text, next: fields.next.value.trim(), goal: fields.goal.value || null,
-    tail: Number(fields.tail.value), pinned, kind: fields.kind.value || undefined,
+    tail: Number(fields.tail.value), kind: fields.kind.value || undefined,
     ...size === 'original' ? {} : { size: Number(size), duration: undefined },
   };
   const unchanged = (key) => (changes[key] ?? null) === (original[key] ?? null);
-  if (!editedBlock.fresh && Object.keys(changes).every((key) => key === 'pinned' || unchanged(key))) {
-    if (unchanged('pinned')) {
+  if (!editedBlock.fresh && Object.keys(changes).every(unchanged)) {
+    if (!pinChanged) {
       $('block-editor').close();
       return;
     }
@@ -475,16 +483,17 @@ function applyBlockEditor(event) {
   }
   const oldIndex = day?.blocks.findIndex((block) => block.id === original.id) ?? -1;
   let before = oldIndex < 0 ? undefined : day.blocks[oldIndex + 1]?.id;
-  const at = planMinutes(pinned ?? place);
-  if (date && !shelf && at != null && (pinned !== original.pinned || oldIndex < 0)) {
-    before = layoutDay(day).blocks.find((b) => b.id !== original.id && b.start >= at)?.id;
+  const minute = planMinutes(time);
+  if (date && !shelf && minute != null && (pinChanged || oldIndex < 0)) {
+    before = layoutDay(day).blocks.find((b) => b.id !== original.id && b.start >= minute)?.id;
   } else if (date && !shelf && (oldIndex < 0 || original.shelf)) {
     const stack = layoutDay(day).blocks;
     const cutoff = Math.max(day.workEnd ?? 17 * 60, day.workStart ?? 0);
     before = stack.find((b) => b.pinned && b.start >= cutoff)?.id;
   }
-  const target = { date, shelf, before, place };
-  if (date && (date !== editedBlock.date || pinned !== original.pinned || size !== 'original' && Number(size) !== original.size)) target.pinned = pinned;
+  const target = { date, shelf, before };
+  const resized = size !== 'original' && Number(size) !== original.size;
+  if (date && (date !== editedBlock.date || pinChanged || resized)) Object.assign(target, { at: time ?? undefined, pin: pinned != null });
   const error = moveBlock(editedBlock, target, changes);
   if (error) {
     $('block-error').textContent = error;
@@ -1600,7 +1609,7 @@ function refreshView() {
 function plannerDropTarget(event, source) {
   const under = document.elementFromPoint(event.clientX, event.clientY);
   const tab = under?.closest('[data-tab-day]');
-  if (tab) return { date: tab.dataset.tabDay, pinned: null, indicator: tab };
+  if (tab) return { date: tab.dataset.tabDay, pin: false, indicator: tab };
   const inside = (el) => {
     const r = el.getBoundingClientRect();
     return event.clientX >= r.left && event.clientX <= r.right && event.clientY >= r.top && event.clientY <= r.bottom;
@@ -1624,14 +1633,14 @@ function plannerDropTarget(event, source) {
     const rect = tile.getBoundingClientRect();
     const after = event.clientY > rect.top + rect.height / 2;
     const next = stack.slice(index + Number(after)).find((block) => block.id !== source.block.id);
-    return { date, before: next?.id, pinned: null, indicator: tile, after };
+    return { date, before: next?.id, pin: false, indicator: tile, after };
   }
   const dragged = activeDrag?.tile;
   const length = dragged?.dataset.until ? Number(dragged.dataset.until) - Number(dragged.dataset.start) : 0;
   const edges = movingEdges(timelineEdges(slot, source.block.id), length);
   const time = Math.min(PLAN_END - 5, timelineMinute(slot, event.clientY, { edges }));
   const before = stack.find((block) => block.start >= time && block.id !== source.block.id);
-  return { date, pinned: blockKey(time), before: before?.id, time, indicator: slot };
+  return { date, at: blockKey(time), before: before?.id, indicator: slot };
 }
 
 function showDropTarget(target) {
@@ -1640,7 +1649,7 @@ function showDropTarget(target) {
   const indicator = target?.indicator;
   indicator?.classList.add('drop-target');
   if (target?.after) indicator.classList.add('drop-after');
-  if (target?.time != null) indicator.style.setProperty('--drop-minute', target.time - Number(indicator.dataset.from));
+  if (target?.at != null) indicator.style.setProperty('--drop-minute', planMinutes(target.at) - Number(indicator.dataset.from));
   activeDrag.target = target;
 }
 
@@ -1681,7 +1690,7 @@ function draftRange({ anchor, current }) {
 
 function openDraft(date, start, duration) {
   const fields = duration == null ? {} : PLAN_SIZES.includes(duration) ? { size: duration } : { duration };
-  openBlockEditor({ fresh: true, block: planBlock(newId(), '', fields) }, { date, place: blockKey(start) });
+  openBlockEditor({ fresh: true, block: planBlock(newId(), '', fields) }, { date, at: blockKey(start) });
 }
 
 function startDraft(event) {
@@ -1846,7 +1855,7 @@ function endDrag(event) {
     const duration = end - Number(tile.dataset.start) - (source.block.tail ?? 0);
     const resized = { ...source.block, duration };
     const blocks = day.blocks.map((block) => block.id === resized.id ? resized : block);
-    storeDay(source.date, editDayWithPin(day, blocks, resized, Number(tile.dataset.start)));
+    storeDay(source.date, placeInDay(day, blocks, resized, Number(tile.dataset.start)));
     markEdited();
     return;
   }
@@ -1858,12 +1867,7 @@ function endDrag(event) {
   if (!moved || event.type !== 'pointerup') return;
   tile.dataset.dragged = 'true';
   setTimeout(() => delete tile.dataset.dragged, 0);
-  let target = plannerDropTarget(event, source);
-  // Dropping at a time only keeps a pin the block already had; it never adds one.
-  if (target?.time != null && planMinutes(source.block.pinned) == null) {
-    const { pinned, ...rest } = target;
-    target = { ...rest, place: pinned };
-  }
+  const target = plannerDropTarget(event, source);
   if (target?.moveTo) {
     if (source.parked) {
       plan.tray = plan.tray.filter((block) => block.id !== source.block.id);

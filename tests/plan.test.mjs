@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { applyOverrun, applyWake, dayLoad, editDayWithPin, insertPopup, layoutDay, restackBeforeScreensOff, suggestGhosts, toggleBlockPin } from '../plan-engine.js';
+import { applyOverrun, applyWake, dayLoad, placeInDay, insertPopup, layoutDay, restackBeforeScreensOff, suggestGhosts, toggleBlockPin } from '../plan-engine.js';
 
 const block = (id, size, fields = {}) => ({ id, size, tier: 'medium', ...fields });
 const times = ({ blocks }) => blocks.map(({ id, start, until }) => [id, start, until]);
@@ -66,7 +66,7 @@ test('pinning a block in an imported Schedule preserves the times of nonoverlapp
   const windDown = block('wind down', 60, { importedStart: 1320 });
   const day = { imported: true, wake: '20:45', blocks: [task, review, windDown] };
   const pinned = { ...windDown, pinned: '22:00' };
-  const updated = editDayWithPin(day, [task, review, pinned], pinned);
+  const updated = placeInDay(day, [task, review, pinned], pinned);
   const layout = layoutDay(updated);
   assert.deepEqual(times(layout), times(layoutDay(day)));
   assert.deepEqual(layout.blocks.map((item) => item.pinned ?? null), [null, null, '22:00']);
@@ -192,7 +192,7 @@ test('a short interruption uses only the time it needs from a pinned buffer', ()
 test('a block placed at a time without a pin keeps that time until the stack is re-timed', () => {
   const day = { blocks: [block('lunch', 50, { pinned: '11:30', tier: 'fixed' }), block('free', 30)] };
   const dropped = block('drop', 45, { pinned: null });
-  const updated = editDayWithPin(day, [...day.blocks, dropped], dropped, 14 * 60);
+  const updated = placeInDay(day, [...day.blocks, dropped], dropped, 14 * 60);
   const layout = layoutDay(updated);
   assert.deepEqual(times(layout).find(([id]) => id === 'drop'), ['drop', 840, 885]);
   assert.equal(layout.blocks.find((item) => item.id === 'drop').pinned, null);
