@@ -400,9 +400,6 @@ function openBlockEditor(source, target = blockTarget(source)) {
   const sizes = PLAN_SIZES.map((size) => [size, `${size} min`]);
   if (block.duration != null) sizes.unshift(['original', `${block.duration} min${source.fresh ? '' : ' (original)'}`]);
   fillOptions(fields.size, sizes, block.duration != null ? 'original' : String(block.size));
-  const weekend = date && [0, 6].includes(keyDate(date).getDay());
-  const tier = weekend && (source.fresh || source.copy) ? 'must' : block.tier;
-  fillOptions(fields.tier, PLAN_TIERS.map((key) => [key, key[0].toUpperCase() + key.slice(1)]), tier);
   const goals = plannerGoals().map((item) => [item.id, bare(item.text)]);
   if (block.goal && !goals.some(([id]) => id === block.goal)) goals.push([block.goal, 'Archived goal']);
   fillOptions(fields.goal, [['', 'No goal'], ...goals], block.goal || '');
@@ -456,7 +453,7 @@ function applyBlockEditor(event) {
   // Done and deadline are no longer edited here, so existing values carry over untouched.
   const changes = {
     text, next: fields.next.value.trim(), goal: fields.goal.value || null,
-    tier: fields.tier.value, tail: Number(fields.tail.value), pinned, kind: fields.kind.value || undefined,
+    tail: Number(fields.tail.value), pinned, kind: fields.kind.value || undefined,
     ...size === 'original' ? {} : { size: Number(size), duration: undefined },
   };
   const unchanged = (key) => (changes[key] ?? null) === (original[key] ?? null);
