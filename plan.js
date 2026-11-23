@@ -2055,6 +2055,8 @@ function moveDrag(event) {
     drag.end = Math.min(Math.max(timelineMinute(drag.timeline, event.clientY, { edges: drag.edges }), drag.start + 15), DAY_END);
     drag.moved = true;
     drag.tile.style.setProperty('--duration', drag.end - drag.start);
+    const endLabel = drag.tile.querySelector('.tile-end');
+    if (endLabel) endLabel.textContent = `–${clock12(drag.end)}`;
     return;
   }
   if (!activeDrag.moved) {
@@ -2112,6 +2114,8 @@ function endDrag(event) {
     setTimeout(() => delete tile.dataset.dragged, 0);
     if (!moved || event.type !== 'pointerup' || end === until) {
       tile.style.setProperty('--duration', until - Number(tile.dataset.start));
+      const endLabel = tile.querySelector('.tile-end');
+      if (endLabel) endLabel.textContent = `–${clock12(until)}`;
       return;
     }
     const day = plan.days[source.date];
