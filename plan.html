@@ -23,6 +23,7 @@
         <button id="week-routine" type="button" title="Add each remaining day's usual template">Routine</button>
         <button id="day-review" type="button" hidden>Review today</button>
         <button class="primary" id="save-week" type="button">Save to Dash</button>
+        <button id="plan-undo-btn" type="button" aria-label="Undo" title="Undo" disabled>↶</button>
         <button id="sync-status" type="button"></button>
         <button id="login-btn" type="button" hidden>Log in</button>
         <button id="hard-refresh" type="button" aria-label="Hard refresh" title="Hard refresh">⟳</button>
@@ -154,10 +155,6 @@
       </div>
     </form>
   </dialog>
-  <div id="plan-undo" role="status" hidden>
-    <span id="plan-undo-msg"></span>
-    <button id="plan-undo-btn" type="button">Undo</button>
-  </div>
   <script src="data.js"></script>
   <script src="gestures.js"></script>
   <script src="sync.js"></script>

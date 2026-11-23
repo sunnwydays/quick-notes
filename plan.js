@@ -219,9 +219,9 @@ function isPlannerDirty() {
 }
 
 // Planner Undo: renderPlanner snapshots the state it drew, so the snapshot taken
-// before an edit is what Undo restores. One level, like the Dash banner.
+// before an edit is what Undo restores. Undo pops a stack, newest edit first.
 let planSnap = null;
-let undoTimer;
+const undoStack = [];
 
 function snapshotPlan() {
   const { days, tray, budgets, pendingMarks, dirtyDays, scheduleDirty, trayDirty, goalsDirty } = plan;
@@ -229,27 +229,29 @@ function snapshotPlan() {
 }
 
 function hidePlanUndo() {
-  clearTimeout(undoTimer);
-  $('plan-undo').hidden = true;
+  undoStack.length = 0;
+  $('plan-undo-btn').disabled = true;
 }
 
-function markEdited(message = 'Change made.') {
+function markEdited() {
   const before = planSnap;
   $('plan-status').textContent = 'Unsaved planner changes';
   renderPlanner();
   if (!before) return;
-  $('plan-undo-msg').textContent = message;
-  $('plan-undo').hidden = false;
-  $('plan-undo-btn').onclick = () => {
-    hidePlanUndo();
-    Object.assign(plan, structuredClone(before));
-    planSnap = null;
-    $('plan-status').textContent = 'Unsaved planner changes';
-    renderPlanner();
-  };
-  clearTimeout(undoTimer);
-  undoTimer = setTimeout(hidePlanUndo, 5000);
+  undoStack.push(before);
+  if (undoStack.length > 50) undoStack.shift();
+  $('plan-undo-btn').disabled = false;
 }
+
+$('plan-undo-btn').onclick = () => {
+  const before = undoStack.pop();
+  if (!before) return;
+  Object.assign(plan, structuredClone(before));
+  planSnap = null;
+  $('plan-status').textContent = 'Unsaved planner changes';
+  renderPlanner();
+  $('plan-undo-btn').disabled = !undoStack.length;
+};
 
 function removeFromDay(key, day, remaining) {
   storeDay(key, day.imported ? { ...day, blocks: remaining } : editDay(day, remaining));
