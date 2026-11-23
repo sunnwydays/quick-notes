@@ -50,9 +50,9 @@ Open the **calendar icon** in Dash's home header. Drag a Todo onto a day's **Unt
 
 - Dashed blocks are suggestions. The planner checks the day's shelf first, then the week tray. It stays below 75% load and respects goal budgets. Click a ghost to schedule it. Old Todos prompt you to split off a first step, and days with at least ten parked AI tutor ideas show a drift badge.
 - **Now…** fits an interruption into today. Up to 15 minutes uses a gap, free time, or a buffer. Longer interruptions restack the day and return bumped blocks to the tray.
-- **Review today** shows the day's blocks with Dash's marks. The week header counts finished blocks that are still unmarked. Apply **NEXT** on a project block and use **Save to Dash** to carry the text into the next timed block for that goal.
+- **Review today** shows the day's blocks with Dash's marks. The week header counts finished blocks that are still unmarked. Apply **NEXT** on a project block to carry the text into the next timed block for that goal.
 - On a phone or Boox (under 700px wide) the planner shows the tray beside one day. Switch days with the tabs, or drop a block on a tab to move it to that day. Tap **Goals** to show the goal chips.
-- **Save to Dash** writes the changed days as normal Schedule notes. Log in on both devices to see the saved plan on your phone or Boox.
+- The planner saves itself a second after each change, writing changed days as normal Schedule notes (no save button). Log in on both devices to see the plan on your phone or Boox.
 
 **Transfer:** three text boxes for copying text between computers, at `/#transfer/1` to `/#transfer/3`. They sync like notes (needs login on both sides), autosave a second after typing, and poll every 5 s (`PAD_POLL_MS`). **Previous** swaps in the last overwritten text (two kept, `PAD_KEEP`). No file support.
 

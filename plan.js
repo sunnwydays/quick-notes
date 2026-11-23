@@ -82,7 +82,6 @@ function openPlannerWeek() {
     sources[date] = Array.isArray(day?.blocks) ? saved.value.sources?.[date] ?? null : schedule?.id ?? null;
   }
   planSnap = null;
-  if (typeof hidePlanUndo === 'function') hidePlanUndo();
   plan = { key, keys, days, sources, schedules, version: saved?.entry.id ?? null, dirtyDays: new Set(), scheduleDirty: new Set(),
     budgets: goals?.value || {}, goalVersion: goals?.entry.id ?? null, goalsDirty: false,
     tray: Array.isArray(saved?.value.tray?.week) ? saved.value.tray.week : [], trayDirty: false, pendingMarks: [],
@@ -108,7 +107,9 @@ function templateNames() {
   return [...names].filter((name) => getTemplate(name));
 }
 
-function saveWeek() {
+// The planner saves itself a moment after each edit. `ask` false (the page is closing)
+// skips the "changed in Dash" question and leaves those changes unsaved instead.
+function saveWeek({ ask = true } = {}) {
   reload();
   const originalStore = localStorage.getItem(STORE_KEY);
   const previous = plannerNote(PLAN_WEEK, plan.key);
@@ -130,6 +131,7 @@ function saveWeek() {
   for (const key of plan.keys) {
     const entry = schedules.get(key);
     const changed = changedInDash(key, schedules) && (plan.dirtyDays.has(key) || plan.savedDates.has(key));
+    if (changed && !ask) return false;
     if (changed && !confirm(`${dayLabel(key)} changed in Dash. OK keeps the planner version. Cancel uses Dash.`)) {
       days[key] = dayFromSchedule(entry);
       dashDays.add(key);
@@ -157,10 +159,12 @@ function saveWeek() {
   }
   const marks = plan.pendingMarks.filter((mark) => !dashDays.has(mark.day));
   const text = JSON.stringify({ key: plan.key, value: { days, sources, tray: { week: plan.tray } } });
-  if (text !== previous?.entry.text) notes.push(plannerEntry(PLAN_WEEK, text, previous?.entry));
+  const weekNote = text !== previous?.entry.text ? plannerEntry(PLAN_WEEK, text, previous?.entry) : null;
+  if (weekNote) notes.push(weekNote);
+  let goalNote = null;
   if (plan.goalsDirty) {
     const text = JSON.stringify({ key: plan.key, value: plan.budgets });
-    if (text !== goalVersion?.entry.text) notes.push(plannerEntry(PLAN_GOALS, text, goalVersion?.entry));
+    if (text !== goalVersion?.entry.text) notes.push(goalNote = plannerEntry(PLAN_GOALS, text, goalVersion?.entry));
   }
   const templates = new Set(Object.values(days).map((day) => day.template).filter((name) => Object.hasOwn(TEMPLATES, name)));
   for (const name of templates) {
@@ -182,14 +186,39 @@ function saveWeek() {
     return;
   }
   const count = notes.filter((entry) => entry.category === SCHEDULE).length;
+  // Keep the open week (and its Undo history) instead of reopening it from the saved notes.
+  Object.assign(plan, { days, sources, schedules: schedulesForWeek(plan.keys), savedDates: new Set(plan.keys),
+    version: weekNote?.id ?? plan.version, goalVersion: goalNote?.id ?? goalVersion?.entry.id ?? null,
+    trayDirty: false, goalsDirty: false, pendingMarks: [] });
   plan.dirtyDays.clear();
   plan.scheduleDirty.clear();
-  plan.trayDirty = false;
-  plan.goalsDirty = false;
-  plan.pendingMarks = [];
-  refreshView();
-  $('plan-status').textContent = count ? `Saved ${count} ${count === 1 ? 'day' : 'days'} to Dash.` : 'Week saved. No Schedule changes.';
+  if (!activeDrag) renderPlanner();
+  $('plan-status').textContent = count ? `Saved ${count} ${count === 1 ? 'day' : 'days'} to Dash.` : 'Saved.';
   sync();
+  return true;
+}
+
+const AUTOSAVE_MS = 1000;
+let autosaveTimer = null;
+
+function queueAutosave() {
+  clearTimeout(autosaveTimer);
+  $('plan-status').textContent = 'Saving…';
+  autosaveTimer = setTimeout(autosave, AUTOSAVE_MS);
+}
+
+// Wait out drags and open dialogs so a "changed in Dash" question never lands mid-gesture.
+function autosave() {
+  autosaveTimer = null;
+  if (!plan || !isPlannerDirty()) return;
+  if (activeDrag || document.querySelector('dialog[open]')) autosaveTimer = setTimeout(autosave, AUTOSAVE_MS);
+  else saveWeek();
+}
+
+function flushAutosave(ask = true) {
+  clearTimeout(autosaveTimer);
+  autosaveTimer = null;
+  if (plan && isPlannerDirty()) saveWeek({ ask });
 }
 
 function element(tag, className = '', text = '') {
@@ -243,8 +272,8 @@ function hidePlanUndo() {
 
 function markEdited() {
   const before = planSnap;
-  $('plan-status').textContent = 'Unsaved planner changes';
   renderPlanner();
+  queueAutosave();
   if (!before) return;
   undoStack.push(before);
   if (undoStack.length > 50) undoStack.shift();
@@ -255,9 +284,16 @@ $('plan-undo-btn').onclick = () => {
   const before = undoStack.pop();
   if (!before) return;
   Object.assign(plan, structuredClone(before));
+  // The snapshot's dirty flags predate the last save, so mark everything for the autosave to compare.
+  for (const key of plan.keys) {
+    plan.dirtyDays.add(key);
+    plan.scheduleDirty.add(key);
+  }
+  plan.trayDirty = true;
+  plan.goalsDirty = true;
   planSnap = null;
-  $('plan-status').textContent = 'Unsaved planner changes';
   renderPlanner();
+  queueAutosave();
   $('plan-undo-btn').disabled = !undoStack.length;
 };
 
@@ -1894,9 +1930,11 @@ function homeMonday() {
 
 function changePlannerWeek(next) {
   if (dayKey(next) === dayKey(monday)) return;
+  flushAutosave();
   if (isPlannerDirty() && !confirm('Leave this week and discard unsaved changes?')) return;
   monday = next;
   plan = null;
+  hidePlanUndo();
   selectedDay = null;
   $('plan-status').textContent = '';
   refreshView();
@@ -1945,7 +1983,6 @@ function startPlanner() {
   $('week-prev').addEventListener('click', () => changePlannerWeek(addDays(monday, -7)));
   $('week-next').addEventListener('click', () => changePlannerWeek(addDays(monday, 7)));
   $('week-today').addEventListener('click', () => changePlannerWeek(homeMonday()));
-  $('save-week').addEventListener('click', saveWeek);
   $('plan-now').addEventListener('click', () => openPopup());
   $('week-routine').addEventListener('click', openRoutineEditor);
   $('routine-form').addEventListener('submit', applyRoutineEditor);
@@ -2039,8 +2076,10 @@ function startPlanner() {
     deleteBlock(blockSource(tile));
   });
   window.addEventListener('beforeunload', (event) => {
-    if (isPlannerDirty()) event.preventDefault();
+    flushAutosave(false);
+    if (plan && isPlannerDirty()) event.preventDefault();
   });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) flushAutosave(false); });
   window.addEventListener('popstate', (event) => showPlannerScreen(event.state));
   showPlannerScreen(history.state);
   refreshView();
