@@ -98,7 +98,6 @@ button:disabled { opacity: .55; cursor: default; }
 .tray h3 { font-size: 1.2rem; color: #245776; }
 .someday summary { font-weight: bold; cursor: pointer; }
 .tray-tile { margin-top: .35rem; }
-.copied { color: #325b70; font-weight: bold; }
 .day { grid-row: span 4; display: grid; grid-template-rows: subgrid; gap: 0; min-width: 0; }
 .day-head {
   position: sticky; top: 0; z-index: 2; background: #fff;

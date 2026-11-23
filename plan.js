@@ -1382,14 +1382,15 @@ function renderTray() {
   const someday = element('details', 'panel tray-box someday');
   someday.open = $('tray').querySelector('.someday')?.open ?? false;
   someday.append(element('summary', '', 'Back Burner'));
-  const copied = new Set(Object.values(plan.days).flatMap((day) => day.blocks.map((block) => block.todoId)));
+  // Anything already on a day leaves the tray, so it can't be dragged in twice.
+  const placed = new Set(Object.values(plan.days).flatMap((day) => day.blocks.map((block) => block.todoId)));
   const parked = new Set(plan.tray.map((block) => block.todoId));
   const now = Date.now();
   const todos = entriesFor('Todo');
   const old = new Set(todos.filter((entry) => now - Date.parse(entry.createdAt) >= 5 * 86400000).map((entry) => entry.id));
   const splitPrompt = (tile) => tile.append(element('span', 'split-prompt', '✂ Split into a first step'));
   for (const [category, section] of [['Todo', tray], [BACK_BURNER, someday]]) {
-    const entries = entriesFor(category).filter((entry) => !parked.has(entry.id));
+    const entries = entriesFor(category).filter((entry) => !parked.has(entry.id) && !placed.has(entry.id));
     if (!entries.length && (category !== 'Todo' || !plan.tray.length)) {
       section.append(element('p', 'muted', `No ${category} notes`));
     }
@@ -1401,11 +1402,6 @@ function renderTray() {
       tile.type = 'button';
       tile.style.setProperty('--tile-colour', blockColour({ text }));
       Object.assign(tile.dataset, { id: entry.id, source: category });
-      if (copied.has(entry.id)) {
-        const clockBadge = element('span', 'copied', ' ◷');
-        clockBadge.title = 'Copied to the plan';
-        tile.append(clockBadge);
-      }
       if (category === 'Todo' && old.has(entry.id)) splitPrompt(tile);
       section.append(tile);
     }
