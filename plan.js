@@ -1426,9 +1426,7 @@ function dayWarnings(key, day, blocks) {
   }
   for (const [i, block] of blocks.entries()) {
     const next = blocks[i + 1];
-    if (next && next.start - block.until < 5 && !(next.templateAnchor && block.templateAnchor && next.start === block.until)) {
-      warnings.add(next.start < block.until ? 'Overlapping pins' : 'Gap under 5m');
-    }
+    if (next && next.start < block.until) warnings.add('Overlapping pins');
     if (block.actualUntil > block.until) warnings.add('Ran into a fixed time');
   }
   return [...warnings];
