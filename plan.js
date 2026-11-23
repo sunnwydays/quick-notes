@@ -123,7 +123,7 @@ function saveWeek() {
     const entry = schedules.get(key);
     const changed = changedInDash(key, schedules) && (plan.dirtyDays.has(key) || plan.savedDates.has(key));
     if (changed && !confirm(`${dayLabel(key)} changed in Dash. OK keeps the planner version. Cancel uses Dash.`)) {
-      days[key] = { ...dayFromSchedule(entry), phoneOff: days[key].phoneOff };
+      days[key] = dayFromSchedule(entry);
       dashDays.add(key);
       syncDays.delete(key);
     } else if (changed) syncDays.add(key);
@@ -1046,14 +1046,8 @@ function renderDay(key, { blocks, bumped }, load, from, until, ghosts, drift) {
   const events = blocks.filter((block) => block.pinned && (block.kind === 'event' || block.tier === 'fixed' && !block.templateAnchor));
   for (const event of events) head.append(element('p', 'day-info day-event', `★ ${event.pinned} ${event.text}`));
   const dayActions = element('div', 'day-actions');
-  const phone = plannerButton(day.phoneOff ? 'Phone off' : 'Phone on', () => {
-    plan.days[key] = { ...plan.days[key], phoneOff: !plan.days[key].phoneOff };
-    plan.dirtyDays.add(key);
-    markEdited();
-  }, 'day-action');
-  phone.setAttribute('aria-pressed', String(Boolean(day.phoneOff)));
   const template = plannerButton(recoverySuggested(key) && !day.template ? 'Recovery?' : 'Template', () => openTemplateEditor(key), 'day-action');
-  dayActions.append(template, phone, plannerButton('Woke at…', () => openRestack(key), 'day-action'));
+  dayActions.append(template, plannerButton('Woke at…', () => openRestack(key), 'day-action'));
   head.append(dayActions);
   const shelf = element('div', 'shelf');
   shelf.dataset.shelf = '';

@@ -217,7 +217,7 @@ function weekKey(start) {
 }
 
 function emptyDay() {
-  return { template: '', phoneOff: false, wake: '07:00', blocks: [] };
+  return { template: '', wake: '07:00', blocks: [] };
 }
 
 function dayFromSchedule(entry) {
