@@ -1651,7 +1651,7 @@ document.addEventListener('keydown', (event) => {
 function renderDay(key,{ blocks, bumped }, load, from, until, ghosts) {
   const date = keyDate(key);
   const day = plan.days[key];
-  const column = element('article', 'panel day');
+  const column = element('article', 'day');
   column.dataset.day = key;
   const head = element('header', 'day-head');
   // The header itself opens the day's setup menu, so its buttons don't repeat down the week.
@@ -2309,8 +2309,6 @@ function startPlanner() {
       pressedOutside = false;
     });
   }
-  const board = document.querySelector('.board-scroll');
-  board.addEventListener('scroll', () => board.classList.toggle('scrolled', board.scrollTop > 0), { passive: true });
   // The tray and the days, which tiles get dragged between.
   const tilesArea = document.querySelector('.board');
   tilesArea.addEventListener('pointerdown', startDrag);
