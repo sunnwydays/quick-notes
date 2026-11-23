@@ -524,6 +524,7 @@ function openBlockEditor(source, target = blockTarget(source)) {
   const end = blockKey(planMinutes(start) + blockDuration(block));
   $('block-where').textContent = !date ? 'This week tray' : `${dayLabel(date)} · ${timed ? `${clock12(start)}–${clock12(end)}` : 'To do'}`;
   $('pin-fields').hidden = !timed;
+  $('block-pin').hidden = !timed;
   $('block-more').open = false;
   // A drag already chose the time and length, so they sit at the top of More there.
   const dragged = Boolean(source.fresh && target.at);
