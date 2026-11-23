@@ -20,7 +20,7 @@
         <button id="week-today" type="button">This week</button>
         <button id="week-next" type="button" aria-label="Next week">›</button>
         <button id="plan-now" type="button">Now…</button>
-        <button id="week-routine" type="button" title="Add each remaining day's usual template">Routine</button>
+        <button id="week-routine" type="button" title="Pick a template for each day this week">Routine</button>
         <button id="day-review" type="button" hidden>Review today</button>
         <button class="primary" id="save-week" type="button">Save to Dash</button>
         <button id="plan-undo-btn" type="button" aria-label="Undo" title="Undo" disabled>↶</button>
@@ -84,6 +84,21 @@
         <button id="block-cancel" type="button">Cancel</button>
         <button id="block-over" type="button">Ran over…</button>
         <button id="block-delete" type="button">Delete</button>
+      </div>
+    </form>
+  </dialog>
+  <dialog id="routine-editor" aria-labelledby="routine-title">
+    <form id="routine-form">
+      <h2 id="routine-title">Week routine</h2>
+      <div class="routine-grid">
+        <div id="routine-days" class="routine-days"></div>
+        <div id="routine-choices" class="choices"></div>
+      </div>
+      <p class="muted">Exam and game days ask for an event time, so set those with the day's Template button.</p>
+      <p id="routine-error" class="warning" role="alert" hidden></p>
+      <div class="actions">
+        <button class="primary">Apply routine</button>
+        <button id="routine-cancel" type="button">Cancel</button>
       </div>
     </form>
   </dialog>

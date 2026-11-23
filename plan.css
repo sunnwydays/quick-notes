@@ -279,6 +279,18 @@ label.choice:has(input:checked) { border-color: #5b8aa6; background: #eef6fb; }
 .choice input { grid-row: span 2; margin-top: .2rem; }
 .choice b { font-size: .9rem; }
 .choice .muted { font-size: .8rem; }
+.routine-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: .6rem; align-items: start; }
+.routine-days { display: grid; gap: .25rem; }
+.routine-day {
+  display: grid; gap: .05rem; text-align: left; padding: .3rem .5rem;
+  border: 1px solid var(--line); border-radius: 7px; background: white;
+}
+.routine-day[aria-pressed="true"] { border-color: #5b8aa6; background: #eef6fb; }
+.routine-day:disabled { opacity: .45; }
+.routine-day .muted { font-size: .78rem; }
+#routine-choices > p { margin: 0; }
+#routine-choices .choice { align-items: center; }
+#routine-choices .choice input { grid-row: auto; margin: 0; }
 #template-def { width: min(34rem, calc(100vw - 1rem)); }
 #template-def .muted { margin: 0; }
 .template-day-scroll { max-height: 48vh; overflow-y: auto; overscroll-behavior: contain; --minute-height: 1.2px; padding-top: .4rem; }

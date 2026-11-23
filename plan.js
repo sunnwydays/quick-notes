@@ -510,31 +510,82 @@ function defaultTemplate(key) {
   return recoverySuggested(key) ? 'Recovery / social' : keyDate(key).getDay() === 0 ? 'Welding Sunday' : 'Weekday';
 }
 
-// Lays each day's usual template onto every day from today on that doesn't have one yet.
-function applyWeekRoutine() {
+// Week routine: pick a template per day in one dialog. `routineChoice` maps day key → template name ('' = none).
+let routineChoice = {};
+let routineDay = null;
+
+function routineDays() {
   const today = dayKey(new Date());
-  const applied = [];
-  const clashes = [];
-  for (const key of plan.keys) {
-    if (key < today || plan.days[key].template) continue;
-    const name = defaultTemplate(key);
-    const template = getTemplate(name);
-    if (!template || template.event) continue;
-    const result = replaceTemplate(plan.days[key], name, template, null);
-    if (result.error) clashes.push(dayLabel(key));
-    else {
-      storeDay(key, result.day);
-      applied.push(key);
-    }
-  }
-  if (!applied.length) {
-    $('plan-status').textContent = clashes.length
-      ? `Routine overlaps a pinned block on ${clashes.join(', ')}.`
-      : 'Every day left this week already has a template.';
+  return plan.keys.filter((key) => key >= today);
+}
+
+function openRoutineEditor() {
+  const open = routineDays();
+  if (!open.length) {
+    $('plan-status').textContent = 'This week is over. Go to next week to set its routine.';
     return;
   }
-  markEdited(`Routine added to ${applied.length} day${applied.length === 1 ? '' : 's'}.`);
-  if (clashes.length) $('plan-status').textContent = `Routine skipped ${clashes.join(', ')}: it overlaps a pinned block.`;
+  routineChoice = Object.fromEntries(open.map((key) => [key, plan.days[key].template || 'Weekday']));
+  routineDay = open[0];
+  $('routine-error').hidden = true;
+  renderRoutineEditor();
+  $('routine-editor').showModal();
+}
+
+function renderRoutineEditor() {
+  const open = new Set(routineDays());
+  const days = plan.keys.map((key) => {
+    const past = !open.has(key);
+    const button = element('button', 'routine-day');
+    button.type = 'button';
+    button.disabled = past;
+    button.setAttribute('aria-pressed', String(key === routineDay));
+    const name = past ? plan.days[key].template : routineChoice[key];
+    button.append(element('b', '', dayLabel(key, false)), element('span', 'muted', name || 'No template'));
+    button.addEventListener('click', () => {
+      routineDay = key;
+      renderRoutineEditor();
+    });
+    return button;
+  });
+  $('routine-days').replaceChildren(...days);
+  const names = ['', ...templateNames().filter((name) => !getTemplate(name).event)];
+  const choices = names.map((name) => {
+    const label = element('label', 'choice');
+    const input = document.createElement('input');
+    input.type = 'radio';
+    input.name = 'routine';
+    input.value = name;
+    input.checked = routineChoice[routineDay] === name;
+    input.addEventListener('change', () => {
+      routineChoice[routineDay] = name;
+      renderRoutineEditor();
+    });
+    label.append(input, element('b', '', name || 'No template'));
+    return label;
+  });
+  $('routine-choices').replaceChildren(element('p', 'muted', dayLabel(routineDay)), ...choices);
+}
+
+function applyRoutineEditor(event) {
+  event.preventDefault();
+  const changed = [];
+  const clashes = [];
+  for (const [key, name] of Object.entries(routineChoice)) {
+    if (name === (plan.days[key].template || '')) continue;
+    const result = replaceTemplate(plan.days[key], name, name ? getTemplate(name) : null, null);
+    if (result.error) clashes.push(dayLabel(key, false));
+    else changed.push([key, result.day]);
+  }
+  if (clashes.length) {
+    $('routine-error').textContent = `${clashes.join(', ')}: the routine overlaps a pinned block. Move the pin or pick another routine.`;
+    $('routine-error').hidden = false;
+    return;
+  }
+  $('routine-editor').close();
+  if (!changed.length) return;
+  for (const [key, day] of changed) storeDay(key, day);
+  markEdited(`Routine set for ${changed.length} day${changed.length === 1 ? '' : 's'}.`);
 }
 
 function openTemplateEditor(key) {
@@ -1788,7 +1839,9 @@ function startPlanner() {
   $('week-today').addEventListener('click', () => changePlannerWeek(homeMonday()));
   $('save-week').addEventListener('click', saveWeek);
   $('plan-now').addEventListener('click', () => openPopup());
-  $('week-routine').addEventListener('click', applyWeekRoutine);
+  $('week-routine').addEventListener('click', openRoutineEditor);
+  $('routine-form').addEventListener('submit', applyRoutineEditor);
+  $('routine-cancel').addEventListener('click', () => $('routine-editor').close());
   $('now-form').addEventListener('submit', applyPopup);
   $('now-form').elements.todo.addEventListener('change', fillPopupFields);
   $('now-cancel').addEventListener('click', () => $('now-editor').close());
