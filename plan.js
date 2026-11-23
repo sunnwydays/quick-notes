@@ -12,7 +12,7 @@ const TEMPLATES = {
     wake: '07:00', startOffset: 0, deepCap: 4, anchors: [
       ['07:00', 45, 'Wake + breakfast + routine'], ['07:45', 30, 'Walk outside'],
       ['11:30', 50, 'Lunch + dishes + read', 'meal'], ['12:20', 25, 'Free', 'free'],
-      ['14:10', 30, 'Afternoon cardio', 'exercise', 30], ['15:10', 45, 'Buffer', 'buffer'],
+      ['14:10', 60, 'Afternoon cardio', 'exercise'], ['15:10', 45, 'Buffer', 'buffer'],
       ['17:00', 50, 'Dinner + dishes', 'meal'], ['21:30', 15, 'Review'], WIND_DOWN,
     ],
   },
@@ -73,7 +73,8 @@ function openPlannerWeek() {
   const days = {};
   for (const date of keys) {
     const schedule = schedules.get(date);
-    const day = saved?.value.days?.[date];
+    const stored = saved?.value.days?.[date];
+    const day = Array.isArray(stored?.blocks) ? { ...stored, blocks: stored.blocks.map(foldTail) } : stored;
     days[date] = Array.isArray(day?.blocks) ? day : dayFromSchedule(schedule);
     // Older imports treated every written time range as a pin.
     if (day?.imported && !day.pinLayout && Array.isArray(day.blocks) && day.blocks.some((block) => block.pinned)) {
@@ -511,7 +512,6 @@ function openBlockEditor(source, target = blockTarget(source)) {
   const fields = $('block-form').elements;
   fields.text.value = block.text;
   fields.next.value = block.next;
-  fields.tail.value = block.tail;
   fillOptions(fields.kind, Object.entries(BLOCK_KINDS), block.kind || '');
   fields.size.value = block.duration ?? block.size;
   const goals = plannerGoals().map((item) => [item.id, bare(item.text)]);
@@ -645,7 +645,7 @@ function applyBlockEditor(event) {
   // Done and deadline are no longer edited here, so existing values carry over untouched.
   const changes = {
     text, next: fields.next.value.trim(), goal: fields.goal.value || null,
-    tail: Number(fields.tail.value), kind: fields.kind.value || undefined,
+    kind: fields.kind.value || undefined,
     ...resized ? { size, duration: undefined } : {},
   };
   const unchanged = (key) => (changes[key] ?? null) === (original[key] ?? null);
@@ -702,7 +702,7 @@ function linkTodo(text) {
 }
 
 function templateAnchor([pinned, duration, text, kind = 'routine', tail = 0]) {
-  return planBlock(newId(), text, { pinned, duration, kind, tail, tier: 'fixed', templateAnchor: true });
+  return planBlock(newId(), text, { pinned, duration: duration + tail, kind, tier: 'fixed', templateAnchor: true });
 }
 
 function recoverySuggested(key) {
@@ -859,7 +859,7 @@ function renderTemplateChoices(selected) {
 
 const ANCHOR_KINDS = ['routine', 'meal', 'exercise', 'free', 'buffer', 'event'];
 let editingTemplate = null;
-// The template being edited, laid out like a day: { id, start, duration, text, kind, tail }.
+// The template being edited, laid out like a day: { id, start, duration, text, kind }.
 let tplBlocks = [];
 let tplSelected = null;
 let tplDrag = null;
@@ -897,11 +897,7 @@ function renderTemplateDay() {
   }
   for (const block of tplBlocks) {
     const tile = renderTile(planBlock(block.id, block.text || 'Untitled', { kind: block.kind, tier: 'fixed' }));
-    timeTile(tile, block.start, block.start + block.duration + block.tail, from);
-    if (block.tail > 0) {
-      tile.style.setProperty('--tail', block.tail);
-      tile.append(element('span', 'tail', `+${block.tail}m`));
-    }
+    timeTile(tile, block.start, block.start + block.duration, from);
     tile.classList.toggle('selected', block.id === tplSelected);
     parts.push(tile);
   }
@@ -917,7 +913,6 @@ function showTemplateBlock() {
   templateField('text').value = block.text;
   templateField('time').value = blockKey(block.start);
   templateField('mins').value = block.duration;
-  templateField('tail').value = block.tail;
   const kinds = ANCHOR_KINDS.includes(block.kind) ? ANCHOR_KINDS : [...ANCHOR_KINDS, block.kind];
   fillOptions(templateField('kind'), kinds.map((kind) => [kind, kind]), block.kind);
 }
@@ -930,7 +925,7 @@ function selectTemplateBlock(id, focus = false) {
 }
 
 function addTemplateBlock(start, duration = 30) {
-  const block = { id: newId(), start: Math.max(0, Math.min(start, DAY_END - duration)), duration, text: '', kind: 'routine', tail: 0 };
+  const block = { id: newId(), start: Math.max(0, Math.min(start, DAY_END - duration)), duration, text: '', kind: 'routine' };
   tplBlocks.push(block);
   selectTemplateBlock(block.id, true);
 }
@@ -944,13 +939,12 @@ function editTemplateBlock(event) {
   if (field === 'kind') block.kind = value;
   if (field === 'time' && planMinutes(value) != null) block.start = planMinutes(value);
   if (field === 'mins' && Number.isInteger(Number(value)) && Number(value) >= 5) block.duration = Number(value);
-  if (field === 'tail' && Number.isInteger(Number(value)) && Number(value) >= 0) block.tail = Number(value);
   renderTemplateDay();
 }
 
 function templateEdges(skipId) {
   return tplBlocks.filter((block) => block.id !== skipId)
-    .flatMap((block) => [block.start, block.start + block.duration + block.tail]);
+    .flatMap((block) => [block.start, block.start + block.duration]);
 }
 
 function deleteTemplateBlock() {
@@ -989,7 +983,7 @@ function templatePointerMove(event) {
   if (tplDrag.resize) {
     const block = tplBlocks.find((item) => item.id === tplDrag.id);
     const end = Math.min(timelineMinute(timeline, event.clientY, { edges: templateEdges(block.id) }), DAY_END);
-    const duration = Math.max(15, end - block.start - block.tail);
+    const duration = Math.max(15, end - block.start);
     if (duration === block.duration && tplSelected === block.id) return;
     block.duration = duration;
     selectTemplateBlock(block.id);
@@ -1006,8 +1000,8 @@ function templatePointerMove(event) {
     return;
   }
   const block = tplBlocks.find((item) => item.id === tplDrag.id);
-  const edges = movingEdges(templateEdges(block.id), block.duration + block.tail);
-  const start = Math.min(timelineMinute(timeline, event.clientY - tplDrag.grab, { edges }), DAY_END - block.duration - block.tail);
+  const edges = movingEdges(templateEdges(block.id), block.duration);
+  const start = Math.min(timelineMinute(timeline, event.clientY - tplDrag.grab, { edges }), DAY_END - block.duration);
   if (start === block.start && tplSelected === block.id) return;
   block.start = start;
   selectTemplateBlock(block.id);
@@ -1047,7 +1041,7 @@ function openTemplateDef(name) {
   fields.wake.value = template.wake || '07:00';
   fields.event.checked = Boolean(template.event);
   tplBlocks = (template.anchors || []).filter(([pinned]) => planMinutes(pinned) != null)
-    .map(([pinned, duration, text, kind = 'routine', tail = 0]) => ({ id: newId(), start: planMinutes(pinned), duration, text, kind, tail }));
+    .map(([pinned, duration, text, kind = 'routine', tail = 0]) => ({ id: newId(), start: planMinutes(pinned), duration: duration + tail, text, kind }));
   $('template-def-delete').hidden = name == null;
   $('template-def-error').hidden = true;
   $('template-def').showModal();
@@ -1092,12 +1086,11 @@ function saveTemplateDef(event) {
   };
   for (const [i, block] of blocks.entries()) {
     if (!block.text.trim()) return fail(block, 'Give every block a title.');
-    if (block.start + block.duration + block.tail > DAY_END) return fail(block, `${block.text} runs past midnight.`);
+    if (block.start + block.duration > DAY_END) return fail(block, `${block.text} runs past midnight.`);
     const before = blocks[i - 1];
-    if (before && block.start < before.start + before.duration + before.tail) return fail(block, `${block.text} overlaps ${before.text}.`);
+    if (before && block.start < before.start + before.duration) return fail(block, `${block.text} overlaps ${before.text}.`);
   }
-  const anchors = blocks.map((block) => [blockKey(block.start), block.duration, block.text.trim(), block.kind,
-    ...(block.tail ? [block.tail] : [])]);
+  const anchors = blocks.map((block) => [blockKey(block.start), block.duration, block.text.trim(), block.kind]);
   const { deleted, ...base } = (editingTemplate == null ? null : getTemplate(editingTemplate)) ?? {};
   const value = { ...base, name, hint: fields.hint.value.trim() || undefined, wake: fields.wake.value,
     event: fields.event.checked || undefined, anchors };
@@ -1728,10 +1721,6 @@ function renderDay(key,{ blocks, bumped }, load, from, until, ghosts) {
     tile.classList.toggle('late', afterDeadline(key, block));
     const time = timeTile(tile, block.start, block.until, from);
     if (block.actualUntil != null) time.append(element('span', 'over-badge', '↗'));
-    if (block.tail > 0) {
-      tile.style.setProperty('--tail', block.tail);
-      tile.append(element('span', 'tail', `+${block.tail}m`));
-    }
     timeline.append(tile);
     const gap = Math.min(gapAfter(block), (blocks[i + 1]?.start ?? until) - block.until);
     if (gap > 0 && blocks[i + 1]) {
@@ -2033,9 +2022,8 @@ function moveDrag(event) {
   if (activeDrag.resize) {
     event.preventDefault();
     const drag = activeDrag;
-    const tail = drag.source.block.tail ?? 0;
     drag.edges ??= timelineEdges(drag.timeline, drag.source.block.id);
-    drag.end = Math.min(Math.max(timelineMinute(drag.timeline, event.clientY, { edges: drag.edges }), drag.start + tail + 15), DAY_END);
+    drag.end = Math.min(Math.max(timelineMinute(drag.timeline, event.clientY, { edges: drag.edges }), drag.start + 15), DAY_END);
     drag.moved = true;
     drag.tile.style.setProperty('--duration', drag.end - drag.start);
     return;
@@ -2101,7 +2089,7 @@ function endDrag(event) {
       return;
     }
     const day = plan.days[source.date];
-    const duration = end - Number(tile.dataset.start) - (source.block.tail ?? 0);
+    const duration = end - Number(tile.dataset.start);
     const resized = { ...source.block, duration };
     const blocks = day.blocks.map((block) => block.id === resized.id ? resized : block);
     storeDay(source.date, placeInDay(day, blocks, resized, Number(tile.dataset.start)));

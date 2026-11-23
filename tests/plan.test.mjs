@@ -1,14 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, insertPopup, layoutDay, restackBeforeScreensOff, suggestGhosts, toggleBlockPin } from '../plan-engine.js';
+import { foldTail, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, insertPopup, layoutDay, restackBeforeScreensOff, suggestGhosts, toggleBlockPin } from '../plan-engine.js';
 
 const block = (id, size, fields = {}) => ({ id, size, tier: 'medium', ...fields });
 const times = ({ blocks }) => blocks.map(({ id, start, until }) => [id, start, until]);
 
-test('starts at wake with the template offset, omits shelf items and includes tails and gaps', () => {
+test('starts at wake with the template offset, omits shelf items and includes gaps', () => {
   const day = {
     wake: '07:30', startOffset: 5,
-    blocks: [block('shelf', 30, { shelf: true }), block('one', 30), block('two', 90, { tail: 30 }), block('three', 45)],
+    blocks: [block('shelf', 30, { shelf: true }), block('one', 30), block('two', 120), block('three', 45)],
   };
   const before = structuredClone(day);
   assert.deepEqual(times(layoutDay(day)), [['one', 455, 485], ['two', 495, 615], ['three', 630, 675]]);
@@ -90,9 +90,10 @@ test('pin toggles preserve the displayed stack until an intentional reschedule',
   assert.deepEqual(times(layoutDay(rescheduled)), [['early', 420, 475], ['middle', 485, 515], ['late', 525, 555]]);
 });
 
-test('uses the set size for a break even when exercise has a tail', () => {
-  const day = { blocks: [block('cardio', 60, { tail: 30 }), block('then', 30)] };
-  assert.deepEqual(times(layoutDay(day)), [['cardio', 420, 510], ['then', 520, 550]]);
+test('an old saved tail folds into the block length', () => {
+  assert.deepEqual(foldTail(block('cardio', 60, { tail: 30 })), block('cardio', 90));
+  assert.deepEqual(foldTail(block('cardio', 60, { duration: 45, tail: 15 })), { ...block('cardio', 60), duration: 60 });
+  assert.deepEqual(foldTail(block('plain', 30, { tail: 0 })), block('plain', 30));
 });
 
 test('an overrun keeps the earlier stack and fixed time, and moves work from that block down', () => {
@@ -114,12 +115,12 @@ test('an overrun keeps the earlier stack and fixed time, and moves work from tha
   assert.deepEqual(result.bumped.map((b) => b.id), ['bump-me']);
 });
 
-test('load excludes fixed time, exercise tails, and mandatory gaps', () => {
+test('load excludes fixed time, exercise, and mandatory gaps', () => {
   const day = { wake: '19:00' };
   const blocks = [
     { ...block('work', 45), start: 1140, until: 1185 },
     { ...block('meal', 30, { tier: 'fixed' }), start: 1195, until: 1225 },
-    { ...block('cardio', 30, { kind: 'exercise', tail: 30 }), start: 1235, until: 1295 },
+    { ...block('cardio', 60, { kind: 'exercise' }), start: 1235, until: 1295 },
   ];
   assert.deepEqual(dayLoad(day, blocks), { usable: 60, placed: 45, ratio: .75 });
 });
@@ -210,7 +211,7 @@ test('a block placed at a time without a pin keeps that time until the stack is 
 
 test('deleting or resizing a block leaves every other block at the time it showed', () => {
   const day = toggleBlockPin({ blocks: [
-    block('breakfast', 30), block('commute', 46, { restackStart: 809 }), block('cardio', 45, { pinned: '14:15', tail: 10 }),
+    block('breakfast', 30), block('commute', 46, { restackStart: 809 }), block('cardio', 55, { pinned: '14:15' }),
   ] }, 'cardio', '14:15');
   const deleted = lockShownTimes(day, day.blocks.filter(({ id }) => id !== 'cardio'));
   assert.deepEqual(times(layoutDay(deleted)), [['breakfast', 420, 450], ['commute', 809, 855]]);

@@ -25,7 +25,15 @@ function planMinutes(time) {
 }
 
 function blockDuration(block) {
-  return (block.duration ?? block.size) + (block.tail ?? 0);
+  return block.duration ?? block.size;
+}
+
+// Tails no longer exist: older saved blocks fold theirs into the block's length.
+function foldTail(block) {
+  const { tail, ...rest } = block;
+  if (!tail) return rest;
+  const length = (block.duration ?? block.size) + tail;
+  return block.duration != null ? { ...rest, duration: length } : { ...rest, size: length };
 }
 
 function gapAfter(block) {
@@ -161,7 +169,7 @@ function restackBeforeScreensOff(day) {
 
 function planBlock(id, text, fields = {}) {
   return { id, text, size: 45, shelf: false, goal: null, tier: 'medium', pinned: null,
-    todoId: null, tail: 0, done: '', next: '', ...fields };
+    todoId: null, done: '', next: '', ...fields };
 }
 
 function editDay({ pinLayout, ...day }, blocks, preserveRestack = false) {
@@ -270,9 +278,7 @@ function dayLoad(day, blocks) {
     const work = workBlock(block);
     if (!work && until > from) excluded.push([from, until]);
     if (work && until > from) {
-      const tailStart = Math.max(from, Math.min(until, block.until - (block.tail ?? 0)));
-      placed += tailStart - from;
-      if (tailStart < until) excluded.push([tailStart, until]);
+      placed += until - from;
     }
     const gapUntil = Math.min(block.until + gapAfter(block), blocks[i + 1]?.start ?? end, end);
     if (gapUntil > until && gapUntil > start) excluded.push([Math.max(start, until), gapUntil]);
@@ -322,7 +328,7 @@ function ghostFits(day, key, tomorrow, examTomorrow, blocks, index, block) {
 
 function goalMinutes(blocks, goal) {
   return blocks.filter((block) => block.goal === goal)
-    .reduce((sum, block) => sum + Math.max(0, block.until - block.start - (block.tail ?? 0)), 0);
+    .reduce((sum, block) => sum + Math.max(0, block.until - block.start), 0);
 }
 
 function suggestGhosts(days, tray, budgets = {}, earliest = {}, layouts = {}) {
@@ -347,7 +353,7 @@ function suggestGhosts(days, tray, budgets = {}, earliest = {}, layouts = {}) {
       if (!shelf && (weekday === 0 || weekday === 6) && block.tier !== 'must') continue;
       const duration = blockDuration(block);
       const budget = budgets[block.goal];
-      if (budget != null && goalMinutes(weekly, block.goal) + duration - (block.tail ?? 0) > budget * 60) continue;
+      if (budget != null && goalMinutes(weekly, block.goal) + duration > budget * 60) continue;
       const startOfDay = Math.max((planMinutes(day.wake) ?? PLAN_START) + (day.startOffset ?? 0), day.workStart ?? 0, earliest[key] ?? 0);
       const adjacent = ['project', 'almost'].includes(blockKind(block));
       for (let i = 0; i <= stack.length; i++) {
@@ -410,7 +416,7 @@ function insertPopup(day, popup, minute) {
           for (const [i, [from, to]] of parts.entries()) {
             if (to <= from) continue;
             remaining.push({ ...free, id: i === 0 ? next.id : `${popup.id}-free`,
-              pinned: next.pinned ? blockKey(from) : null, start: from, until: to, duration: to - from, tail: 0 });
+              pinned: next.pinned ? blockKey(from) : null, start: from, until: to, duration: to - from });
           }
         }
         const stack = [...remaining, timed].sort((a, b) => a.start - b.start);
@@ -445,6 +451,6 @@ function insertPopup(day, popup, minute) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { layoutDay, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, toggleBlockPin, suggestGhosts,
+  module.exports = { foldTail, layoutDay, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, toggleBlockPin, suggestGhosts,
     insertPopup, restackBeforeScreensOff };
 }

@@ -243,13 +243,6 @@ button:disabled { opacity: .55; cursor: default; }
 .meter-fill { display: block; height: 100%; border-radius: inherit; background: #568b70; transition: width 150ms; }
 .day-footer.amber .meter-fill { background: #b98226; }
 .day-footer.coral .meter-fill, .over-budget .meter-fill { background: #c96d58; }
-.tail {
-  align-self: stretch; flex: none; margin-inline: -.38rem; padding: 0 .3rem;
-  height: min(calc(var(--tail) * var(--minute-height)), calc(100% - 1.06rem)); overflow: hidden;
-  background: #ffffff65; border-top: 1px dashed #172e4333; font-size: .72rem;
-}
-.tile.fixed .tail { margin-left: -.55rem; }
-.tile:has(.pin) .tail { margin-right: -1rem; }
 .bumped { font-size: .7rem; color: var(--muted); }
 .over-badge { margin-left: .25rem; font-weight: bold; color: #654325; }
 .timeline { user-select: none; cursor: default; }
