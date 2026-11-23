@@ -354,6 +354,33 @@ function scheduleOn(key) {
   return entriesFor(SCHEDULE).find((e) => scheduleDay(e) === key);
 }
 
+// To-dos the planner has put on a day from today on: a Map of Todo id ->
+// {order, label}, the earliest slot if there are several. A day edited in Dash
+// since the planner saved it only counts blocks whose text is still in it.
+function scheduledTodos() {
+  const today = dayKey(new Date());
+  const tomorrow = dayKey(addDays(new Date(), 1));
+  const found = new Map();
+  for (const { value } of plannerNotes(PLAN_WEEK).values()) {
+    for (const [key, day] of Object.entries(value.days || {})) {
+      if (key < today || !Array.isArray(day?.blocks) || !day.blocks.some((block) => block.todoId)) continue;
+      const schedule = scheduleOn(key);
+      const stale = (schedule?.id ?? null) !== (value.sources?.[key] ?? null);
+      const starts = new Map(layoutDay(day).blocks.map((block) => [block.id, block.start]));
+      for (const block of day.blocks) {
+        if (!block.todoId) continue;
+        if (stale && !schedule?.text.toLowerCase().includes(String(block.text).toLowerCase())) continue;
+        const start = block.shelf ? null : starts.get(block.id) ?? null;
+        const order = `${key} ${start == null ? 'zz' : String(start).padStart(4, '0')}`;
+        if (found.has(block.todoId) && found.get(block.todoId).order <= order) continue;
+        const dayName = key === today ? 'Today' : key === tomorrow ? 'Tomorrow' : dayLabel(key);
+        found.set(block.todoId, { order, label: `${dayName} · ${start == null ? 'to do' : clock(start, true, true)}` });
+      }
+    }
+  }
+  return found;
+}
+
 // The text an edit starts from. It's saved again as a new note today, so its
 // heading has to mean the same day counted from today: "Tomorrow" written
 // yesterday becomes the weekday, and another day's schedule gets a heading if

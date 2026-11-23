@@ -96,8 +96,10 @@ window.addEventListener('resize', () => {
   if (!current) fitGlance();
 });
 
+// Scheduled to-dos are already taken care of, so only unscheduled ones show here.
 function renderTodos() {
-  const todos = entriesFor('Todo');
+  const scheduled = scheduledTodos();
+  const todos = entriesFor('Todo').filter((entry) => !scheduled.has(entry.id));
   const oldest = todos.length > glanceLines ? todos[todos.length - 1] : null;
   const shown = oldest ? [...todos.slice(0, glanceLines - 1), oldest] : todos;
   const box = $('home-todos');

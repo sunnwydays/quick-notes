@@ -17,11 +17,13 @@ Live: https://dash-notes.vercel.app
 - `now call the dentist` or `asap call the dentist` → Todo as `now: call the dentist`. The planner offers it under **Now…**.
 - Anything else → Todo. Schedule is never picked.
 
-**Home screen:** built-in categories are circles in a "flower" round **Add note**; projects sit above them. Icons are SVG so they stay sharp on e-ink. Under the header are a few to-dos (newest, then the oldest with its age) and today's schedule (the block on now in black). Hold a to-do or schedule line to tick it (`HOLD_TO_DONE_MS`). The document icon opens **Transfer** and the calendar icon opens the **Week planner**. The ☰ menu holds **New project**, **Export**, **Help** and **Log in**. Help's text lives in `index.html`, so update it when behaviour changes.
+**Home screen:** built-in categories are circles in a "flower" round **Add note**; projects sit above them. Icons are SVG so they stay sharp on e-ink. Under the header are a few unscheduled to-dos (newest, then the oldest with its age) and today's schedule (the block on now in black). Hold a to-do or schedule line to tick it (`HOLD_TO_DONE_MS`). The document icon opens **Transfer** and the calendar icon opens the **Week planner**. The ☰ menu holds **New project**, **Export**, **Help** and **Log in**. Help's text lives in `index.html`, so update it when behaviour changes.
 
 **Search:** the box at the top shows every note containing all the typed words, grouped by category.
 
 **Read:** tap a category to see its notes, newest first, with Delete and Replace (delete and write the next one; not in Todo, Journal, Thought, Bring, Working on or Back burner). In Todo, Bring, Working on, Back burner, Discord and projects, a tick marks a note done; swipe to delete without counting it done. Everything has Undo. **Show times** is remembered per category. Double-tap or hold a blank spot to go back.
+
+**Todo:** to-dos the planner has put on a day (today or later) sit under **Scheduled** at the bottom, soonest first, each with its day and time (or "to do" if it's on the day's shelf).
 
 **Back burner:** the lower half of the Working on screen, for goals set aside for later (no button of its own). ↓ on a Working on note, or the flame on a Todo note, moves it there; ↑ moves it back up to Working on. Tap its heading to fold it away; its **Add** writes straight into it, and Add note files `back burner …` there. A move deletes the note (`deleted_how = 'moved'`) and saves a copy on top of the other list.
 

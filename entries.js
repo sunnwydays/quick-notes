@@ -87,8 +87,10 @@ function renderEntries(cat, fresh = false) {
   const box = $('entries-list');
   box.replaceChildren();
   const list = document.createElement('div');
-  appendEntries(list, cat);
+  if (cat === 'Todo') appendTodos(list);
+  else appendEntries(list, cat);
   box.append(list);
+  if (cat === 'Todo') appendScheduled(box);
   if (cat === 'Working on') renderBackBurner(box);
   if (cat === 'Discord') renderSent(box);
   box.classList.toggle('with-times', timesShown(cat));
@@ -97,15 +99,44 @@ function renderEntries(cat, fresh = false) {
   showPicked();
 }
 
-function appendEntries(list, cat) {
-  const entries = entriesFor(cat);
+function appendEntries(list, cat, entries = entriesFor(cat), empty = 'No notes yet.') {
   if (!entries.length) {
     const p = document.createElement('p');
     p.className = 'empty';
-    p.textContent = 'No notes yet.';
+    p.textContent = empty;
     list.append(p);
   }
   for (const entry of entries) list.append(entryRow(entry, cat));
+}
+
+// Todo shows what still needs a slot first; to-dos already on a planner day
+// (today or later) go under Scheduled, soonest first, each with when it's on.
+function appendTodos(list) {
+  const when = scheduledTodos();
+  const todos = entriesFor('Todo');
+  const open = todos.filter((entry) => !when.has(entry.id));
+  appendEntries(list, 'Todo', open, open.length < todos.length ? 'Everything is scheduled.' : 'No notes yet.');
+}
+
+function appendScheduled(box) {
+  const when = scheduledTodos();
+  const order = (entry) => when.get(entry.id).order;
+  const scheduled = entriesFor('Todo').filter((entry) => when.has(entry.id)).sort((a, b) => order(a).localeCompare(order(b)));
+  if (!scheduled.length) return;
+  const head = document.createElement('h3');
+  head.className = 'sent-head';
+  head.textContent = `Scheduled (${scheduled.length})`;
+  const list = document.createElement('div');
+  list.className = 'scheduled';
+  for (const entry of scheduled) {
+    const row = entryRow(entry, 'Todo');
+    const label = document.createElement('span');
+    label.className = 'todo-when';
+    label.textContent = when.get(entry.id).label;
+    row.querySelector('.entry-body').append(label);
+    list.append(row);
+  }
+  box.append(head, list);
 }
 
 function entryRow(entry, cat) {
