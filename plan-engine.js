@@ -36,8 +36,9 @@ function foldTail(block) {
   return block.duration != null ? { ...rest, duration: length } : { ...rest, size: length };
 }
 
-function gapAfter(block) {
-  return (block.duration ?? block.size) >= 90 ? 15 : 10;
+function gapAfter(block, duration = block.start != null && block.until != null ? block.until - block.start : blockDuration(block)) {
+  if (block.skipBreak || ['routine', 'meal', 'buffer'].includes(blockKind(block))) return 0;
+  return duration < 35 ? 5 : 10;
 }
 
 function placeBlocks(day, stack) {
@@ -257,7 +258,8 @@ function blockKind(block) {
   if (/\b(ai[- ]tutor|project)\b/i.test(text)) return 'project';
   if (/\b(prep|settle)\b/i.test(text)) return 'prep';
   if (/\b(study|recall|revise|review notes|lab)\b/i.test(text) || STUDY_SUBJECT.test(text)) return 'study';
-  if (/\b(lunch|dinner|meal)\b/i.test(text)) return 'meal';
+  if (/\b(breakfast|lunch|dinner|meal)\b/i.test(text)) return 'meal';
+  if (/^(?:morning wash|wash up|wake|walk outside|routine|nap|screens off|wind down|bedtime|shower)\b/i.test(text)) return 'routine';
   if (/^free\b/i.test(text)) return 'free';
   if (/^buffer\b/i.test(text)) return 'buffer';
   return '';
@@ -362,7 +364,7 @@ function suggestGhosts(days, tray, budgets = {}, earliest = {}, layouts = {}) {
         const beforeNext = adjacent && next ? next.start - duration - gapAfter(block) : 0;
         const start = Math.max(startOfDay, prev ? prev.until + gapAfter(prev) : 0, beforeNext);
         const until = start + duration;
-        if (until > Math.min(SCREENS_OFF, day.workEnd ?? SCREENS_OFF, (next?.start ?? Infinity) - 5)) continue;
+        if (until > Math.min(SCREENS_OFF, day.workEnd ?? SCREENS_OFF, (next?.start ?? Infinity) - gapAfter(block))) continue;
         const timed = { ...block, start, until, shelf: false };
         if (!ghostFits(day, key, tomorrow, examTomorrow, stack, i, timed)) continue;
         stack.splice(i, 0, timed);

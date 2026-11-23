@@ -11,13 +11,13 @@ test('starts at wake with the template offset, omits shelf items and includes ga
     blocks: [block('shelf', 30, { shelf: true }), block('one', 30), block('two', 120), block('three', 45)],
   };
   const before = structuredClone(day);
-  assert.deepEqual(times(layoutDay(day)), [['one', 455, 485], ['two', 495, 615], ['three', 630, 675]]);
+  assert.deepEqual(times(layoutDay(day)), [['one', 455, 485], ['two', 490, 610], ['three', 620, 665]]);
   assert.deepEqual(day, before);
 });
 
 test('keeps fixed anchors, even if their reservation comes later in the stack', () => {
   const day = { blocks: [block('work', 45), block('meal', 30, { pinned: '07:30', tier: 'fixed' }), block('next', 30)] };
-  assert.deepEqual(times(layoutDay(day)), [['meal', 450, 480], ['work', 490, 535], ['next', 545, 575]]);
+  assert.deepEqual(times(layoutDay(day)), [['meal', 450, 480], ['work', 485, 530], ['next', 540, 570]]);
 });
 
 test('allows contiguous fixed anchors through midnight', () => {
@@ -87,7 +87,7 @@ test('pin toggles preserve the displayed stack until an intentional reschedule',
   assert.equal(toggleBlockPin(unpinned, 'middle', '09:15'), null);
 
   const { day: rescheduled } = applyOverrun(unpinned, 'early', 475);
-  assert.deepEqual(times(layoutDay(rescheduled)), [['early', 420, 475], ['middle', 485, 515], ['late', 525, 555]]);
+  assert.deepEqual(times(layoutDay(rescheduled)), [['early', 420, 475], ['middle', 485, 515], ['late', 520, 550]]);
 });
 
 test('an old saved tail folds into the block length', () => {
@@ -122,7 +122,7 @@ test('load excludes fixed time, exercise, and mandatory gaps', () => {
     { ...block('meal', 30, { tier: 'fixed' }), start: 1195, until: 1225 },
     { ...block('cardio', 60, { kind: 'exercise' }), start: 1235, until: 1295 },
   ];
-  assert.deepEqual(dayLoad(day, blocks), { usable: 60, placed: 45, ratio: .75 });
+  assert.deepEqual(dayLoad(day, blocks), { usable: 65, placed: 45, ratio: 45 / 65 });
 });
 
 test('ghosts reserve the shelf first and suggest each remaining Todo once without changing the plan', () => {
@@ -146,7 +146,7 @@ test('ghosts respect fixed blocks, tomorrow’s exam, and the strict load ceilin
       block('project', 45, { text: 'AI tutor', pinned: '16:30' }),
       block('dinner', 30, { text: 'Dinner', tier: 'fixed', pinned: '19:00' }),
     ] },
-    '2026-11-24': { template: 'Exam / interview', wake: '21:10', blocks: [] },
+    '2026-11-24': { template: 'Exam / interview', wake: '21:15', blocks: [] },
   };
   const tray = [
     block('study', 45, { text: 'Study new material' }),
@@ -154,7 +154,7 @@ test('ghosts respect fixed blocks, tomorrow’s exam, and the strict load ceilin
     block('almost', 30, { text: 'Finish it', kind: 'almost' }),
   ];
   assert.deepEqual(suggestGhosts(days, tray).map(({ key, block }) => [key, block.id, block.start]), [
-    ['2026-11-23', 'prep', 930], ['2026-11-23', 'almost', 1100],
+    ['2026-11-23', 'prep', 930], ['2026-11-23', 'almost', 1105],
   ]);
   assert.deepEqual(suggestGhosts({ '2026-11-24': days['2026-11-24'] }, [block('load', 30, { text: 'Read' })]), []);
 });
@@ -186,7 +186,7 @@ test('a later wake only pushes blocks it overlaps', () => {
     block('later', 60, { restackStart: 720, restackUntil: 780 }),
   ] };
   const result = layoutDay(restackBeforeScreensOff(applyWake(day, '08:15')));
-  assert.deepEqual(times(result), [['early', 495, 525], ['next', 535, 565], ['later', 720, 780]]);
+  assert.deepEqual(times(result), [['early', 495, 525], ['next', 530, 560], ['later', 720, 780]]);
 });
 
 test('a short interruption uses only the time it needs from a pinned buffer', () => {
@@ -233,4 +233,10 @@ test('growing a block pushes the next one down', () => {
   const day = { blocks: [block('one', 30, { restackStart: 600 }), block('two', 30, { restackStart: 630 })] };
   const grown = lockShownTimes(day, day.blocks.map((b) => b.id === 'one' ? { ...b, size: 60 } : b), 'one');
   assert.deepEqual(times(layoutDay(grown)), [['one', 600, 660], ['two', 660, 690]]);
+});
+
+test('routine, meals and buffers can run straight into the next session', () => {
+  const blocks = ['routine', 'meal', 'buffer'].map(kind => block(kind, 45, { kind }));
+  blocks.push(block('short', 34), block('long', 35), block('last', 5));
+  assert.deepEqual(layoutDay({ blocks }).blocks.map(item => item.start), [420, 465, 510, 555, 594, 639]);
 });
