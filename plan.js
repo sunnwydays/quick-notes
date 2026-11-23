@@ -1118,12 +1118,17 @@ function renderGoals(layouts, loads) {
 }
 
 function renderTray() {
-  const tray = element('aside', 'panel tray');
+  const outer = element('aside', 'tray');
+  const tray = element('div', 'panel tray-box');
   tray.dataset.tray = '';
-  const add = plannerButton('+', () => openBlockEditor({ fresh: true, block: planBlock(newId(), '') }, {}), 'day-add');
+  const addItem = () => openBlockEditor({ fresh: true, block: planBlock(newId(), '') }, {});
+  const add = plannerButton('+', addItem, 'day-add');
   add.setAttribute('aria-label', 'Add an item to this week');
   tray.append(element('h3', '', 'This week'), add);
-  const someday = element('details', 'someday');
+  tray.addEventListener('click', (event) => {
+    if (!event.target.closest('button, summary')) addItem();
+  });
+  const someday = element('details', 'panel tray-box someday');
   someday.open = $('week').querySelector('.someday')?.open ?? false;
   someday.append(element('summary', '', 'Someday'));
   const copied = new Set(Object.values(plan.days).flatMap((day) => day.blocks.map((block) => block.todoId)));
@@ -1161,8 +1166,8 @@ function renderTray() {
     if (old.has(block.todoId)) splitPrompt(tile);
     tray.append(tile);
   }
-  tray.append(someday);
-  return tray;
+  outer.append(tray, someday);
+  return outer;
 }
 
 function renderTile(block, date) {

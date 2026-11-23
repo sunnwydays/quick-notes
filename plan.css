@@ -77,12 +77,10 @@ button:disabled { opacity: .55; cursor: default; }
   --minute-height: 1.45px;
   --now: #6a4fd8;
 }
-.tray {
-  grid-row: span 4; min-width: 0; padding: .75rem;
-  background: #dfeef4; border-color: #accad9;
-}
+.tray { grid-row: span 4; min-width: 0; display: flex; flex-direction: column; gap: .45rem; }
+.tray-box { padding: .75rem; background: #dfeef4; border-color: #accad9; }
+.tray-box[data-tray] { flex: 1; cursor: pointer; }
 .tray h3 { font-size: 1.2rem; color: #245776; }
-.someday { margin-top: 1rem; }
 .someday summary { font-weight: bold; cursor: pointer; }
 .tray-tile { margin-top: .35rem; }
 .copied { color: #325b70; font-weight: bold; }
@@ -235,7 +233,7 @@ button:disabled { opacity: .55; cursor: default; }
   box-shadow: 0 5px 14px #24485a44; transform: rotate(-2deg) scale(1.04);
   transition: none; overflow: hidden;
 }
-.tray.drop-target, .shelf.drop-target { outline: 2px dashed #387fa6; outline-offset: -3px; }
+.tray.drop-target, .tray-box.drop-target, .shelf.drop-target { outline: 2px dashed #387fa6; outline-offset: -3px; }
 .tile.drop-target { border-top: 3px dashed #387fa6; }
 .tile.drop-after { border-top: 1px solid #172e431c; border-bottom: 3px dashed #387fa6; }
 .timeline.drop-target::after {
@@ -313,7 +311,8 @@ label.choice:has(input:checked) { border-color: #5b8aa6; background: #eef6fb; }
     height: 100%; grid-template-columns: minmax(0, 36fr) minmax(0, 64fr);
     grid-template-rows: minmax(0, 1fr); gap: .35rem;
   }
-  .tray { grid-row: 1; overflow-y: auto; padding: .4rem; }
+  .tray { grid-row: 1; overflow-y: auto; }
+  .tray-box { padding: .4rem; }
   .tray h3 { font-size: 1rem; }
   .tray-tile { font-size: .85rem; }
   .day { display: none; }
