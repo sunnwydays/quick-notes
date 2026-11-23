@@ -875,11 +875,14 @@ function renderGoals(layouts, loads) {
 function renderTray() {
   const tray = element('aside', 'panel tray');
   tray.dataset.tray = '';
+  tray.append(element('h3', '', 'This week'));
+  const someday = element('details', 'someday');
+  someday.open = $('week').querySelector('.someday')?.open ?? false;
+  someday.append(element('summary', '', 'Someday'));
   const copied = new Set(Object.values(plan.days).flatMap((day) => day.blocks.map((block) => block.todoId)));
-  for (const [category, title] of [['Todo', 'This week'], [BACK_BURNER, 'Someday']]) {
-    tray.append(element('h3', '', title));
+  for (const [category, section] of [['Todo', tray], [BACK_BURNER, someday]]) {
     const entries = entriesFor(category);
-    if (!entries.length) tray.append(element('p', 'muted', `No ${category} notes`));
+    if (!entries.length) section.append(element('p', 'muted', `No ${category} notes`));
     for (const entry of entries) {
       const tile = element('button', 'tile tray-tile', bare(entry.text));
       tile.type = 'button';
@@ -889,15 +892,16 @@ function renderTray() {
         clockBadge.title = 'Copied to the plan';
         tile.append(clockBadge);
       }
-      tray.append(tile);
-    }
-    if (category === 'Todo') for (const block of plan.tray) {
-      const tile = renderTile(block);
-      tile.classList.add('tray-tile');
-      tile.dataset.source = 'parked';
-      tray.append(tile);
+      section.append(tile);
     }
   }
+  for (const block of plan.tray) {
+    const tile = renderTile(block);
+    tile.classList.add('tray-tile');
+    tile.dataset.source = 'parked';
+    tray.append(tile);
+  }
+  tray.append(someday);
   return tray;
 }
 

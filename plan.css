@@ -76,7 +76,8 @@ button:disabled { opacity: .55; cursor: default; }
   --minute-height: 1.45px;
 }
 .tray { grid-row: span 4; min-width: 0; padding: .65rem; }
-.tray h3:not(:first-child) { margin-top: 1rem; }
+.someday { margin-top: 1rem; }
+.someday summary { font-weight: bold; cursor: pointer; }
 .tray-tile { margin-top: .35rem; }
 .copied { color: #325b70; font-weight: bold; }
 .day { grid-row: span 4; display: grid; grid-template-rows: subgrid; gap: 0; min-width: 0; }
