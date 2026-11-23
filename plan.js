@@ -1486,8 +1486,8 @@ function renderDay(key,{ blocks, bumped }, load, from, until, ghosts) {
   toggle.title = 'Day options';
   const name = element('span', 'day-name', date.toLocaleDateString(undefined, { weekday: 'short' }));
   name.append(element('span', 'day-date', date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })));
-  const info = [day.wake && `Wake ${day.wake}`, day.template].filter(Boolean);
-  toggle.append(name, element('span', 'day-info', `${info.join(' · ')} ▾`));
+  const info = [day.wake?.replace(/^0(?=\d:)/, ''), day.template].filter(Boolean);
+  toggle.append(name, element('span', 'day-info', `${info.join(' ')} ▾`));
   heading.append(toggle);
   const menu = element('div', 'day-menu');
   menu.setAttribute('role', 'menu');
