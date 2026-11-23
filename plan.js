@@ -530,13 +530,29 @@ function applyBlockEditor(event) {
   const target = { date, shelf, before };
   const resized = size !== 'original' && Number(size) !== original.size;
   if (date && (date !== editedBlock.date || pinChanged || resized)) Object.assign(target, { at: time ?? undefined, pin: pinned != null });
+  const todo = editedBlock.fresh && !original.todoId && !NOT_TASKS.has(changes.kind) ? linkTodo(text) : null;
+  if (todo) changes.todoId = todo.entry.id;
   const error = moveBlock(editedBlock, target, changes);
   if (error) {
+    if (todo?.added) data.entries.splice(data.entries.indexOf(todo.entry), 1);
     $('block-error').textContent = error;
     $('block-error').hidden = false;
   } else {
+    if (todo?.added) persist();
     $('block-editor').close();
   }
+}
+
+// Items added in the planner also land in Dash's Todo, unless they're routine filler.
+const NOT_TASKS = new Set(['free', 'buffer', 'meal', 'routine']);
+
+function linkTodo(text) {
+  const same = entriesFor('Todo').find((entry) => bare(entry.text).trim().toLowerCase() === text.toLowerCase());
+  if (same) return { entry: same, added: false };
+  const now = new Date().toISOString();
+  const entry = { id: newId(), category: 'Todo', text: `${BULLET}${text}`, createdAt: now, updatedAt: now, deletedAt: null, dirty: true };
+  data.entries.push(entry);
+  return { entry, added: true };
 }
 
 function templateAnchor([pinned, duration, text, kind = 'routine', tail = 0]) {
