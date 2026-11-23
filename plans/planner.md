@@ -118,11 +118,11 @@ Fixed items (routine, meals + dishes, walk, exercise, review, 22:00 wind-down) d
 Each `Working on` note can be given weekly hours and a colour in the Goals header. Placing a block tagged with that goal fills its bar. Blocks with no goal render grey so off-goal time is visible. The header also shows total placed vs. usable hours for the week.
 
 ### Ghost blocks (suggestions)
-For each tray item with no block yet, the planner proposes one slot per day, drawn as a dashed ghost in the first gap that:
+The planner checks each day's shelf before the week tray. It shows one dashed ghost per eligible item in its earliest slot that:
 - fits the item's default size (45 unless the todo text has a size like `30m`),
 - keeps that goal under its budget and the day under 75%,
 - obeys the ordering rules below.
-One click turns a ghost solid. Ignoring it costs nothing. Only one ghost per tray item is shown at a time (the earliest fit), and ghosts never appear on days marked `social`/`recovery`.
+One click turns a ghost solid. Ghosts never appear on days marked `social` or `recovery`.
 
 Ordering rules the suggester follows and the warnings enforce (inputs §5):
 1. A deliverable due tomorrow goes in today's first work slot.
@@ -192,7 +192,7 @@ Goals header defaults: Chess 6h, Lab 2h, Fitness 6.5h (not 21h: tapering while s
 **Phase 1 – static week (no drag yet)**
 1. `plan.html` + `plan.css` + `plan.js`, loading `data.js`, `sync.js`, `login.js`, `schedule.js`. Add all three to `sw.js` `FILES`; bump `CACHE`.
 2. Hidden categories `Plan week`, `Plan template`, `Plan goals` (same mechanism as `PADS`: no category row, excluded from search/Export/project list).
-3. Render tray (Todo / Back burner / Working on header), each day's shelf, and 7 columns from the stored `Plan week` note or the saved Schedule notes for that week (`parseSchedule` → blocks with `pinned` where the text had a range).
+3. Render the tray, each day's shelf, and seven columns from the stored `Plan week` note or the saved Schedule notes for that week. Preserve imported Schedule times until the day is edited. Explicit planner pins are the anchors when restacking the planner.
 4. Stacking + timing engine as pure functions (`layoutDay(day) → blocks with start/until`), unit-tested in `tests/plan.test.mjs` with `node --test`.
 5. Save to Dash (write Schedule notes).
 
@@ -210,7 +210,7 @@ Goals header defaults: Chess 6h, Lab 2h, Fitness 6.5h (not 21h: tapering while s
 
 **Phase 4 – Dash-side touches**
 14. "Woke at" / "Ran over" one-tap on Dash's schedule screen (re-times the saved note using the same engine; schedule.js already has the parser).
-15. Link in ☰ menu ("Plan week"), opens `plan.html`.
+15. The calendar icon in the Dash home header opens `plan.html`.
 16. README + Help text.
 
 ## Done when
