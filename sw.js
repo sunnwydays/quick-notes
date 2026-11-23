@@ -6,7 +6,7 @@
 // Only the app's own files are handled. Sync requests to Supabase go straight
 // to the network, so the app never sees stale notes from the cache.
 
-const CACHE = 'quick-notes-v23';
+const CACHE = 'quick-notes-v24';
 const FILES = [
   './',
   'index.html',
@@ -72,10 +72,13 @@ self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET' || new URL(e.request.url).origin !== self.location.origin) return;
   e.respondWith(
     caches.open(CACHE).then(async (cache) => {
-      const cached = await cache.match(e.request, { ignoreSearch: true });
+      let cached = await cache.match(e.request, { ignoreSearch: true });
+      // A response that came through a redirect (e.g. serve's /plan.html → /plan)
+      // can't be used for a page load, so never answer from or store one.
+      if (cached?.redirected) cached = undefined;
       const network = fetch(e.request)
         .then(async (res) => {
-          if (res.ok) {
+          if (res.ok && !res.redirected) {
             if (cached && (await changed(cached, res))) await tellPages();
             cache.put(e.request, res.clone());
           }
