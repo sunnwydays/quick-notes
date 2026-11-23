@@ -690,6 +690,17 @@ function blockKind(block) {
   return '';
 }
 
+function blockColour(block) {
+  const kind = blockKind(block);
+  const text = block.text || '';
+  const studyCue = /\b(?:(?:ece|csc|mat|sta|phy|chm|bio)\s?[1-4]\d{2}|(?:practice|past) (?:exam|midterm)|exam prep|problem set)\b/i;
+  const routineCue = /^(?:wake|breakfast|walk outside|nap|screens off|wind down|bedtime|shower)\b/i;
+  if (kind === 'study' || (!block.kind && studyCue.test(text))) return '#e7ddfa';
+  if (kind === 'routine' || kind === 'meal' || (!block.kind && routineCue.test(text))) return '#fbe5d5';
+  if (kind === 'free' || kind === 'buffer') return '#e9f6e6';
+  return goalColour(block.goal) || '#f6f8fa';
+}
+
 function workBlock(block) {
   return block.tier !== 'fixed' && !['free', 'buffer', 'meal', 'routine', 'exercise', 'travel', 'event'].includes(blockKind(block));
 }
@@ -885,8 +896,10 @@ function renderTray() {
     const entries = entriesFor(category);
     if (!entries.length) section.append(element('p', 'muted', `No ${category} notes`));
     for (const entry of entries) {
-      const tile = element('button', 'tile tray-tile', bare(entry.text));
+      const text = bare(entry.text);
+      const tile = element('button', 'tile tray-tile', text);
       tile.type = 'button';
+      tile.style.setProperty('--tile-colour', blockColour({ text }));
       Object.assign(tile.dataset, { id: entry.id, source: category });
       if (copied.has(entry.id)) {
         const clockBadge = element('span', 'copied', ' ◷');
@@ -912,8 +925,7 @@ function renderTile(block, date) {
   tile.dataset.id = block.id;
   if (date) tile.dataset.date = date;
   tile.classList.toggle('fixed', block.tier === 'fixed');
-  const rest = ['free', 'buffer'].includes(blockKind(block));
-  tile.style.setProperty('--tile-colour', goalColour(block.goal) || (rest ? '#e9f6e6' : block.pinned ? '#fff0d7' : '#edf0f3'));
+  tile.style.setProperty('--tile-colour', blockColour(block));
   tile.append(element('span', 'tile-title', block.text));
   if (block.bumped) tile.append(element('span', 'bumped', block.bumpedFrom ? ` · Bumped from ${dayLabel(block.bumpedFrom, false)}` : ' · Bumped'));
   if (block.pinned) {
