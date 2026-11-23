@@ -299,10 +299,6 @@ dialog input:not([type="checkbox"]), dialog select, #login input {
     linear-gradient(90deg, #172e4340 1px, transparent 1px) var(--shift) 100% / 8px 22% repeat-x,
     white;
 }
-.scrub::after {
-  content: ''; position: absolute; left: 50%; bottom: 0; width: 2px;
-  margin-left: -1px; height: 30%; background: #2c7fb8; border-radius: 1px; pointer-events: none;
-}
 .scrub.dragging { border-color: #2c7fb8; }
 dialog .scrub input {
   position: relative; z-index: 1; width: 4ch; min-height: 0; padding: 0; border: 0;
