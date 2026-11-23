@@ -902,8 +902,10 @@ function renderGoals(layouts, loads) {
 function renderTray() {
   const tray = element('aside', 'panel tray');
   tray.dataset.tray = '';
+  const add = plannerButton('+', () => openBlockEditor({ fresh: true, block: planBlock(newId(), '') }, {}), 'day-add');
+  add.setAttribute('aria-label', 'Add an item to this week');
   tray.append(element('h3', '', 'This week'),
-    element('p', 'muted tray-hint', 'Drag into a day or tap to edit.'));
+    element('p', 'muted tray-hint', 'Drag into a day or tap to edit.'), add);
   const someday = element('details', 'someday');
   someday.open = $('week').querySelector('.someday')?.open ?? false;
   someday.append(element('summary', '', 'Someday'));
