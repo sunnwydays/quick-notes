@@ -38,6 +38,7 @@ function renderRecent(cat) {
     box.append(div);
   }
   box.classList.toggle('with-times', timesShown(cat));
+  box.classList.toggle('checks-off', checksOff(cat));
   box.classList.toggle('no-replace', !replaces(cat));
   box.classList.toggle('moves', Boolean(MOVES[cat]));
 }

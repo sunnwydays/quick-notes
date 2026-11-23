@@ -98,12 +98,13 @@ body.still-held * { user-select: none !important; -webkit-user-select: none !imp
    empty tools row stands in for its one so the notes start at the same height.
    They take up to half the height and scroll; the text box fills the rest. */
 #editor-recent { flex: 0 1 auto; max-height: 50%; min-height: 0; overflow-y: auto; margin-bottom: 8px; }
-/* Stands in for the Replace and Delete buttons (and the gap between them), so each
+/* Stands in for the action buttons and their gaps, so each
    note wraps and spaces as it does on the notes screen. */
 #editor-recent .entry::after { content: ''; flex: none; width: 100px; height: 44px; }
+#editor-recent.checks-off .entry::after { width: 92px; }
 #editor-recent.no-replace .entry::after { width: 44px; }
-#editor-recent.moves .entry::after { width: 156px; }
-#editor-recent.moves.no-replace .entry::after { width: 100px; }
+#editor-recent.moves .entry::after { width: 148px; }
+#editor-recent.moves.no-replace .entry::after { width: 92px; }
 #editor textarea, #pad {
   flex: 1 1 0;
   min-height: 120px;
@@ -151,6 +152,7 @@ body.still-held * { user-select: none !important; -webkit-user-select: none !imp
   display: flex; align-items: center; justify-content: center; flex: none;
   width: 44px; height: 44px; min-height: 0; padding: 0;
 }
+.entry.swipe .entry-btn + .entry-btn:last-child { margin-inline-start: -8px; }
 .entry-btn svg { display: block; }
 /* Picked with the arrow keys on a computer (entries.js). */
 .entry.picked { outline: 3px solid #000; outline-offset: -3px; }
