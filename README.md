@@ -46,7 +46,7 @@ No new material after that, early night
 
 ### Week planner
 
-Open the **calendar icon** in Dash's home header. Drag a Todo onto a day's **Untimed** shelf to commit to the day, or into the timeline to give it a time. Scheduling copies the Todo. You can still tick the original in Dash. Click a block to set its goal, pin its time, or describe what finished looks like in **Done =**. Use **Template** to add routine anchors and click a **Working on** goal to set its weekly hours.
+Open the **calendar icon** in Dash's home header. Drag a Todo onto a day's **Untimed** shelf to commit to the day, or into the timeline to give it a time. Scheduling copies the Todo. You can still tick the original in Dash. Click a block to rename it; goal, length, pin and the rest sit under **More**. Use **Template** to add routine anchors and click a **Working on** goal to set its weekly hours.
 
 - Dashed blocks are suggestions. The planner checks the day's shelf first, then the week tray. It stays below 75% load and respects goal budgets. Click a ghost to schedule it. Old Todos prompt you to split off a first step, and days with at least ten parked AI tutor ideas show a drift badge.
 - **Now…** fits an interruption into today. Up to 15 minutes uses a gap, free time, or a buffer. Longer interruptions restack the day and return bumped blocks to the tray.

@@ -270,7 +270,6 @@ function pinCollision(block, blocks) {
 // Build the replacement stacks before changing either day.
 function moveBlock(source, target, changes = {}) {
   if (!source?.block) return 'That block is no longer available.';
-  if (source.copy && !target.date) return '';
   const old = source.block;
   const changed = { ...old, ...changes, bumped: false, bumpedFrom: undefined };
   const origin = source.date && plan.days[source.date];
@@ -329,30 +328,39 @@ function fillOptions(select, items, value) {
   select.value = value;
 }
 
-function openBlockEditor(source, date) {
-  editedBlock = source;
+// Where a block lives decides where the editor puts it: a day's stack, its Untimed shelf, or the week tray.
+function blockTarget(source) {
+  return source.date ? { date: source.date, shelf: Boolean(source.block.shelf) } : {};
+}
+
+function openBlockEditor(source, target = blockTarget(source)) {
+  editedBlock = { ...source, target };
   const block = source.block;
+  const { date, shelf } = target;
+  const timed = Boolean(date && !shelf);
   const fields = $('block-form').elements;
   fields.text.value = block.text;
-  fields.done.value = block.done;
   fields.next.value = block.next;
   fields.tail.value = block.tail;
-  fields.deadline.value = block.deadline || '';
   fillOptions(fields.kind, Object.entries(BLOCK_KINDS), block.kind || '');
-  fillOptions(fields.day, plan.keys.map((key) => [key, dayLabel(key)]), date);
   const sizes = PLAN_SIZES.map((size) => [size, `${size} min`]);
-  if (block.duration != null) sizes.unshift(['original', `${block.duration} min (original)`]);
+  if (block.duration != null) sizes.unshift(['original', `${block.duration} min${source.fresh ? '' : ' (original)'}`]);
   fillOptions(fields.size, sizes, block.duration != null ? 'original' : String(block.size));
-  const weekend = [0, 6].includes(keyDate(date).getDay());
+  const weekend = date && [0, 6].includes(keyDate(date).getDay());
   const tier = weekend && (source.fresh || source.copy) ? 'must' : block.tier;
   fillOptions(fields.tier, PLAN_TIERS.map((key) => [key, key[0].toUpperCase() + key.slice(1)]), tier);
   const goals = plannerGoals().map((item) => [item.id, bare(item.text)]);
   if (block.goal && !goals.some(([id]) => id === block.goal)) goals.push([block.goal, 'Archived goal']);
   fillOptions(fields.goal, [['', 'No goal'], ...goals], block.goal || '');
-  fields.placement.value = source.date && block.shelf ? 'shelf' : 'stack';
+  const start = target.place ?? block.pinned ??
+    (source.date ? blockKey(layoutDay(plan.days[source.date]).blocks.find((b) => b.id === block.id)?.start ?? PLAN_START) : '07:00');
   fields.pin.checked = Boolean(block.pinned);
-  fields.time.value = block.pinned || (source.date ? blockKey(layoutDay(plan.days[source.date]).blocks.find((b) => b.id === block.id)?.start ?? PLAN_START) : '07:00');
-  $('block-editor-title').textContent = source.date && !source.fresh ? 'Edit block' : 'Place block';
+  fields.time.value = start;
+  const end = blockKey(planMinutes(start) + blockDuration(block));
+  $('block-where').textContent = !date ? 'This week tray' : `${dayLabel(date)} · ${timed ? `${start}–${end}` : 'Untimed'}`;
+  $('pin-fields').hidden = !timed;
+  $('block-more').open = false;
+  $('block-editor-title').textContent = source.fresh ? 'Add item' : 'Edit item';
   $('block-delete').hidden = Boolean(source.copy || source.fresh);
   $('block-over').hidden = !source.date || block.shelf;
   $('block-error').hidden = true;
@@ -362,8 +370,7 @@ function openBlockEditor(source, date) {
 
 function updateEditorFields() {
   const fields = $('block-form').elements;
-  fields.day.disabled = fields.placement.value === 'tray';
-  fields.pin.disabled = fields.placement.value !== 'stack';
+  fields.pin.disabled = $('pin-fields').hidden;
   fields.time.disabled = fields.pin.disabled || !fields.pin.checked;
   fields.time.required = !fields.time.disabled;
 }
@@ -373,25 +380,24 @@ function applyBlockEditor(event) {
   const fields = event.target.elements;
   const text = fields.text.value.trim();
   if (!text) return;
-  const date = fields.placement.value === 'tray' ? null : fields.day.value;
-  const shelf = fields.placement.value === 'shelf';
+  const { date = null, shelf = false, place } = editedBlock.target;
   const original = editedBlock.block;
   const pinned = fields.time.disabled ? null : fields.time.value;
   const day = plan.days[date];
   const size = fields.size.value;
+  // Done and deadline are no longer edited here, so existing values carry over untouched.
   const changes = {
-    text, done: fields.done.value.trim(), next: fields.next.value.trim(), goal: fields.goal.value || null,
-    tier: fields.tier.value, tail: Number(fields.tail.value), pinned,
-    kind: fields.kind.value || undefined, deadline: fields.deadline.value || undefined,
+    text, next: fields.next.value.trim(), goal: fields.goal.value || null,
+    tier: fields.tier.value, tail: Number(fields.tail.value), pinned, kind: fields.kind.value || undefined,
     ...size === 'original' ? {} : { size: Number(size), duration: undefined },
   };
-  if (date && date === editedBlock.date && !shelf && !original.shelf &&
-      Object.entries(changes).every(([key, value]) => key === 'pinned' || (value ?? null) === (original[key] ?? null))) {
-    if (pinned === (original.pinned ?? null)) {
+  const unchanged = (key) => (changes[key] ?? null) === (original[key] ?? null);
+  if (!editedBlock.fresh && Object.keys(changes).every((key) => key === 'pinned' || unchanged(key))) {
+    if (unchanged('pinned')) {
       $('block-editor').close();
       return;
     }
-    const updated = toggleBlockPin(day, original.id, pinned);
+    const updated = date && !shelf && toggleBlockPin(day, original.id, pinned);
     if (updated) {
       plan.days[date] = updated;
       plan.dirtyDays.add(date);
@@ -401,16 +407,16 @@ function applyBlockEditor(event) {
     }
   }
   const oldIndex = day?.blocks.findIndex((block) => block.id === original.id) ?? -1;
-  const next = oldIndex < 0 ? undefined : day.blocks[oldIndex + 1]?.id;
-  let before = next;
-  if (date && !shelf && pinned && (pinned !== original.pinned || oldIndex < 0)) {
-    before = layoutDay(day).blocks.find((b) => b.id !== original.id && b.start >= planMinutes(pinned))?.id;
+  let before = oldIndex < 0 ? undefined : day.blocks[oldIndex + 1]?.id;
+  const at = planMinutes(pinned ?? place);
+  if (date && !shelf && at != null && (pinned !== original.pinned || oldIndex < 0)) {
+    before = layoutDay(day).blocks.find((b) => b.id !== original.id && b.start >= at)?.id;
   } else if (date && !shelf && (oldIndex < 0 || original.shelf)) {
     const stack = layoutDay(day).blocks;
     const cutoff = Math.max(day.workEnd ?? 17 * 60, day.workStart ?? 0);
     before = stack.find((b) => b.pinned && b.start >= cutoff)?.id;
   }
-  const target = { date, shelf, before };
+  const target = { date, shelf, before, place };
   if (date && (date !== editedBlock.date || pinned !== original.pinned || size !== 'original' && Number(size) !== original.size)) target.pinned = pinned;
   const error = moveBlock(editedBlock, target, changes);
   if (error) {
@@ -897,7 +903,7 @@ function renderTray() {
   const tray = element('aside', 'panel tray');
   tray.dataset.tray = '';
   tray.append(element('h3', '', 'This week'),
-    element('p', 'muted tray-hint', 'Drag into a day or tap a task to pick a day.'));
+    element('p', 'muted tray-hint', 'Drag into a day or tap to edit.'));
   const someday = element('details', 'someday');
   someday.open = $('week').querySelector('.someday')?.open ?? false;
   someday.append(element('summary', '', 'Someday'));
@@ -994,8 +1000,8 @@ function renderDay(key, { blocks, bumped }, load, from, until, ghosts, drift) {
   const timeline = element('div', 'timeline');
   timeline.dataset.from = from;
   timeline.dataset.until = until;
-  const add = plannerButton('+', () => openBlockEditor({ fresh: true, block: planBlock(newId(), '') }, key), 'day-add');
-  add.setAttribute('aria-label', `Add a block for ${dayLabel(key)}`);
+  const add = plannerButton('+', () => openBlockEditor({ fresh: true, block: planBlock(newId(), '') }, { date: key, shelf: true }), 'day-add');
+  add.setAttribute('aria-label', `Add an untimed item for ${dayLabel(key)}`);
   shelf.append(add);
   timeline.style.setProperty('--minutes', until - from);
   for (let hour = from; hour < until; hour += 60) {
@@ -1340,7 +1346,7 @@ function startPlanner() {
     const open = () => {
       const source = blockSource(tile);
       if (tile.dataset.source === 'Todo' && urgentTodos().some((entry) => entry.id === tile.dataset.id)) openPopup(tile.dataset.id);
-      else if (source?.block) openBlockEditor(source, source.date || (plan.keys.includes(dayKey(new Date())) ? dayKey(new Date()) : plan.keys[0]));
+      else if (source?.block) openBlockEditor(source);
     };
     if (event.detail === 0) open();
     else tileClick = setTimeout(open, 260);

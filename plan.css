@@ -224,6 +224,9 @@ dialog input:not([type="checkbox"]), dialog select, #login input {
 }
 .field-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .45rem; }
 .pin-fields { align-items: end; }
+#block-where { margin: -.25rem 0 0; }
+#block-more summary { cursor: pointer; font-size: .9rem; font-weight: bold; color: var(--muted); }
+.more-fields { display: grid; gap: .55rem; margin-top: .55rem; }
 .pin-fields label:first-child { display: flex; align-items: center; }
 @media (max-width: 700px) {
   #planner { padding: .5rem .5rem 0; }

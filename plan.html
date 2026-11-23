@@ -54,36 +54,28 @@
   </section>
   <dialog id="block-editor" aria-labelledby="block-editor-title">
     <form id="block-form">
-      <h2 id="block-editor-title">Edit block</h2>
-      <label>Block <input name="text" required autofocus></label>
-      <label>Done = <input name="done"></label>
-      <label>Next <input name="next"></label>
-      <div class="field-row">
-        <label>Day <select name="day"></select></label>
-        <label>Placement
-          <select name="placement">
-            <option value="stack">Timed stack</option>
-            <option value="shelf">Untimed shelf</option>
-            <option value="tray">Week tray</option>
-          </select>
-        </label>
-      </div>
-      <div class="field-row">
-        <label>Length <select name="size"></select></label>
-        <label>Tier <select name="tier"></select></label>
-      </div>
-      <div class="field-row">
-        <label>Goal <select name="goal"></select></label>
-        <label>Tail (min) <input name="tail" type="number" min="0" max="120" step="5"></label>
-      </div>
-      <div class="field-row">
-        <label>Kind <select name="kind"></select></label>
-        <label>Deadline <input name="deadline" type="datetime-local"></label>
-      </div>
-      <div class="field-row pin-fields">
-        <label><input name="pin" type="checkbox"> Pin time</label>
-        <label>Time <input name="time" type="time"></label>
-      </div>
+      <h2 id="block-editor-title">Add item</h2>
+      <label>Item <input name="text" required autofocus placeholder="e.g. Gym, or Lab 3 intro written"></label>
+      <p id="block-where" class="muted"></p>
+      <details id="block-more">
+        <summary>More</summary>
+        <div class="more-fields">
+          <label>Next <input name="next" placeholder="First step for the next block"></label>
+          <div class="field-row">
+            <label>Length <select name="size"></select></label>
+            <label>Tier <select name="tier"></select></label>
+          </div>
+          <div class="field-row">
+            <label>Goal <select name="goal"></select></label>
+            <label>Tail (min) <input name="tail" type="number" min="0" max="120" step="5"></label>
+          </div>
+          <label>Kind <select name="kind"></select></label>
+          <div id="pin-fields" class="field-row pin-fields">
+            <label><input name="pin" type="checkbox"> Pin time</label>
+            <label>Time <input name="time" type="time"></label>
+          </div>
+        </div>
+      </details>
       <p id="block-error" class="warning" role="alert" hidden></p>
       <div class="actions">
         <button type="submit" class="primary">Apply</button>
