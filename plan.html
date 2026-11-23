@@ -84,6 +84,7 @@
       <div class="actions">
         <button type="submit" class="primary">Apply</button>
         <button id="block-cancel" type="button">Cancel</button>
+        <button id="block-over" type="button">Ran over…</button>
         <button id="block-delete" type="button">Delete</button>
       </div>
     </form>
@@ -115,6 +116,19 @@
       <div class="actions">
         <button class="primary">Apply</button>
         <button id="goal-cancel" type="button">Cancel</button>
+      </div>
+    </form>
+  </dialog>
+  <dialog id="restack-editor" aria-labelledby="restack-title">
+    <form id="restack-form">
+      <h2 id="restack-title"></h2>
+      <p id="restack-text" class="muted"></p>
+      <label>Time <input name="time" type="time" required autofocus></label>
+      <label id="restack-reason">Reason <input name="reason" placeholder="Optional"></label>
+      <p id="restack-error" class="warning" role="alert" hidden></p>
+      <div class="actions">
+        <button type="submit" class="primary">Restack day</button>
+        <button id="restack-cancel" type="button">Cancel</button>
       </div>
     </form>
   </dialog>

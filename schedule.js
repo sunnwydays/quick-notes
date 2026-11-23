@@ -283,11 +283,15 @@ function marksOn(day) {
   return new Map([...newest].filter(([, m]) => m.status !== 'cleared'));
 }
 
-function addMark(day, b, fields) {
-  data.marks.push({
+function makeBlockMark(day, b, fields) {
+  return {
     id: newId(), day, blockStart: blockKey(b.start), blockText: b.lines.find(Boolean) || '',
     markedAt: new Date().toISOString(), dirty: true, ...fields,
-  });
+  };
+}
+
+function addMark(day, b, fields) {
+  data.marks.push(makeBlockMark(day, b, fields));
   persist();
   refreshView();
   sync();

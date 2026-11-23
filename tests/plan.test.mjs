@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { layoutDay } from '../plan.js';
+import { applyOverrun, dayLoad, layoutDay } from '../plan.js';
 
 const block = (id, size, fields = {}) => ({ id, size, tier: 'medium', ...fields });
 const times = ({ blocks }) => blocks.map(({ id, start, until }) => [id, start, until]);
@@ -28,8 +28,8 @@ test('allows contiguous fixed anchors and checks the end, not the trailing gap, 
       block('sleep', 60, { pinned: '23:00', tier: 'fixed' }),
     ],
   };
-  assert.deepEqual(times(layoutDay(day)), [['wind-down', 1320, 1380], ['sleep', 1380, 1440]]);
-  assert.deepEqual(layoutDay({ ...day, blocks: [day.blocks[0]] }).bumped, []);
+  assert.deepEqual(times(layoutDay(day)), [['work', 1260, 1320], ['wind-down', 1320, 1380], ['sleep', 1380, 1440]]);
+  assert.deepEqual(layoutDay(day).bumped, []);
 });
 
 test('bumps lower priority work first and only fixed pins survive a later wake unchanged', () => {
@@ -49,4 +49,38 @@ test('bumps lower priority work first and only fixed pins survive a later wake u
 test('preserves an imported Schedule until the planner changes the day', () => {
   const day = { imported: true, blocks: [block('early', 45, { importedStart: 360, duration: 25 })] };
   assert.deepEqual(times(layoutDay(day)), [['early', 360, 385]]);
+});
+
+test('uses the set size for a break even when exercise has a tail', () => {
+  const day = { blocks: [block('cardio', 60, { tail: 30 }), block('then', 30)] };
+  assert.deepEqual(times(layoutDay(day)), [['cardio', 420, 510], ['then', 520, 550]]);
+});
+
+test('an overrun keeps the earlier stack and fixed time, and moves work from that block down', () => {
+  const day = {
+    imported: true,
+    blocks: [
+      block('earlier', 30, { importedStart: 420 }),
+      block('over', 30, { importedStart: 450 }),
+      block('meal', 30, { importedStart: 500, pinned: '08:20', tier: 'fixed' }),
+      block('flex', 45, { importedStart: 540 }),
+      block('bump-me', 30, { importedStart: 600, pinned: '10:00', tier: 'low' }),
+    ],
+  };
+  assert.equal(applyOverrun(day, 'over', 449), null);
+  const { day: changed, timed } = applyOverrun(day, 'over', 615);
+  assert.equal(timed.start, 450);
+  const result = layoutDay(changed);
+  assert.deepEqual(times(result), [['earlier', 420, 450], ['over', 450, 500], ['meal', 500, 530], ['flex', 625, 670]]);
+  assert.deepEqual(result.bumped.map((b) => b.id), ['bump-me']);
+});
+
+test('load excludes fixed time, exercise tails, and mandatory gaps', () => {
+  const day = { wake: '19:00' };
+  const blocks = [
+    { ...block('work', 45), start: 1140, until: 1185 },
+    { ...block('meal', 30, { tier: 'fixed' }), start: 1195, until: 1225 },
+    { ...block('cardio', 30, { kind: 'exercise', tail: 30 }), start: 1235, until: 1295 },
+  ];
+  assert.deepEqual(dayLoad(day, blocks), { usable: 60, placed: 45, ratio: .75 });
 });

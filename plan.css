@@ -87,6 +87,7 @@ button:disabled { opacity: .55; cursor: default; }
 .day-head h3 { font-size: 1.2rem; display: flex; gap: .25rem; justify-content: space-between; align-items: baseline; }
 .day-date, .day-info { font-size: .75rem; font-weight: normal; color: var(--muted); }
 .day-info { margin-top: .2rem; }
+.day-event { font-weight: bold; }
 .day-actions { display: flex; flex-wrap: wrap; gap: .2rem; margin-top: .35rem; }
 .day-action { padding: .1rem .3rem; font-size: .72rem; border-bottom-width: 2px; }
 .day-action[aria-pressed="true"] { background: #e5dcfa; border-style: solid; }
@@ -121,9 +122,12 @@ button:disabled { opacity: .55; cursor: default; }
 .tile:has(.pin) { padding-right: 1rem; }
 .tile.timed {
   position: absolute; inset-inline: .32rem; overflow: hidden; width: auto;
-  height: calc(var(--duration) * var(--minute-height));
+  height: calc(var(--duration) * var(--minute-height)); font-size: .94rem;
 }
-.tile.late { --tile-colour: #dddfe1 !important; border-color: #8b9298; text-decoration: line-through; }
+.tile.timed .tile-title {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.tile.late, .tile.late:hover { background-color: #dddfe1; border-color: #8b9298; text-decoration: line-through; }
 .gap {
   position: absolute; inset-inline: .5rem; top: calc(var(--minute) * var(--minute-height));
   height: calc(var(--duration) * var(--minute-height)); border-block: 1px solid #edf0f2;
@@ -144,6 +148,7 @@ button:disabled { opacity: .55; cursor: default; }
   background: #ffffff65; border-top: 1px dashed #172e4333; font-size: .72rem;
 }
 .bumped { font-size: .7rem; color: var(--muted); }
+.over-badge { margin-left: .25rem; font-weight: bold; color: #654325; }
 .tile.dragging { opacity: .45; }
 .tile.drag-preview {
   position: fixed; inset: auto; z-index: 10; pointer-events: none;

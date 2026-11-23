@@ -51,6 +51,7 @@ let editedBlock;
 let tileClick;
 let templateDate;
 let editingGoal;
+let restacking;
 
 function planMinutes(time) {
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time ?? '')) return null;
@@ -62,14 +63,14 @@ function blockDuration(block) {
 }
 
 function gapAfter(block) {
-  return blockDuration(block) >= 90 ? 15 : 10;
+  return (block.duration ?? block.size) >= 90 ? 15 : 10;
 }
 
 function placeBlocks(day, stack) {
   const wake = Math.max((planMinutes(day.wake) ?? PLAN_START) + (day.startOffset ?? 0), day.workStart ?? 0);
   const anchors = stack.flatMap((block) => {
-    const start = block.actualStart ?? planMinutes(block.pinned);
-    return start === null ? [] : [{ ...block, start, until: block.actualUntil ?? start + blockDuration(block) }];
+    const start = block.actualStart ?? block.restackStart ?? planMinutes(block.pinned);
+    return start === null ? [] : [{ ...block, start, until: block.actualUntil ?? block.restackUntil ?? start + blockDuration(block) }];
   }).sort((a, b) => a.start - b.start);
   const byId = new Map(anchors.map((block) => [block.id, block]));
   let cursor = wake;
@@ -81,15 +82,20 @@ function placeBlocks(day, stack) {
       let start = Math.max(cursor, block.importedStart ?? 0);
       for (const anchor of anchors) {
         if (start >= anchor.until + gapAfter(anchor)) continue;
-        if (start + duration + gapAfter(block) <= anchor.start) break;
+        if (start + duration <= anchor.start) break;
         start = anchor.until + gapAfter(anchor);
       }
       timing = { ...block, start, until: start + duration };
     }
     placed.push(timing);
     cursor = Math.max(cursor, timing.until + gapAfter(timing));
+    if (timing.actualUntil != null) {
+      const fixed = anchors.find((anchor) => anchor.id !== block.id && anchor.tier === 'fixed'
+        && anchor.start >= timing.start && anchor.start < timing.until);
+      if (fixed) placed[placed.length - 1] = { ...timing, until: fixed.start };
+    }
   }
-  return placed.sort((a, b) => a.start - b.start);
+  return placed.filter((block) => block.until > block.start).sort((a, b) => a.start - b.start);
 }
 
 // Pinned positions are reservations. Remove the lowest-priority work and lay
@@ -106,15 +112,23 @@ function layoutDay(day) {
   const wake = planMinutes(day.wake) ?? PLAN_START;
   const cutoff = day.workEnd ?? SCREENS_OFF;
   let stack = day.blocks.filter((block) => !block.shelf);
+  const overruns = stack.filter((block) => block.actualUntil != null);
+  const canBump = (block) => block.tier !== 'fixed' && block.actualStart == null && block.restackStart == null;
   const bumped = stack.filter((block) => {
     const pin = planMinutes(block.pinned);
-    return block.tier !== 'fixed' && pin !== null && (pin < Math.max(wake, day.workStart ?? 0) || pin + blockDuration(block) > cutoff);
+    return canBump(block) && pin !== null && (pin < Math.max(wake, day.workStart ?? 0) ||
+      pin + blockDuration(block) > cutoff ||
+      overruns.some((actual) => pin < actual.actualUntil && pin + blockDuration(block) > actual.actualStart));
   });
   stack = stack.filter((block) => !bumped.includes(block));
   let blocks = placeBlocks(day, stack);
-  while (blocks.some((block) => block.tier !== 'fixed' && block.actualStart == null && block.until > cutoff) ||
-      blocks.filter((block) => block.tier !== 'fixed' && block.actualStart == null).length > (day.workCap ?? Infinity)) {
-    const candidates = blocks.filter((block) => block.tier !== 'fixed' && block.actualStart == null);
+  for (;;) {
+    const future = blocks.filter(canBump);
+    const overflow = future.some((block) => block.until > cutoff);
+    const work = future.filter(workBlock);
+    const pastWork = blocks.filter((block) => !canBump(block) && workBlock(block)).length;
+    if (!overflow && (!work.length || work.length + pastWork <= (day.workCap ?? Infinity))) break;
+    const candidates = overflow ? future : work;
     const lowest = candidates.reduce((a, b) => PLAN_TIERS.indexOf(a.tier) < PLAN_TIERS.indexOf(b.tier) ? a : b);
     const removed = stack.find((block) => block.id === lowest.id);
     bumped.push(removed);
@@ -122,6 +136,23 @@ function layoutDay(day) {
     blocks = placeBlocks(day, stack);
   }
   return { blocks, bumped };
+}
+
+function applyOverrun(day, id, endedAt) {
+  const layout = layoutDay(day);
+  const timed = layout.blocks.find((block) => block.id === id);
+  if (!timed || endedAt <= timed.start) return null;
+  const before = layout.blocks.filter((block) => block.start < timed.start);
+  const locked = new Map(before.map((block) => [block.id, block]));
+  const blocks = day.blocks.map((block) => {
+    if (block.id === id) return { ...block, actualStart: timed.start, actualUntil: endedAt };
+    const previous = locked.get(block.id);
+    if (!previous || block.pinned || block.actualStart != null) return block;
+    return { ...block, restackStart: previous.start, restackUntil: previous.until };
+  });
+  const starts = new Map(layout.blocks.map((block) => [block.id, block.start]));
+  blocks.sort((a, b) => (starts.get(a.id) ?? Infinity) - (starts.get(b.id) ?? Infinity));
+  return { day: editDay(day, blocks, true), timed };
 }
 
 function weekMonday(date) {
@@ -205,12 +236,15 @@ function openPlannerWeek() {
   }
   plan = { key, keys, days, sources, schedules, version: saved?.entry.id ?? null, dirtyDays: new Set(), scheduleDirty: new Set(),
     budgets: goals?.value || {}, goalVersion: goals?.entry.id ?? null, goalsDirty: false,
-    tray: Array.isArray(saved?.value.tray?.week) ? saved.value.tray.week : [], trayDirty: false,
+    tray: Array.isArray(saved?.value.tray?.week) ? saved.value.tray.week : [], trayDirty: false, pendingMarks: [],
     savedDates: new Set(Object.keys(saved?.value.days || {})) };
 }
 
 function changedInDash(key, schedules = plan.schedules) {
-  return (schedules.get(key)?.id ?? null) !== plan.sources[key];
+  const current = schedules.get(key);
+  const source = plan.sources[key];
+  if ((current?.id ?? null) === source) return false;
+  return !current || data.entries.find((entry) => entry.id === source)?.text !== current.text;
 }
 
 function getTemplate(name) {
@@ -265,12 +299,18 @@ function saveWeek() {
   const notes = [];
   const days = { ...plan.days };
   const sources = { ...plan.sources };
+  const dashDays = new Set();
   for (const key of plan.keys) {
     const entry = schedules.get(key);
     const changed = changedInDash(key, schedules) && (plan.dirtyDays.has(key) || plan.savedDates.has(key));
     if (changed && !confirm(`${dayLabel(key)} changed in Dash. OK keeps the planner version. Cancel uses Dash.`)) {
       days[key] = { ...dayFromSchedule(entry), phoneOff: days[key].phoneOff };
+      dashDays.add(key);
     } else if (plan.scheduleDirty.has(key) || changed) {
+      if (layoutDay(days[key]).blocks.some((block) => block.start < 0 || block.until > DAY_END)) {
+        $('plan-status').textContent = `${dayLabel(key)} has a block outside the day. Adjust its time before saving.`;
+        return;
+      }
       const text = scheduleText(key, days[key]);
       if ((entry || days[key].blocks.length) && changesSchedule(text)) {
         const note = plannerEntry(SCHEDULE, text, entry);
@@ -283,6 +323,7 @@ function saveWeek() {
     }
     sources[key] = entry?.id ?? null;
   }
+  const marks = plan.pendingMarks.filter((mark) => !dashDays.has(mark.day));
   const text = JSON.stringify({ key: plan.key, value: { days, sources, tray: { week: plan.tray } } });
   if (text !== previous?.entry.text) notes.push(plannerEntry(PLAN_WEEK, text, previous?.entry));
   if (plan.goalsDirty) {
@@ -300,8 +341,9 @@ function saveWeek() {
     return;
   }
   data.entries.push(...notes);
+  data.marks.push(...marks);
   try {
-    if (notes.length) persist();
+    if (notes.length || marks.length) persist();
   } catch {
     reload();
     $('plan-status').textContent = 'Could not save. Device storage is full or unavailable.';
@@ -312,6 +354,7 @@ function saveWeek() {
   plan.scheduleDirty.clear();
   plan.trayDirty = false;
   plan.goalsDirty = false;
+  plan.pendingMarks = [];
   refreshView();
   $('plan-status').textContent = count ? `Saved ${count} ${count === 1 ? 'day' : 'days'} to Dash.` : 'Week saved. No Schedule changes.';
   sync();
@@ -356,20 +399,35 @@ function markEdited() {
   renderPlanner();
 }
 
-function editDay(day, blocks) {
-  return { ...day, imported: false, blocks: blocks.map(({ importedStart, ...block }) => block) };
+function editDay(day, blocks, preservePrefix = false) {
+  return {
+    ...day, imported: false,
+    blocks: blocks.map(({ importedStart, restackStart, restackUntil, ...block }) => preservePrefix
+      ? { ...block, restackStart, restackUntil } : block),
+  };
 }
 
 function untimedBlock(block) {
-  const { actualStart, actualUntil, ...untimed } = block;
+  const { actualStart, actualUntil, restackStart, restackUntil, ...untimed } = block;
   return { ...untimed, pinned: null, shelf: true };
 }
 
 function storeDay(key, day) {
   const { bumped } = layoutDay(day);
   const bumpedIds = new Set(bumped.map((block) => block.id));
-  plan.days[key] = { ...day, blocks: day.blocks.map((block) => bumpedIds.has(block.id)
-    ? { ...untimedBlock(block), bumped: true } : block) };
+  const now = new Date();
+  const today = dayKey(now);
+  const ended = key < today || key === today && now.getHours() >= 22;
+  const blocks = [];
+  for (const block of day.blocks) {
+    if (!bumpedIds.has(block.id)) blocks.push(block);
+    else if (!ended) blocks.push({ ...untimedBlock(block), bumped: true });
+    else {
+      plan.tray.push({ ...untimedBlock(block), bumped: true, bumpedFrom: key });
+      plan.trayDirty = true;
+    }
+  }
+  plan.days[key] = { ...day, blocks };
   plan.dirtyDays.add(key);
   plan.scheduleDirty.add(key);
 }
@@ -400,7 +458,7 @@ function moveBlock(source, target, changes = {}) {
   if (!source?.block) return 'That block is no longer available.';
   if (source.copy && !target.date) return '';
   const old = source.block;
-  const changed = { ...old, ...changes, bumped: false };
+  const changed = { ...old, ...changes, bumped: false, bumpedFrom: undefined };
   const origin = source.date && plan.days[source.date];
   const remaining = origin?.blocks.filter((block) => block.id !== old.id);
   if (!target.date) {
@@ -419,7 +477,11 @@ function moveBlock(source, target, changes = {}) {
     const { actualStart, actualUntil, ...unpinned } = block;
     block = { ...unpinned, pinned: target.pinned };
   }
-  if (pinCollision(block, blocks)) return 'That time overlaps another pinned block.';
+  const pin = planMinutes(block.pinned);
+  if (pin != null && pin + blockDuration(block) > DAY_END) return 'Choose a time that ends by midnight.';
+  if (!(source.date === target.date && block.actualStart != null && !Object.hasOwn(target, 'pinned')) && pinCollision(block, blocks)) {
+    return 'That time overlaps another pinned block.';
+  }
   const at = blocks.findIndex((item) => item.id === target.before);
   blocks.splice(at < 0 ? blocks.length : at, 0, block);
   if (origin && source.date !== target.date) storeDay(source.date, editDay(origin, remaining));
@@ -474,6 +536,7 @@ function openBlockEditor(source, date) {
   fields.time.value = block.pinned || (source.date ? blockKey(layoutDay(plan.days[source.date]).blocks.find((b) => b.id === block.id)?.start ?? PLAN_START) : '07:00');
   $('block-editor-title').textContent = source.copy || source.fresh ? 'Place block' : 'Edit block';
   $('block-delete').hidden = Boolean(source.copy || source.fresh);
+  $('block-over').hidden = !source.date || block.shelf;
   $('block-error').hidden = true;
   updateEditorFields();
   $('block-editor').showModal();
@@ -504,8 +567,8 @@ function applyBlockEditor(event) {
     before = layoutDay(day).blocks.find((b) => b.id !== original.id && b.start >= planMinutes(pinned))?.id;
   } else if (date && !shelf && (oldIndex < 0 || original.shelf)) {
     const stack = layoutDay(day).blocks;
-    const afterWork = stack.findIndex((b) => b.pinned && b.start >= 17 * 60 && b.start >= (day.workStart ?? 0));
-    before = stack[afterWork]?.id;
+    const cutoff = Math.max(day.workEnd ?? 17 * 60, day.workStart ?? 0);
+    before = stack.find((b) => b.pinned && b.start >= cutoff)?.id;
   }
   const size = fields.size.value;
   const changes = {
@@ -617,7 +680,7 @@ function applyTemplateEditor(event) {
 
 function blockKind(block) {
   if (block.kind) return block.kind;
-  const text = block.text;
+  const text = block.text || '';
   if (/\b(ai[- ]tutor|project)\b/i.test(text)) return 'project';
   if (/\b(prep|settle)\b/i.test(text)) return 'prep';
   if (/\b(study|recall|revise|review notes|lab)\b/i.test(text)) return 'study';
@@ -685,6 +748,7 @@ function dayWarnings(key, day, blocks) {
     if (next && next.start - block.until < 5 && !(next.templateAnchor && block.templateAnchor && next.start === block.until)) {
       warnings.add(next.start < block.until ? 'Overlapping pins' : 'Gap under 5m');
     }
+    if (block.actualUntil > block.until) warnings.add('Ran into a fixed time');
     if (kind === 'project' && (!next || (blockKind(next) !== 'meal' && !next.pinned))) warnings.add('Project needs a meal or anchor after it');
     if (kind === 'project' && next && blockKind(next) === 'study') warnings.add('Put study before project work');
     if (kind === 'prep' && project && block.start > project.start && (block.deadline?.startsWith(tomorrow) || examTomorrow)) {
@@ -734,6 +798,55 @@ function applyGoalEditor(event) {
   plan.budgets = { ...plan.budgets, [editingGoal]: { hours: fields.hours.value === '' ? null : Number(fields.hours.value), colour: fields.colour.value } };
   plan.goalsDirty = true;
   $('goal-editor').close();
+  markEdited();
+}
+
+function openRestack(key, id = null) {
+  const day = plan.days[key];
+  const block = id == null ? null : layoutDay(day).blocks.find((block) => block.id === id);
+  if (id != null && !block) return;
+  restacking = { key, id };
+  const fields = $('restack-form').elements;
+  $('restack-title').textContent = block ? 'Ran over until…' : 'Woke at…';
+  $('restack-text').textContent = block ? block.text : dayLabel(key);
+  $('restack-reason').hidden = !block;
+  $('restack-error').hidden = true;
+  const now = new Date();
+  const minute = key === dayKey(now) ? now.getHours() * 60 + now.getMinutes() : 0;
+  fields.time.value = block ? blockKey(Math.min(1439, Math.max(block.actualUntil ?? block.until, minute))) : day.wake;
+  fields.reason.value = '';
+  $('restack-editor').showModal();
+}
+
+function applyRestack(event) {
+  event.preventDefault();
+  const fields = event.target.elements;
+  const { key, id } = restacking;
+  const day = plan.days[key];
+  const time = fields.time.value;
+  if (id == null) {
+    const fixed = new Map(layoutDay(day).blocks.filter((block) => block.tier === 'fixed' && !block.pinned)
+      .map((block) => [block.id, block]));
+    const blocks = day.blocks.map((block) => {
+      const previous = fixed.get(block.id);
+      return { ...block, restackStart: previous?.start, restackUntil: previous?.until };
+    });
+    storeDay(key, editDay({ ...day, wake: time }, blocks, true));
+  } else {
+    const result = applyOverrun(day, id, planMinutes(time));
+    if (!result) {
+      $('restack-error').textContent = 'Choose an end time after the block started.';
+      $('restack-error').hidden = false;
+      return;
+    }
+    storeDay(key, result.day);
+    const mark = makeBlockMark(key, { start: result.timed.start, lines: [result.timed.text] }, {
+      status: 'over', endedAt: time, reason: fields.reason.value.trim() || null,
+    });
+    plan.pendingMarks = plan.pendingMarks.filter((item) => item.day !== key || item.blockStart !== mark.blockStart);
+    plan.pendingMarks.push(mark);
+  }
+  $('restack-editor').close();
   markEdited();
 }
 
@@ -797,13 +910,14 @@ function renderTile(block, date) {
   const rest = ['free', 'buffer'].includes(blockKind(block));
   tile.style.setProperty('--tile-colour', goalColour(block.goal) || (rest ? '#e9f6e6' : block.pinned ? '#fff0d7' : '#edf0f3'));
   tile.append(element('span', 'tile-title', block.text));
-  if (block.bumped) tile.append(element('span', 'bumped', ' · Bumped'));
+  if (block.bumped) tile.append(element('span', 'bumped', block.bumpedFrom ? ` · Bumped from ${dayLabel(block.bumpedFrom, false)}` : ' · Bumped'));
   if (block.pinned) {
     const pin = element('span', 'pin', '📌');
     pin.title = `Pinned at ${block.pinned}`;
     tile.append(pin);
   }
-  tile.title = [block.text, block.done && `Done = ${block.done}`, block.next].filter(Boolean).join('\n');
+  tile.title = [block.text, block.done && `Done = ${block.done}`, block.next,
+    block.actualUntil != null && `Ran over until ${blockKey(block.actualUntil)}`].filter(Boolean).join('\n');
   return tile;
 }
 
@@ -815,11 +929,11 @@ function renderDay(key, { blocks, bumped }, load, from, until) {
   const head = element('header', 'day-head');
   const heading = element('h3', '', date.toLocaleDateString(undefined, { weekday: 'short' }));
   heading.append(element('span', 'day-date', date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })));
-  const info = [day.phoneOff && 'Phone off', day.wake && `Wake ${day.wake}`, day.template].filter(Boolean);
+  const info = [day.wake && `Wake ${day.wake}`, day.template].filter(Boolean);
   head.append(heading, element('p', 'day-info', info.join(' · ')));
   if (changedInDash(key)) head.append(element('span', 'warning', 'Changed on phone'));
-  const pins = blocks.filter((block) => block.pinned && block.tier === 'fixed');
-  if (pins.length) head.append(element('p', 'day-info', `★ ${pins.map((block) => block.pinned).join(' · ')}`));
+  const events = blocks.filter((block) => block.pinned && (block.kind === 'event' || block.tier === 'fixed' && !block.templateAnchor));
+  for (const event of events) head.append(element('p', 'day-info day-event', `★ ${event.pinned} ${event.text}`));
   const dayActions = element('div', 'day-actions');
   const phone = plannerButton(day.phoneOff ? 'Phone off' : 'Phone on', () => {
     plan.days[key] = { ...plan.days[key], phoneOff: !plan.days[key].phoneOff };
@@ -828,7 +942,7 @@ function renderDay(key, { blocks, bumped }, load, from, until) {
   }, 'day-action');
   phone.setAttribute('aria-pressed', String(Boolean(day.phoneOff)));
   const template = plannerButton(recoverySuggested(key) && !day.template ? 'Recovery?' : 'Template', () => openTemplateEditor(key), 'day-action');
-  dayActions.append(template, phone);
+  dayActions.append(template, phone, plannerButton('Woke at…', () => openRestack(key), 'day-action'));
   head.append(dayActions);
   const shelf = element('div', 'shelf');
   shelf.dataset.shelf = '';
@@ -858,6 +972,7 @@ function renderDay(key, { blocks, bumped }, load, from, until) {
     tile.style.setProperty('--minute', block.start - from);
     tile.style.setProperty('--duration', block.until - block.start);
     tile.prepend(element('time', 'tile-time', `${blockKey(block.start)}–${blockKey(block.until)}`));
+    if (block.actualUntil != null) tile.append(element('span', 'over-badge', '↗'));
     if (block.tail > 0) {
       tile.style.setProperty('--tail', block.tail);
       tile.append(element('span', 'tail', `+${block.tail}m`));
@@ -1042,7 +1157,23 @@ function go(state) {
   showPlannerScreen(state);
 }
 
+function registerPlannerWorker() {
+  if (!navigator.serviceWorker) return;
+  let timer;
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    if (event.data !== 'updated') return;
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      if ((!plan || !isPlannerDirty()) && !activeDrag && $('login').hidden && !document.querySelector('dialog[open]')) {
+        location.reload();
+      }
+    }, 2000);
+  });
+  navigator.serviceWorker.register('sw.js');
+}
+
 function startPlanner() {
+  registerPlannerWorker();
   monday = weekMonday(new Date());
   $('login-back').addEventListener('click', () => history.back());
   $('week-prev').addEventListener('click', () => changePlannerWeek(addDays(monday, -7)));
@@ -1053,11 +1184,17 @@ function startPlanner() {
   $('block-form').addEventListener('change', updateEditorFields);
   $('block-cancel').addEventListener('click', () => $('block-editor').close());
   $('block-delete').addEventListener('click', () => { deleteBlock(editedBlock); $('block-editor').close(); });
+  $('block-over').addEventListener('click', () => {
+    $('block-editor').close();
+    openRestack(editedBlock.date, editedBlock.block.id);
+  });
   $('template-form').addEventListener('submit', applyTemplateEditor);
   $('template-form').addEventListener('change', updateTemplateFields);
   $('template-cancel').addEventListener('click', () => $('template-editor').close());
   $('goal-form').addEventListener('submit', applyGoalEditor);
   $('goal-cancel').addEventListener('click', () => $('goal-editor').close());
+  $('restack-form').addEventListener('submit', applyRestack);
+  $('restack-cancel').addEventListener('click', () => $('restack-editor').close());
   $('week').addEventListener('pointerdown', startDrag);
   window.addEventListener('pointermove', moveDrag, { passive: false });
   window.addEventListener('pointerup', endDrag);
@@ -1088,8 +1225,7 @@ function startPlanner() {
   showStatus();
   sync();
   navigator.storage?.persist?.();
-  navigator.serviceWorker?.register('sw.js');
 }
 
-if (typeof module !== 'undefined' && module.exports) module.exports = { layoutDay };
+if (typeof module !== 'undefined' && module.exports) module.exports = { layoutDay, applyOverrun, dayLoad };
 if (typeof document !== 'undefined') startPlanner();
