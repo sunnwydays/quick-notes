@@ -96,8 +96,16 @@ function changedInDash(key, schedules = plan.schedules) {
   return !current || data.entries.find((entry) => entry.id === source)?.text !== current.text;
 }
 
+// A saved note overrides the built-in of the same name; a note with `deleted` hides it.
 function getTemplate(name) {
-  return plannerNote(PLAN_TEMPLATE, name)?.value ?? TEMPLATES[name];
+  const saved = plannerNote(PLAN_TEMPLATE, name)?.value;
+  if (saved) return saved.deleted ? null : saved;
+  return Object.hasOwn(TEMPLATES, name) ? TEMPLATES[name] : null;
+}
+
+function templateNames() {
+  const names = new Set([...Object.keys(TEMPLATES), ...plannerNotes(PLAN_TEMPLATE).keys()]);
+  return [...names].filter((name) => getTemplate(name));
 }
 
 function saveWeek() {
@@ -486,7 +494,7 @@ function applyWeekRoutine() {
     if (key < today || plan.days[key].template) continue;
     const name = defaultTemplate(key);
     const template = getTemplate(name);
-    if (template?.event) continue;
+    if (!template || template.event) continue;
     const result = replaceTemplate(plan.days[key], name, template, null);
     if (result.error) clashes.push(dayLabel(key));
     else {
@@ -508,8 +516,7 @@ function openTemplateEditor(key) {
   templateDate = key;
   const day = plan.days[key];
   const fields = $('template-form').elements;
-  const name = day.template || defaultTemplate(key);
-  fillOptions(fields.template, [['', 'No template'], ...Object.keys(TEMPLATES).map((key) => [key, key])], name);
+  renderTemplateChoices(day.template || defaultTemplate(key));
   const event = day.blocks.find((block) => block.templateAnchor && block.kind === 'event');
   fields.event.value = event?.text || '';
   fields.start.value = event?.pinned || '';
@@ -519,16 +526,148 @@ function openTemplateEditor(key) {
   $('template-editor').showModal();
 }
 
+function describeTemplate(template) {
+  if (template.hint) return template.hint;
+  const count = template.anchors?.length || 0;
+  return [`Wake ${template.wake || '07:00'}`, count ? `${count} fixed block${count === 1 ? '' : 's'}` : 'blank day',
+    template.event && 'asks for an event'].filter(Boolean).join(' · ');
+}
+
+function renderTemplateChoices(selected) {
+  const rows = [['', 'No template', 'Remove the template anchors and keep your blocks.'],
+    ...templateNames().map((name) => [name, name, describeTemplate(getTemplate(name))])];
+  const choices = rows.map(([value, title, text]) => {
+    const label = element('label', 'choice');
+    const input = document.createElement('input');
+    input.type = 'radio';
+    input.name = 'template';
+    input.value = value;
+    input.checked = value === selected;
+    label.append(input, element('b', '', title), element('span', 'muted', text));
+    return label;
+  });
+  if (!choices.some((label) => label.firstChild.checked)) choices[0].firstChild.checked = true;
+  $('template-choices').replaceChildren(...choices);
+}
+
+const ANCHOR_KINDS = ['routine', 'meal', 'exercise', 'free', 'buffer', 'event'];
+let editingTemplate = null;
+
+function anchorRow([pinned = '', duration = 30, text = '', kind = 'routine', tail = 0] = []) {
+  const row = element('div', 'anchor-row');
+  row.dataset.tail = tail;
+  const field = (tag, name, label, props) => {
+    const el = Object.assign(document.createElement(tag), props);
+    el.dataset.f = name;
+    el.setAttribute('aria-label', label);
+    return el;
+  };
+  const kinds = ANCHOR_KINDS.includes(kind) ? ANCHOR_KINDS : [...ANCHOR_KINDS, kind];
+  const select = field('select', 'kind', 'Kind', {});
+  fillOptions(select, kinds.map((name) => [name, name]), kind);
+  row.append(
+    field('input', 'time', 'Time', { type: 'time', value: pinned, required: true }),
+    field('input', 'mins', 'Minutes', { type: 'number', min: 5, max: 960, step: 5, value: duration, required: true }),
+    field('input', 'text', 'Title', { type: 'text', value: text, placeholder: 'Title', required: true, maxLength: 80 }),
+    select,
+    plannerButton('×', () => row.remove()),
+  );
+  row.lastChild.setAttribute('aria-label', 'Remove event');
+  return row;
+}
+
+function openTemplateDef(name) {
+  editingTemplate = name;
+  const template = name == null ? { wake: '07:00', anchors: [] } : getTemplate(name);
+  const fields = $('template-def-form').elements;
+  $('template-def-title').textContent = name == null ? 'New template' : 'Edit template';
+  fields.name.value = name ?? '';
+  fields.hint.value = template.hint ?? '';
+  fields.wake.value = template.wake || '07:00';
+  fields.event.checked = Boolean(template.event);
+  $('template-anchors').replaceChildren(...(template.anchors || []).map((anchor) => anchorRow(anchor)));
+  $('template-def-delete').hidden = name == null;
+  $('template-def-error').hidden = true;
+  $('template-def').showModal();
+}
+
+function templateDefError(message) {
+  $('template-def-error').textContent = message;
+  $('template-def-error').hidden = false;
+}
+
+// Template notes are saved straight away, not with the week. Newest version wins.
+function writeTemplates(...changes) {
+  reload();
+  data.entries.push(...changes.map(([name, value]) =>
+    plannerEntry(PLAN_TEMPLATE, JSON.stringify({ key: name, value }), plannerNote(PLAN_TEMPLATE, name)?.entry)));
+  try {
+    persist();
+  } catch {
+    reload();
+    return false;
+  }
+  sync();
+  return true;
+}
+
+function saveTemplateDef(event) {
+  event.preventDefault();
+  const fields = event.target.elements;
+  const name = fields.name.value.trim();
+  if (!name) return templateDefError('Give the template a name.');
+  if (name !== editingTemplate && getTemplate(name)) return templateDefError('A template with that name already exists.');
+  const anchors = [];
+  for (const row of $('template-anchors').children) {
+    const get = (key) => row.querySelector(`[data-f="${key}"]`).value;
+    const start = planMinutes(get('time'));
+    const minutes = Number(get('mins'));
+    const text = get('text').trim();
+    if (start == null || !text || !Number.isInteger(minutes) || minutes < 5) {
+      return templateDefError('Each event needs a time, a length of at least 5 minutes, and a title.');
+    }
+    if (start + minutes > DAY_END) return templateDefError(`${text} runs past midnight.`);
+    const tail = Number(row.dataset.tail) || 0;
+    anchors.push([get('time'), minutes, text, get('kind'), ...(tail ? [tail] : [])]);
+  }
+  anchors.sort((a, b) => planMinutes(a[0]) - planMinutes(b[0]));
+  for (let i = 1; i < anchors.length; i++) {
+    if (planMinutes(anchors[i][0]) < planMinutes(anchors[i - 1][0]) + anchors[i - 1][1]) {
+      return templateDefError(`${anchors[i][2]} overlaps ${anchors[i - 1][2]}.`);
+    }
+  }
+  const { deleted, ...base } = (editingTemplate == null ? null : getTemplate(editingTemplate)) ?? {};
+  const value = { ...base, name, hint: fields.hint.value.trim() || undefined, wake: fields.wake.value,
+    event: fields.event.checked || undefined, anchors };
+  if (!fields.event.checked) delete value.workBeforeEvent;
+  const changes = [[name, value]];
+  if (editingTemplate != null && editingTemplate !== name) changes.push([editingTemplate, { name: editingTemplate, deleted: true }]);
+  if (!writeTemplates(...changes)) return templateDefError('Could not save. Device storage is full or unavailable.');
+  $('template-def').close();
+  renderTemplateChoices(name);
+  updateTemplateFields();
+}
+
+function deleteTemplateDef() {
+  if (!confirm(`Delete "${editingTemplate}"? Days already using it keep their blocks.`)) return;
+  if (!writeTemplates([editingTemplate, { name: editingTemplate, deleted: true }])) {
+    return templateDefError('Could not save. Device storage is full or unavailable.');
+  }
+  $('template-def').close();
+  renderTemplateChoices('');
+  updateTemplateFields();
+}
+
 function updateTemplateFields() {
   const fields = $('template-form').elements;
   const template = getTemplate(fields.template.value);
+  $('template-edit').disabled = !template;
   const needsEvent = Boolean(template?.event);
   $('event-fields').hidden = !needsEvent;
   for (const field of [fields.event, fields.start, fields.duration]) {
     field.disabled = !needsEvent;
     field.required = needsEvent;
   }
-  $('template-note').textContent = template?.hint || (fields.template.value ? '' : 'Remove the template anchors and keep your blocks.');
 }
 
 function replaceTemplate(day, name, template, event) {
@@ -1494,6 +1633,16 @@ function startPlanner() {
   $('template-form').addEventListener('submit', applyTemplateEditor);
   $('template-form').addEventListener('change', updateTemplateFields);
   $('template-cancel').addEventListener('click', () => $('template-editor').close());
+  $('template-edit').addEventListener('click', () => openTemplateDef($('template-form').elements.template.value));
+  $('template-new').addEventListener('click', () => openTemplateDef(null));
+  $('template-def-form').addEventListener('submit', saveTemplateDef);
+  $('template-def-cancel').addEventListener('click', () => $('template-def').close());
+  $('template-def-delete').addEventListener('click', deleteTemplateDef);
+  $('template-add-anchor').addEventListener('click', () => {
+    const row = anchorRow();
+    $('template-anchors').append(row);
+    row.firstChild.focus();
+  });
   $('goal-form').addEventListener('submit', applyGoalEditor);
   $('goal-cancel').addEventListener('click', () => $('goal-editor').close());
   $('restack-form').addEventListener('submit', applyRestack);

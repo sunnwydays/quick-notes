@@ -91,8 +91,11 @@
   <dialog id="template-editor" aria-labelledby="template-title">
     <form id="template-form">
       <h2 id="template-title">Day template</h2>
-      <label>Template <select name="template"></select></label>
-      <p id="template-note" class="muted"></p>
+      <div id="template-choices" class="choices"></div>
+      <div class="actions">
+        <button id="template-edit" type="button">Edit template</button>
+        <button id="template-new" type="button">New template</button>
+      </div>
       <div id="event-fields" hidden>
         <label>Event name <input name="event"></label>
         <div class="field-row">
@@ -104,6 +107,25 @@
       <div class="actions">
         <button class="primary">Apply template</button>
         <button id="template-cancel" type="button">Cancel</button>
+      </div>
+    </form>
+  </dialog>
+  <dialog id="template-def" aria-labelledby="template-def-title">
+    <form id="template-def-form">
+      <h2 id="template-def-title">Edit template</h2>
+      <label>Name <input name="name" required maxlength="40"></label>
+      <label>What it does <input name="hint" maxlength="140" placeholder="Optional"></label>
+      <div class="field-row">
+        <label>Wake <input name="wake" type="time" required></label>
+        <label class="check"><input name="event" type="checkbox"> Asks for an event</label>
+      </div>
+      <div id="template-anchors" class="anchor-rows"></div>
+      <button id="template-add-anchor" type="button">Add event</button>
+      <p id="template-def-error" class="warning" role="alert" hidden></p>
+      <div class="actions">
+        <button type="submit" class="primary">Save template</button>
+        <button id="template-def-cancel" type="button">Cancel</button>
+        <button id="template-def-delete" type="button">Delete</button>
       </div>
     </form>
   </dialog>

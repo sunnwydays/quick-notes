@@ -266,7 +266,24 @@ dialog input:not([type="checkbox"]), dialog select, #login input {
 #block-where { margin: -.25rem 0 0; }
 #block-more summary { cursor: pointer; font-size: .9rem; font-weight: bold; color: var(--muted); }
 .more-fields { display: grid; gap: .55rem; margin-top: .55rem; }
-.pin-fields label:first-child { display: flex; align-items: center; }
+.pin-fields label:first-child, form label.check { display: flex; align-items: center; gap: .35rem; }
+.choices { display: grid; gap: .3rem; }
+form label.choice {
+  display: grid; grid-template-columns: auto 1fr; gap: .1rem .5rem; align-items: start;
+  padding: .35rem .5rem; border: 1px solid var(--line); border-radius: 7px; font-weight: normal;
+}
+label.choice:has(input:checked) { border-color: #5b8aa6; background: #eef6fb; }
+.choice input { grid-row: span 2; margin-top: .2rem; }
+.choice b { font-size: .9rem; }
+.choice .muted { font-size: .8rem; }
+.anchor-rows { display: grid; gap: .35rem; max-height: 40vh; overflow-y: auto; }
+.anchor-row { display: grid; grid-template-columns: 5.5rem 3.5rem minmax(0, 1fr) 5.5rem auto; gap: .25rem; }
+.anchor-row input, .anchor-row select { font-size: .85rem; }
+.anchor-row button { padding: 0 .4rem; }
+@media (max-width: 700px) {
+  .anchor-row { grid-template-columns: 5.5rem 3.5rem minmax(0, 1fr) auto; }
+  .anchor-row select { grid-column: 1 / 4; }
+}
 @media (max-width: 700px) {
   #planner { padding: .5rem .5rem 0; }
   .masthead { margin-bottom: .4rem; gap: .4rem; }
