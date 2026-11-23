@@ -1349,7 +1349,8 @@ function renderGoals(layouts, loads) {
     const chip = plannerButton('', () => openGoalEditor(entry), 'goal-chip');
     const colour = goalColour(entry.id);
     chip.style.background = colour;
-    chip.append(element('strong', '', bare(entry.text)), element('span', 'goal-hours', budget == null
+    chip.append(element('strong', '', bare(entry.text)));
+    if (budget != null || minutes) chip.append(element('span', 'goal-hours', budget == null
       ? hoursText(minutes) : `${hoursText(minutes)} / ${budget}h`));
     if (budget != null) chip.append(meter(budget ? minutes / (budget * 60) : Number(minutes > 0), 'Goal progress'));
     chip.classList.toggle('over-budget', budget != null && minutes > budget * 60);
@@ -1364,8 +1365,8 @@ function renderGoals(layouts, loads) {
   }, 'goals-toggle');
   toggle.setAttribute('aria-expanded', String(goalsOpen));
   $('goals').classList.toggle('open', goalsOpen);
-  $('goals').replaceChildren(toggle, element('h3', '', 'Working on'), ...items,
-    element('span', 'week-load', `${hoursText(placed)} placed / ${hoursText(usable)} usable`));
+  $('goals').replaceChildren(toggle, element('h3', '', 'Working on'), ...items);
+  $('week-load').textContent = `${hoursText(placed)} of ${hoursText(usable)} placed`;
 }
 
 function renderTray() {
