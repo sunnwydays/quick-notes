@@ -406,3 +406,9 @@ label.choice:has(input:checked) { border-color: #5b8aa6; background: #eef6fb; }
 
 
 .routine-link { position: absolute; background: #5b8aa6; pointer-events: none; }
+
+#drop-choices:not([hidden]) { flex-basis: 100%; display: flex; align-items: center; flex-wrap: wrap; gap: .4rem; padding: .45rem .8rem; background: #eef7fb; }
+#drop-choices button { font-size: .84rem; }
+.tile.fit-opening { z-index: 3; background: #e0f5eb; border: 2px dashed #217451; color: #124932; cursor: pointer; }
+.tile.fit-source { outline: 2px solid #376b90; }
+.tile.fit-blocked { background: #ffe8db; outline: 2px dashed #964e30; }

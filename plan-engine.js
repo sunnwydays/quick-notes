@@ -239,6 +239,65 @@ function pushApart(blocks, firstId) {
   return blocks.map((block) => moved.get(block.id) ?? block);
 }
 
+function minimumSession(original) {
+  return Math.ceil(original * 7 / 10);
+}
+
+// An intentional timeline drop can move flexible work, but pins and recorded time hold.
+function fitTimelineDrop(stack, block, start, skipBreak = false) {
+  const original = block.originalDuration ?? blockDuration(block);
+  const held = stack.filter(item => item.pinned || item.actualStart != null);
+  if (held.some(item => item.start <= start && start < item.until + gapAfter(item))) return null;
+  const next = held.find(item => item.start > start);
+  const candidate = { ...block, skipBreak };
+  let duration = original;
+  if (next) {
+    const room = next.start - start;
+    duration = Math.min(original, room);
+    // At 35 minutes the outgoing break changes, so check both sides of the boundary.
+    while (duration > 0 && duration + gapAfter(candidate, duration) > room) duration--;
+  }
+  if (duration < minimumSession(original) || start + duration > PLAN_END) return null;
+  if (stack.some(item => item.until <= start && item.until + gapAfter(item) > start)) return null;
+
+  let cursor = start + duration + gapAfter(candidate, duration);
+  const timed = [];
+  for (const item of stack) {
+    if (held.includes(item) || item.until <= start || item.start >= cursor) {
+      timed.push(item);
+      continue;
+    }
+    const length = item.until - item.start;
+    let from = cursor;
+    for (const anchor of held) {
+      if (from >= anchor.until + gapAfter(anchor)) continue;
+      if (from + length + gapAfter(item) <= anchor.start) break;
+      from = anchor.until + gapAfter(anchor);
+    }
+    if (from + length > PLAN_END) return null;
+    timed.push({ ...item, start: from, until: from + length });
+    cursor = from + length + gapAfter(item);
+  }
+  return { duration, original, timed };
+}
+
+// Return the closest full-length opening in a day without moving any other work.
+function fullOpening(stack, block, earliest, end, preferred, excludeStart) {
+  const duration = block.originalDuration ?? blockDuration(block);
+  const gap = gapAfter({ ...block, skipBreak: false }, duration);
+  let cursor = earliest;
+  let best = null;
+  for (const next of [...stack, null]) {
+    const latest = Math.min(end, next ? next.start - gap : end) - duration;
+    if (cursor <= latest) {
+      const start = Math.max(cursor, Math.min(preferred, latest));
+      if (start !== excludeStart && (best == null || Math.abs(start - preferred) < Math.abs(best - preferred))) best = start;
+    }
+    if (next) cursor = Math.max(cursor, next.until + gapAfter(next));
+  }
+  return best;
+}
+
 // Put a block at a time; whatever it lands on moves down to make room.
 function placeInDay(day, blocks, placed, at = planMinutes(placed.pinned)) {
   const rest = blocks.map((block) => block.id !== placed.id ? block : block.pinned ? unlocked(block)
@@ -453,6 +512,6 @@ function insertPopup(day, popup, minute) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { foldTail, layoutDay, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, toggleBlockPin, suggestGhosts,
+  module.exports = { fitTimelineDrop, fullOpening, foldTail, layoutDay, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, toggleBlockPin, suggestGhosts,
     insertPopup, restackBeforeScreensOff };
 }

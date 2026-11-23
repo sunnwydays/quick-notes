@@ -49,6 +49,7 @@ let templateDate;
 let editingGoal;
 let restacking;
 let selectedDay;
+let dropChoices = null;
 let goalsOpen = false;
 let lastPointerType;
 
@@ -278,6 +279,7 @@ function hidePlanUndo() {
 }
 
 function markEdited() {
+  dropChoices = null;
   const before = planSnap;
   renderPlanner();
   queueAutosave();
@@ -288,6 +290,7 @@ function markEdited() {
 }
 
 $('plan-undo-btn').onclick = () => {
+  dropChoices = null;
   const before = undoStack.pop();
   if (!before) return;
   Object.assign(plan, structuredClone(before));
@@ -430,6 +433,9 @@ function moveBlock(source, target, changes = {}, { copy = false } = {}) {
     // Unpinning without a new time leaves the block where it was.
     if (sameDay && target.at == null) stay = restackStart ?? planMinutes(changed.pinned);
   }
+  const fit = target.smart && dropFit(source, target, copy);
+  if (target.smart && !fit) return 'This session needs more room.';
+  if (fit) block = { ...block, duration: fit.duration, originalDuration: fit.original, skipBreak: Boolean(target.skipBreak) };
   const placeAt = target.shelf ? null : planMinutes(target.at) ?? planMinutes(block.pinned) ?? stay;
   if (placeAt != null && placeAt + blockDuration(block) > DAY_END) return 'Choose a time that ends by midnight.';
   const probe = placeAt != null ? { ...block, pinned: blockKey(placeAt) } : block;
@@ -442,8 +448,20 @@ function moveBlock(source, target, changes = {}, { copy = false } = {}) {
     plan.tray = plan.tray.filter((item) => item.id !== old.id);
     plan.trayDirty = true;
   }
-  storeDay(target.date, moved && placeAt != null ? placeInDay(day, blocks, block, placeAt) : lockShownTimes(day, blocks, sameDay ? old.id : null));
+  if (fit) {
+    const timed = [...fit.timed, { ...block, start: placeAt, until: placeAt + fit.duration }].sort((a, b) => a.start - b.start);
+    const bumped = layoutDay(day).bumped.filter(item => item.id !== block.id);
+    storeDay(target.date, keepDayTimes(day, lockRestackTimes(blocks, timed), timed, bumped));
+  } else {
+    const updated = moved && placeAt != null ? placeInDay(day, blocks, block, placeAt)
+      : lockShownTimes(day, blocks, sameDay ? old.id : null);
+    storeDay(target.date, updated);
+  }
   markEdited();
+  if (fit && fit.duration < fit.original) {
+    dropChoices = { week: plan, remainder: fit.original - fit.duration, block, date: target.date };
+    renderDropChoices();
+  }
   return '';
 }
 
@@ -653,7 +671,7 @@ function applyBlockEditor(event) {
   const changes = {
     text, next: fields.next.value.trim(), goal: fields.goal.value || null,
     kind: fields.kind.value || undefined,
-    ...resized ? { size, duration: undefined } : {},
+    ...resized ? { size, duration: undefined, originalDuration: undefined, skipBreak: undefined } : {},
   };
   const unchanged = (key) => (changes[key] ?? null) === (original[key] ?? null);
   if (!editedBlock.fresh && Object.keys(changes).every(unchanged)) {
@@ -1798,6 +1816,7 @@ function renderPlanner() {
   }));
   $('week').querySelector('.day.selected').scrollTop = scroll;
   $('tray').querySelector('.tray-box').scrollTop = trayScroll;
+  renderDropChoices();
   planSnap = snapshotPlan();
   showNow();
 }
@@ -1864,20 +1883,113 @@ function plannerDropTarget(event, source) {
     return { date, shelf: true, before: tile?.dataset.id, indicator: slot };
   }
   // The block's top follows the pointer, keeping the spot it was grabbed by.
-  const stack = layoutDay(plan.days[date]).blocks.filter((block) => block.id !== source.block.id);
+  const copy = (event.shiftKey || event.ctrlKey) && !source.copy;
+  const stack = dropStack(source, date, copy);
   const length = activeDrag?.length ?? blockDuration(source.block);
   const pointer = timelineMinute(slot, event.clientY, { round: (minute) => minute });
   const edges = movingEdges(timelineEdges(slot, source.block.id), length);
   let time = timelineMinute(slot, event.clientY, { edges, offset: activeDrag?.grab ?? 0 });
-  // Landing on a pinned block: below it from its lower half, else ending right where it starts.
-  for (const pin of stack.filter((block) => block.pinned || block.actualStart != null)) {
-    if (time < pin.until && pin.start < time + length) {
-      time = pointer >= (pin.start + pin.until) / 2 ? pin.until : pin.start - length;
-    }
+  const highlight = under.closest('[data-opening]');
+  const matchesSource = dropChoices?.source?.block.id === source.block.id && dropChoices.copy === copy;
+  const pin = stack.find(item => (item.pinned || item.actualStart != null) && pointer >= item.start && pointer < item.until);
+  if (highlight && matchesSource) time = Number(highlight.dataset.opening);
+  else if (pin && time < pin.until && pin.start < time + length) {
+    time = pointer >= (pin.start + pin.until) / 2 ? pin.until + gapAfter(pin)
+      : pin.start - length - gapAfter(source.block, length);
+  }
+  if (!highlight && !pin) {
+    const previous = stack.find(item => (item.pinned || item.actualStart != null) && time >= item.start && time < item.until && pointer >= item.until);
+    if (previous) time = previous.until + gapAfter(previous);
   }
   time = Math.max(Number(slot.dataset.from), Math.min(PLAN_END - 5, time));
   const before = stack.find((block) => block.start >= time);
-  return { date, at: blockKey(time), before: before?.id, indicator: slot };
+  return { date, at: blockKey(time), before: before?.id, indicator: slot, smart: true, skipBreak: Boolean(highlight && matchesSource && highlight.dataset.skipBreak) };
+}
+
+function dropStack(source, date, copy) {
+  return layoutDay(plan.days[date]).blocks.filter(item => copy || source.date !== date || item.id !== source.block.id);
+}
+
+function dropFit(source, target, copy) {
+  return fitTimelineDrop(dropStack(source, target.date, copy), source.block, planMinutes(target.at), target.skipBreak);
+}
+
+function offerDropChoices(source, target, copy) {
+  const now = new Date();
+  const today = dayKey(now);
+  const options = [];
+  let openings = 0;
+  const skip = { ...target, skipBreak: true };
+  const fit = dropFit(source, skip, copy);
+  if (fit) options.push({ target: skip, duration: fit.duration, label: `Skip break this time · ${fit.duration} min` });
+  for (const date of plan.keys) {
+    if (openings === 3) break;
+    if (date < today || date < target.date) continue;
+    const day = plan.days[date];
+    const earliest = Math.max((planMinutes(day.wake) ?? PLAN_START) + (day.startOffset ?? 0), day.workStart ?? 0,
+      date === today ? now.getHours() * 60 + now.getMinutes() : 0);
+    const preferred = date === target.date ? planMinutes(target.at) : earliest;
+    const current = !copy && source.date === date && layoutDay(day).blocks.find(item => item.id === source.block.id);
+    const start = fullOpening(dropStack(source, date, copy), source.block, earliest, day.workEnd ?? DEFAULT_TIMELINE_END, preferred, current?.start);
+    if (start == null) continue;
+    const duration = source.block.originalDuration ?? blockDuration(source.block);
+    openings++;
+    options.push({ target: { date, at: blockKey(start), smart: true }, duration,
+      label: `${dayLabel(date, false)} · ${clock12(start)}–${clock12(start + duration)}` });
+  }
+  dropChoices = { week: plan, source, copy, options };
+  renderDropChoices();
+}
+
+function renderDropChoices() {
+  const panel = $('drop-choices');
+  panel.replaceChildren();
+  for (const el of $('week').querySelectorAll('.fit-opening')) el.remove();
+  for (const el of $('planner').querySelectorAll('.fit-source')) el.classList.remove('fit-source');
+  panel.hidden = !dropChoices || dropChoices.week !== plan;
+  if (panel.hidden) return;
+  const { source, copy, options, date, remainder, block } = dropChoices;
+  const dismiss = () => { dropChoices = null; renderDropChoices(); };
+  if (remainder) {
+    panel.append(element('span', '', `${block.text} · ${block.duration} min scheduled`),
+      plannerButton(`Keep remaining ${remainder} min in To do`, () => {
+        const day = plan.days[date];
+        const rest = planBlock(newId(), block.text, { duration: remainder, goal: block.goal, kind: block.kind, shelf: true });
+        // Saving the remainder splits this occurrence into two independently sized sessions.
+        const parts = day.blocks.map(item => item.id === block.id ? { ...item, originalDuration: item.duration } : item);
+        storeDay(date, { ...day, blocks: [...parts, rest] });
+        markEdited();
+      }));
+  } else {
+    const original = source.block.originalDuration ?? blockDuration(source.block);
+    panel.append(element('span', '', `${source.block.text} needs at least ${minimumSession(original)} min, plus room for its break.`));
+    for (const tile of $('planner').querySelectorAll('.tile[data-id]')) {
+      if (tile.dataset.id === source.block.id && tile.dataset.date === source.date) tile.classList.add('fit-source');
+    }
+    for (const option of options) {
+      const { target, duration, label } = option;
+      const choose = () => {
+        const error = moveBlock(source, target, {}, { copy });
+        if (error) { dismiss(); $('plan-status').textContent = error; return; }
+        selectDay(target.date);
+        const column = $('week').querySelector(`[data-day="${target.date}"]`);
+        const placed = [...column.querySelectorAll('.tile[data-start]')].find(tile =>
+          Number(tile.dataset.start) === planMinutes(target.at) && tile.querySelector('.tile-title')?.textContent === source.block.text);
+        placed?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      };
+      panel.append(plannerButton(label, choose));
+      const timeline = $('week').querySelector(`[data-day="${target.date}"] .timeline`);
+      const start = planMinutes(target.at);
+      const marker = plannerButton('', choose, 'tile fit-opening');
+      marker.dataset.opening = start;
+      if (target.skipBreak) marker.dataset.skipBreak = 'true';
+      marker.append(element('span', 'tile-title', target.skipBreak ? 'Skip break' : `${duration} min available`));
+      timeTile(marker, start, start + duration, Number(timeline.dataset.from));
+      timeline.append(marker);
+    }
+    if (!options.length) panel.append(element('span', '', 'No full opening left this week.'));
+  }
+  panel.append(plannerButton('Dismiss', dismiss, 'quiet'));
 }
 
 function showDropTarget(target) {
@@ -1907,12 +2019,21 @@ function movePreview(target) {
     if (preview.parentElement !== target.indicator) target.indicator.append(preview);
     Object.assign(preview.style, { left: '', top: '', width: '', height: '' });
     preview.style.setProperty('--minute', start - Number(target.indicator.dataset.from));
+    const fit = dropFit(activeDrag.source, target, copying);
+    const duration = fit?.duration ?? activeDrag.length;
+    preview.style.setProperty('--duration', duration);
+    preview.classList.toggle('fit-blocked', !fit);
+    preview.querySelector('.tile-title').textContent = !fit ? 'Needs more room'
+      : fit.duration < fit.original ? `${duration} of ${fit.original} min · ${activeDrag.source.block.text}` : activeDrag.source.block.text;
     const time = preview.querySelector('.tile-time');
     if (time) {
       time.firstChild.textContent = clock12(start);
-      time.querySelector('.tile-end').textContent = `–${clock12(start + activeDrag.length)}`;
+      time.querySelector('.tile-end').textContent = `–${clock12(start + duration)}`;
     }
   } else {
+    preview.classList.remove('fit-blocked');
+    const title = preview.querySelector('.tile-title');
+    if (title) title.textContent = activeDrag.source.block.text;
     if (preview.parentElement !== document.body) document.body.append(preview);
     Object.assign(preview.style, { width: `${activeDrag.width}px`, height: `${activeDrag.height}px` });
     if (position) Object.assign(preview.style, { left: `${position.clientX + 10}px`, top: `${position.clientY + 10}px` });
@@ -2018,6 +2139,7 @@ function tileBottomEdgeAt(event) {
 
 function startDrag(event) {
   lastPointerType = event.pointerType;
+  if (event.target.closest('.fit-opening')) return;
   if (event.button !== 0 || activeDrag) return;
   const edgeTile = tileBottomEdgeAt(event);
   if (edgeTile) {
@@ -2138,7 +2260,7 @@ function endDrag(event) {
     }
     const day = plan.days[source.date];
     const duration = end - Number(tile.dataset.start);
-    const resized = { ...source.block, duration };
+    const resized = { ...source.block, duration, originalDuration: undefined, skipBreak: undefined };
     const blocks = day.blocks.map((block) => block.id === resized.id ? resized : block);
     storeDay(source.date, placeInDay(day, blocks, resized, Number(tile.dataset.start)));
     markEdited();
@@ -2170,7 +2292,8 @@ function endDrag(event) {
   if (error) {
     tile.classList.add('invalid-drop');
     tile.addEventListener('animationend', () => tile.classList.remove('invalid-drop'), { once: true });
-    $('plan-status').textContent = error;
+    if (target.smart) offerDropChoices(source, target, copy);
+    else $('plan-status').textContent = error;
   }
 }
 

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { foldTail, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, insertPopup, layoutDay, restackBeforeScreensOff, suggestGhosts, toggleBlockPin } from '../plan-engine.js';
+import { fitTimelineDrop, fullOpening, foldTail, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, insertPopup, layoutDay, restackBeforeScreensOff, suggestGhosts, toggleBlockPin } from '../plan-engine.js';
 
 const block = (id, size, fields = {}) => ({ id, size, tier: 'medium', ...fields });
 const times = ({ blocks }) => blocks.map(({ id, start, until }) => [id, start, until]);
@@ -239,4 +239,28 @@ test('routine, meals and buffers can run straight into the next session', () => 
   const blocks = ['routine', 'meal', 'buffer'].map(kind => block(kind, 45, { kind }));
   blocks.push(block('short', 34), block('long', 35), block('last', 5));
   assert.deepEqual(layoutDay({ blocks }).blocks.map(item => item.start), [420, 465, 510, 555, 594, 639]);
+});
+
+test('after Dinner practice fits only with an explicit skipped break', () => {
+  const day = { blocks: [block('meal', 65, { kind: 'meal', pinned: '17:00' }), block('gym', 60, { pinned: '18:30' })] };
+  const stack = layoutDay(day).blocks;
+  const practice = block('practice', 35);
+  assert.equal(fitTimelineDrop(stack, practice, 1085), null);
+  assert.equal(fitTimelineDrop(stack, practice, 1085, true).duration, 25);
+  assert.equal(fitTimelineDrop(stack, practice, 1086, true), null);
+  assert.equal(fitTimelineDrop(stack, { ...practice, duration: 25, originalDuration: 35 }, 1086, true), null);
+  assert.equal(fullOpening(stack, practice, 1085, 1440, 1085), 1180);
+  assert.equal(fullOpening([], practice, 420, 1320, 420), 420);
+});
+
+test('a drop shifts flexible work around a pin before shortening the dragged session', () => {
+  const stack = [
+    { ...block('work', 30), start: 600, until: 630 },
+    { ...block('fixed', 20, { pinned: '10:50' }), start: 650, until: 670 },
+  ];
+  const fit = fitTimelineDrop(stack, block('practice', 35), 600);
+  assert.equal(fit.duration, 35);
+  assert.deepEqual(times({ blocks: fit.timed }), [['work', 675, 705], ['fixed', 650, 670]]);
+  assert.equal(fitTimelineDrop(stack, block('practice', 35), 611).duration, 34);
+  assert.equal(fitTimelineDrop(stack, block('practice', 35), 651), null);
 });
