@@ -405,7 +405,10 @@ function openBlockEditor(source, target = blockTarget(source)) {
   // A drag already chose the time and length, so they sit at the top of More there.
   const dragged = Boolean(source.fresh && target.place);
   const more = $('block-more').querySelector('.more-fields');
-  if (dragged) more.prepend($('pin-fields'), $('block-length'));
+  if (dragged) {
+    more.prepend($('pin-fields'));
+    $('pin-fields').prepend($('block-length'));
+  }
   else {
     $('block-main-row').prepend($('block-length'));
     more.append($('pin-fields'));
@@ -422,7 +425,8 @@ function openBlockEditor(source, target = blockTarget(source)) {
 function updateEditorFields() {
   const fields = $('block-form').elements;
   fields.pin.disabled = $('pin-fields').hidden;
-  fields.time.disabled = fields.pin.disabled || !fields.pin.checked;
+  // A dragged item's time can be adjusted without pinning it.
+  fields.time.disabled = fields.pin.disabled || !fields.pin.checked && editedBlock.target.place == null;
   fields.time.required = !fields.time.disabled;
 }
 
@@ -431,9 +435,10 @@ function applyBlockEditor(event) {
   const fields = event.target.elements;
   const text = fields.text.value.trim();
   if (!text) return;
-  const { date = null, shelf = false, place } = editedBlock.target;
+  const { date = null, shelf = false } = editedBlock.target;
+  const place = editedBlock.target.place == null ? undefined : fields.time.value;
   const original = editedBlock.block;
-  const pinned = fields.time.disabled ? null : fields.time.value;
+  const pinned = !fields.pin.disabled && fields.pin.checked ? fields.time.value : null;
   const day = plan.days[date];
   const size = fields.size.value;
   // Done and deadline are no longer edited here, so existing values carry over untouched.

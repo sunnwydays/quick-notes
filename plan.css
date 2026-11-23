@@ -260,11 +260,13 @@ dialog input:not([type="checkbox"]), dialog select, #login input {
   background: white;
 }
 .field-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .45rem; }
-.pin-fields { align-items: end; }
+.pin-fields { display: flex; gap: .45rem; align-items: end; }
+.pin-fields > label:not(.pin-check) { flex: 1; min-width: 0; }
+.pin-check { grid-template-rows: auto 2rem; justify-items: center; align-items: center; }
 #block-where { margin: -.25rem 0 0; }
 #block-more summary { cursor: pointer; font-size: .9rem; font-weight: bold; color: var(--muted); }
 .more-fields { display: grid; gap: .55rem; margin-top: .55rem; }
-.pin-fields label:first-child, form label.check { display: flex; align-items: center; gap: .35rem; }
+form label.check { display: flex; align-items: center; gap: .35rem; }
 .choices { display: grid; gap: .3rem; }
 form label.choice {
   display: grid; grid-template-columns: auto 1fr; gap: .1rem .5rem; align-items: start;
