@@ -286,19 +286,21 @@ function storeDay(key, day, bumpToTray = false) {
 function blockSource(tile) {
   const { id, date, source } = tile.dataset;
   if (date) return { date, block: plan.days[date].blocks.find((block) => block.id === id) };
-  if (source === 'parked') return { parked: true, block: plan.tray.find((block) => block.id === id) };
+  if (source === 'parked') return { parked: true, category: 'Todo', block: plan.tray.find((block) => block.id === id) };
   const entry = entriesFor(source).find((item) => item.id === id);
   if (!entry) return null;
   return { copy: true, category: source, entry, block: trayTodo(entry) };
 }
 
 // Same delete-plus-new-copy move as the notes screen, between Todo and Someday.
-function moveNote(id, category) {
+// A parked block with no note behind it becomes a new note with its text.
+function moveNote(id, category, fallbackText) {
   const entry = data.entries.find((item) => item.id === id && !item.deletedAt);
-  if (!entry) return;
+  const text = entry?.text ?? fallbackText;
+  if (!text) return;
   const now = new Date().toISOString();
-  touch(entry, { deletedAt: now, deletedHow: 'moved' });
-  data.entries.push({ id: newId(), category, text: entry.text, createdAt: now, updatedAt: now, deletedAt: null, dirty: true });
+  if (entry) touch(entry, { deletedAt: now, deletedHow: 'moved' });
+  data.entries.push({ id: newId(), category, text, createdAt: now, updatedAt: now, deletedAt: null, dirty: true });
   persist();
   sync();
   renderPlanner();
@@ -1405,7 +1407,7 @@ function plannerDropTarget(event, source) {
     const r = el.getBoundingClientRect();
     return event.clientX >= r.left && event.clientX <= r.right && event.clientY >= r.top && event.clientY <= r.bottom;
   };
-  const box = source.copy && [...document.querySelectorAll('.tray-box')].find(inside);
+  const box = (source.copy || source.parked) && [...document.querySelectorAll('.tray-box')].find(inside);
   if (box) {
     const category = box.matches('.someday') ? BACK_BURNER : 'Todo';
     return category === source.category ? null : { moveTo: category, indicator: box };
@@ -1581,7 +1583,12 @@ function endDrag(event) {
     target = { ...rest, place: pinned };
   }
   if (target?.moveTo) {
-    moveNote(source.entry.id, target.moveTo);
+    if (source.parked) {
+      plan.tray = plan.tray.filter((block) => block.id !== source.block.id);
+      plan.trayDirty = true;
+      markEdited();
+    }
+    moveNote(source.entry?.id ?? source.block.todoId, target.moveTo, source.block.text);
     return;
   }
   const error = target && moveBlock(source, target);
