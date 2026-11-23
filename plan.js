@@ -674,6 +674,7 @@ function openRoutineEditor() {
   $('routine-error').hidden = true;
   renderRoutineEditor();
   $('routine-editor').showModal();
+  drawRoutineLink();
 }
 
 function renderRoutineEditor() {
@@ -709,6 +710,29 @@ function renderRoutineEditor() {
     return label;
   });
   $('routine-choices').replaceChildren(element('p', 'muted', dayLabel(routineDay)), ...choices);
+  drawRoutineLink();
+}
+
+// Joins the selected day to its chosen template: a line out of the day, a highlighted stretch of the divider, a line into the choice.
+function drawRoutineLink() {
+  const grid = document.querySelector('.routine-grid');
+  while (grid.querySelectorAll('.routine-link').length < 3) grid.append(element('div', 'routine-link'));
+  const [left, mid, right] = grid.querySelectorAll('.routine-link');
+  const day = $('routine-days').querySelector('[aria-pressed="true"]');
+  const choice = $('routine-choices').querySelector('input:checked')?.parentElement;
+  const hidden = !day || !choice || !grid.offsetWidth;
+  for (const line of [left, mid, right]) line.hidden = hidden;
+  if (hidden) return;
+  const base = grid.getBoundingClientRect();
+  const dayBox = day.getBoundingClientRect();
+  const choiceBox = choice.getBoundingClientRect();
+  const x = $('routine-choices').getBoundingClientRect().left - base.left;
+  const y1 = dayBox.top + dayBox.height / 2 - base.top;
+  const y2 = choiceBox.top + choiceBox.height / 2 - base.top;
+  const place = (line, l, t, w, h) => Object.assign(line.style, { left: `${l}px`, top: `${t}px`, width: `${w}px`, height: `${h}px` });
+  place(left, dayBox.right - base.left, y1 - 1, x - (dayBox.right - base.left), 2);
+  place(mid, x - 1, Math.min(y1, y2) - 1, 2, Math.abs(y2 - y1) + 2);
+  place(right, x, y2 - 1, choiceBox.left - base.left - x, 2);
 }
 
 function applyRoutineEditor(event) {
