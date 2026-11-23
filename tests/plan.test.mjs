@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { applyOverrun, dayLoad, editDayWithPin, layoutDay } from '../plan.js';
+import { applyOverrun, dayLoad, editDayWithPin, layoutDay, toggleBlockPin } from '../plan.js';
 
 const block = (id, size, fields = {}) => ({ id, size, tier: 'medium', ...fields });
 const times = ({ blocks }) => blocks.map(({ id, start, until }) => [id, start, until]);
@@ -71,6 +71,23 @@ test('pinning a block in an imported Schedule preserves the times of nonoverlapp
   assert.deepEqual(times(layout), times(layoutDay(day)));
   assert.deepEqual(layout.blocks.map((item) => item.pinned ?? null), [null, null, '22:00']);
   assert.deepEqual(layout.bumped, []);
+});
+
+test('pin toggles preserve the displayed stack until an intentional reschedule', () => {
+  const day = {
+    blocks: [block('early', 45), block('middle', 30, { pinned: '09:00' }), block('late', 30)],
+  };
+  const original = times(layoutDay(day));
+  const unpinned = toggleBlockPin(day, 'middle', null);
+  assert.deepEqual(times(layoutDay(unpinned)), original);
+  assert.equal(layoutDay(unpinned).blocks[1].pinned, null);
+  const repinned = toggleBlockPin(unpinned, 'middle', '09:00');
+  assert.deepEqual(times(layoutDay(repinned)), original);
+  assert.equal(layoutDay(repinned).blocks[1].pinned, '09:00');
+  assert.equal(toggleBlockPin(unpinned, 'middle', '09:15'), null);
+
+  const { day: rescheduled } = applyOverrun(unpinned, 'early', 475);
+  assert.deepEqual(times(layoutDay(rescheduled)), [['early', 420, 475], ['middle', 485, 515], ['late', 525, 555]]);
 });
 
 test('uses the set size for a break even when exercise has a tail', () => {

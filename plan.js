@@ -102,6 +102,14 @@ function placeBlocks(day, stack) {
 // Pinned positions are reservations. Remove the lowest-priority work and lay
 // out again until the flexible work fits. Shelf blocks never enter the stack.
 function layoutDay(day) {
+  if (day.pinLayout) {
+    const byId = new Map(day.blocks.map((block) => [block.id, block]));
+    return {
+      blocks: day.pinLayout.blocks.filter(({ id }) => byId.has(id))
+        .map(({ id, start, until }) => ({ ...byId.get(id), start, until })),
+      bumped: day.pinLayout.bumped.filter((id) => byId.has(id)).map((id) => byId.get(id)),
+    };
+  }
   if (day.imported) {
     return {
       blocks: day.blocks.filter((b) => !b.shelf).map((b) => ({
@@ -233,7 +241,7 @@ function openPlannerWeek() {
     const day = saved?.value.days?.[date];
     days[date] = Array.isArray(day?.blocks) ? day : dayFromSchedule(schedule);
     // Older imports treated every written time range as a pin.
-    if (day?.imported && Array.isArray(day.blocks) && day.blocks.some((block) => block.pinned)) {
+    if (day?.imported && !day.pinLayout && Array.isArray(day.blocks) && day.blocks.some((block) => block.pinned)) {
       days[date] = { ...day, blocks: day.blocks.map((block) => ({ ...block, pinned: null })) };
     }
     sources[date] = Array.isArray(day?.blocks) ? saved.value.sources?.[date] ?? null : schedule?.id ?? null;
@@ -403,11 +411,26 @@ function markEdited() {
   renderPlanner();
 }
 
-function editDay(day, blocks, preserveRestack = false) {
+function editDay({ pinLayout, ...day }, blocks, preserveRestack = false) {
   return {
     ...day, imported: false,
     blocks: blocks.map(({ importedStart, restackStart, restackUntil, ...block }) => preserveRestack
       ? { ...block, restackStart, restackUntil } : block),
+  };
+}
+
+function toggleBlockPin(day, id, pinned) {
+  const current = layoutDay(day);
+  const timed = current.blocks.find((block) => block.id === id);
+  if (!timed || (pinned !== null && planMinutes(pinned) !== timed.start)) return null;
+  // Keep the displayed times until a scheduling edit runs the stack again.
+  return {
+    ...day,
+    blocks: day.blocks.map((block) => block.id === id ? { ...block, pinned } : block),
+    pinLayout: day.pinLayout ?? {
+      blocks: current.blocks.map(({ id, start, until }) => ({ id, start, until })),
+      bumped: current.bumped.map((block) => block.id),
+    },
   };
 }
 
@@ -580,6 +603,28 @@ function applyBlockEditor(event) {
   const original = editedBlock.block;
   const pinned = fields.time.disabled ? null : fields.time.value;
   const day = plan.days[date];
+  const size = fields.size.value;
+  const changes = {
+    text, done: fields.done.value.trim(), next: fields.next.value.trim(), goal: fields.goal.value || null,
+    tier: fields.tier.value, tail: Number(fields.tail.value), pinned,
+    kind: fields.kind.value || undefined, deadline: fields.deadline.value || undefined,
+    ...size === 'original' ? {} : { size: Number(size), duration: undefined },
+  };
+  if (date && date === editedBlock.date && !shelf && !original.shelf &&
+      Object.entries(changes).every(([key, value]) => key === 'pinned' || (value ?? null) === (original[key] ?? null))) {
+    if (pinned === (original.pinned ?? null)) {
+      $('block-editor').close();
+      return;
+    }
+    const updated = toggleBlockPin(day, original.id, pinned);
+    if (updated) {
+      plan.days[date] = updated;
+      plan.dirtyDays.add(date);
+      $('block-editor').close();
+      markEdited();
+      return;
+    }
+  }
   const oldIndex = day?.blocks.findIndex((block) => block.id === original.id) ?? -1;
   const next = oldIndex < 0 ? undefined : day.blocks[oldIndex + 1]?.id;
   let before = next;
@@ -590,13 +635,6 @@ function applyBlockEditor(event) {
     const cutoff = Math.max(day.workEnd ?? 17 * 60, day.workStart ?? 0);
     before = stack.find((b) => b.pinned && b.start >= cutoff)?.id;
   }
-  const size = fields.size.value;
-  const changes = {
-    text, done: fields.done.value.trim(), next: fields.next.value.trim(), goal: fields.goal.value || null,
-    tier: fields.tier.value, tail: Number(fields.tail.value), pinned,
-    kind: fields.kind.value || undefined, deadline: fields.deadline.value || undefined,
-    ...size === 'original' ? {} : { size: Number(size), duration: undefined },
-  };
   const target = { date, shelf, before };
   if (date && (date !== editedBlock.date || pinned !== original.pinned || size !== 'original' && Number(size) !== original.size)) target.pinned = pinned;
   const error = moveBlock(editedBlock, target, changes);
@@ -1270,5 +1308,5 @@ function startPlanner() {
   navigator.storage?.persist?.();
 }
 
-if (typeof module !== 'undefined' && module.exports) module.exports = { layoutDay, applyOverrun, dayLoad, editDayWithPin };
+if (typeof module !== 'undefined' && module.exports) module.exports = { layoutDay, applyOverrun, dayLoad, editDayWithPin, toggleBlockPin };
 if (typeof document !== 'undefined') startPlanner();
