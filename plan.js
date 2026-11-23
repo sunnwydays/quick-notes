@@ -473,7 +473,6 @@ function openBlockEditor(source, target = blockTarget(source)) {
   $('block-editor-title').textContent = source.fresh ? 'Add item' : 'Edit item';
   $('block-delete').hidden = Boolean(source.copy || source.fresh);
   quickDelete = !$('block-delete').hidden;
-  $('block-over').hidden = !source.date || block.shelf;
   $('block-error').hidden = true;
   updateEditorFields();
   $('block-editor').showModal();
@@ -2037,10 +2036,6 @@ function startPlanner() {
     }
   });
   $('block-editor').addEventListener('pointerdown', () => { quickDelete = false; });
-  $('block-over').addEventListener('click', () => {
-    $('block-editor').close();
-    openRestack(editedBlock.date, editedBlock.block.id);
-  });
   $('template-form').addEventListener('submit', applyTemplateEditor);
   $('template-form').addEventListener('change', updateTemplateFields);
   $('template-cancel').addEventListener('click', () => $('template-editor').close());
