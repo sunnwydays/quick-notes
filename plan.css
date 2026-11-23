@@ -68,7 +68,7 @@ button:disabled { opacity: .55; cursor: default; }
 .goal-hours, .week-load { font-size: .82rem; color: var(--muted); }
 .goal-chip .meter { grid-column: 1 / -1; }
 .goal-chip.over-budget { border-bottom-color: #ab5545; }
-.board-scroll { overflow: auto; padding: 2px 2px .75rem; }
+.board-scroll { grid-row: 4; overflow: auto; padding: 2px 2px .75rem; container-type: size; }
 #week {
   display: grid;
   grid-template-columns: minmax(150px, 1.13fr) 2.6rem repeat(7, minmax(125px, 1fr));
@@ -77,8 +77,13 @@ button:disabled { opacity: .55; cursor: default; }
   --minute-height: 1.45px;
   --now: #6a4fd8;
 }
-.tray { grid-row: span 4; min-width: 0; display: flex; flex-direction: column; gap: .45rem; }
-.tray-box { padding: .75rem; background: #dfeef4; border-color: #accad9; }
+/* Pinned to the visible part of the board, so Back Burner stays on screen to drag notes into. */
+.tray {
+  grid-row: span 4; min-width: 0; display: flex; flex-direction: column; gap: .45rem;
+  position: sticky; top: 0; align-self: start; height: calc(100cqh - .75rem - 2px);
+}
+.tray-box { padding: .75rem; background: #dfeef4; border-color: #accad9; min-height: 0; overflow-y: auto; }
+.someday { flex: 0 1 auto; max-height: 50%; }
 .tray-box[data-tray] { flex: 1; cursor: pointer; }
 .tray h3 { font-size: 1.2rem; color: #245776; }
 .someday summary { font-weight: bold; cursor: pointer; }
@@ -311,9 +316,7 @@ label.choice:has(input:checked) { border-color: #5b8aa6; background: #eef6fb; }
     height: 100%; grid-template-columns: minmax(0, 36fr) minmax(0, 64fr);
     grid-template-rows: minmax(0, 1fr); gap: .35rem;
   }
-  .tray { grid-row: 1; min-height: 0; overflow: hidden; }
-  .tray-box { min-height: 0; overflow-y: auto; }
-  .someday { flex: 0 1 auto; max-height: 50%; }
+  .tray { grid-row: 1; min-height: 0; overflow: hidden; position: static; align-self: stretch; height: auto; }
   .tray-box { padding: .4rem; }
   .tray h3 { font-size: 1rem; }
   .tray-tile { font-size: .85rem; }
