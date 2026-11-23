@@ -178,6 +178,16 @@ test('a late wake keeps fixed commitments through screens-off and bumps flexible
   assert.deepEqual(result.bumped.map(({ id }) => id), ['low']);
 });
 
+test('a later wake only pushes blocks it overlaps', () => {
+  const day = { blocks: [
+    block('early', 30, { restackStart: 480, restackUntil: 510 }),
+    block('next', 30, { restackStart: 530, restackUntil: 560 }),
+    block('later', 60, { restackStart: 720, restackUntil: 780 }),
+  ] };
+  const result = layoutDay(restackBeforeScreensOff(applyWake(day, '08:15')));
+  assert.deepEqual(times(result), [['early', 495, 525], ['next', 535, 565], ['later', 720, 780]]);
+});
+
 test('a short interruption uses only the time it needs from a pinned buffer', () => {
   const day = { blocks: [
     block('buffer', 45, { text: 'Buffer', pinned: '10:00', tier: 'fixed' }),

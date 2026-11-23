@@ -117,10 +117,34 @@ function applyOverrun(day, id, endedAt) {
   return { day: editDay(day, blocks, true), timed };
 }
 
+// Only push what the later wake actually overlaps; blocks already after it
+// stay put unless the pushed blocks run into them.
 function applyWake(day, wake) {
-  const fixed = layoutDay(day).blocks.filter((block) => block.tier === 'fixed');
+  const layout = layoutDay(day).blocks;
+  const cutoff = Math.min(day.workEnd ?? SCREENS_OFF, SCREENS_OFF);
+  const isAnchor = (block) => block.tier === 'fixed' || block.pinned || block.actualStart != null;
+  const anchors = layout.filter(isAnchor);
+  let cursor = Math.max((planMinutes(wake) ?? PLAN_START) + (day.startOffset ?? 0), day.workStart ?? 0);
+  const kept = [];
+  for (const block of layout) {
+    if (isAnchor(block)) {
+      kept.push(block);
+      continue;
+    }
+    const duration = block.until - block.start;
+    let start = Math.max(block.start, cursor);
+    for (const anchor of anchors) {
+      if (start >= anchor.until + gapAfter(anchor)) continue;
+      if (start + duration <= anchor.start) break;
+      start = anchor.until + gapAfter(anchor);
+    }
+    // Leave overflow untimed so the restack can bump it.
+    if (start + duration > cutoff) continue;
+    kept.push({ ...block, start, until: start + duration });
+    cursor = start + duration + gapAfter(block);
+  }
   const blocks = day.blocks.map((block) => ({ ...block, restackStart: undefined, restackUntil: undefined }));
-  return editDay({ ...day, wake }, lockRestackTimes(blocks, fixed), true);
+  return editDay({ ...day, wake }, lockRestackTimes(blocks, kept), true);
 }
 
 function restackBeforeScreensOff(day) {
