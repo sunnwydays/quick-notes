@@ -1506,7 +1506,6 @@ function renderDay(key,{ blocks, bumped }, load, from, until, ghosts) {
   for (const event of events) head.append(element('p', 'day-info day-event', `★ ${event.pinned} ${event.text}`));
   const dayActions = element('div', 'day-actions');
   if (recoverySuggested(key) && !day.template) dayActions.append(plannerButton('Recovery?', () => openTemplateEditor(key), 'day-action'));
-  if (key === dayKey(new Date())) dayActions.append(plannerButton('Woke at…', () => openRestack(key), 'day-action'));
   if (dayActions.children.length) head.append(dayActions);
   const shelf = element('div', 'shelf');
   shelf.dataset.shelf = '';
