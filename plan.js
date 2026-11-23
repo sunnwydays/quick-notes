@@ -419,8 +419,9 @@ function moveBlock(source, target, changes = {}, { copy = false } = {}) {
 }
 
 // A to-do list item is a Dash note, so deleting or ticking it off removes the note, as Dash does.
-function removeNote(source, how) {
-  const entry = data.entries.find((item) => item.id === source.entry.id && !item.deletedAt);
+// A scheduled block linked to a Todo does the same to its note.
+function removeNote(id, how) {
+  const entry = id && data.entries.find((item) => item.id === id && !item.deletedAt);
   if (!entry) return;
   touch(entry, { deletedAt: new Date().toISOString(), deletedHow: how });
   persist();
@@ -428,13 +429,40 @@ function removeNote(source, how) {
   renderPlanner();
 }
 
+function liveTodo(id) {
+  return id ? data.entries.find((entry) => entry.id === id && !entry.deletedAt) ?? null : null;
+}
+
+// Sync can't change a note's text, so renaming a linked Todo replaces it with a copy
+// (same createdAt, so it keeps its place) and points every block at the copy.
+function renameTodo(id, text) {
+  const old = liveTodo(id);
+  if (!old || bare(old.text).replace(/\s+/g, ' ') === text) return;
+  const now = new Date().toISOString();
+  const copy = { ...old, id: newId(), text: `${BULLET}${text}`, updatedAt: now, deletedAt: null, deletedHow: null, dirty: true };
+  touch(old, { deletedAt: now, deletedHow: 'replaced' });
+  data.entries.push(copy);
+  for (const [key, day] of Object.entries(plan.days)) {
+    if (!day.blocks.some((block) => block.todoId === id)) continue;
+    plan.days[key] = { ...day, blocks: day.blocks.map((block) => block.todoId === id ? { ...block, todoId: copy.id } : block) };
+    plan.dirtyDays.add(key);
+  }
+  plan.tray = plan.tray.map((block) => block.todoId === id ? { ...block, todoId: copy.id } : block);
+  plan.trayDirty = true;
+  persist();
+  sync();
+  renderPlanner();
+}
+
 function deleteBlock(source) {
   if (!source?.block) return;
-  if (source.copy) removeNote(source, 'deleted');
+  if (source.copy) removeNote(source.entry.id, 'deleted');
   else if (source.date) {
+    removeNote(source.block.todoId, 'deleted');
     const day = plan.days[source.date];
     removeFromDay(source.date, day, day.blocks.filter((block) => block.id !== source.block.id));
   } else {
+    removeNote(source.block.todoId, 'deleted');
     plan.tray = plan.tray.filter((block) => block.id !== source.block.id);
     plan.trayDirty = true;
   }
@@ -490,7 +518,7 @@ function openBlockEditor(source, target = blockTarget(source)) {
   $('block-main-row').classList.toggle('field-row', !dragged);
   $('block-editor-title').textContent = source.fresh ? 'Add item' : 'Edit item';
   $('block-delete').hidden = Boolean(source.fresh);
-  $('block-done').hidden = !source.copy;
+  $('block-done').hidden = !source.copy && !liveTodo(block.todoId);
   quickDelete = !$('block-delete').hidden;
   // Existing planned or parked blocks can be copied onto another day of this week.
   $('block-copy-row').hidden = Boolean(source.fresh || source.copy);
@@ -635,6 +663,7 @@ function applyBlockEditor(event) {
     $('block-error').hidden = false;
   } else {
     if (todo?.added) persist();
+    if (!editedBlock.fresh && text !== original.text) renameTodo(original.todoId, text);
     $('block-editor').close();
   }
 }
@@ -2183,7 +2212,10 @@ function startPlanner() {
     }
   });
   $('block-editor').addEventListener('pointerdown', () => { quickDelete = false; });
-  $('block-done').addEventListener('click', () => { removeNote(editedBlock, 'done'); $('block-editor').close(); });
+  $('block-done').addEventListener('click', () => {
+    removeNote(editedBlock.copy ? editedBlock.entry.id : editedBlock.block.todoId, 'done');
+    $('block-editor').close();
+  });
   $('template-form').addEventListener('submit', applyTemplateEditor);
   $('template-form').addEventListener('change', updateTemplateFields);
   $('template-cancel').addEventListener('click', () => $('template-editor').close());
