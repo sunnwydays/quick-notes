@@ -153,9 +153,17 @@ test('ghosts respect fixed blocks, tomorrow’s exam, and the strict load ceilin
     block('almost', 30, { text: 'Finish it', kind: 'almost' }),
   ];
   assert.deepEqual(suggestGhosts(days, tray).map(({ key, block }) => [key, block.id, block.start]), [
-    ['2026-11-23', 'prep', 930], ['2026-11-23', 'almost', 1045],
+    ['2026-11-23', 'prep', 930], ['2026-11-23', 'almost', 1100],
   ]);
   assert.deepEqual(suggestGhosts({ '2026-11-24': days['2026-11-24'] }, [block('load', 30, { text: 'Read' })]), []);
+});
+
+test('a project ghost ends before a meal with the usual gap', () => {
+  const days = { '2026-11-23': { blocks: [
+    block('lunch', 30, { text: 'Lunch', tier: 'fixed', pinned: '11:30' }),
+  ] } };
+  const [ghost] = suggestGhosts(days, [block('project', 45, { text: 'AI tutor' })]);
+  assert.deepEqual([ghost.block.start, ghost.block.until], [635, 680]);
 });
 
 test('a late wake keeps fixed commitments through screens-off and bumps flexible work', () => {

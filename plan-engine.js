@@ -5,6 +5,7 @@ const DEFAULT_TIMELINE_END = 23 * 60;
 const SCREENS_OFF = 22 * 60;
 const PLAN_SIZES = [30, 45, 60, 90];
 const PLAN_TIERS = ['low', 'medium', 'high', 'must', 'fixed'];
+const STUDY_SUBJECT = /\b(?:(?:ece|csc|mat|sta|phy|chm|bio)\s?[1-4]\d{2}|(?:practice|past) (?:exam|midterm)|exam prep|problem set)\b/i;
 
 function blockKey(start) {
   const p = (n) => String(n).padStart(2, '0');
@@ -176,9 +177,10 @@ function untimedBlock(block) {
 function blockKind(block) {
   if (block.kind) return block.kind;
   const text = block.text || '';
+  if (/\balmost done\b/i.test(text)) return 'almost';
   if (/\b(ai[- ]tutor|project)\b/i.test(text)) return 'project';
   if (/\b(prep|settle)\b/i.test(text)) return 'prep';
-  if (/\b(study|recall|revise|review notes|lab)\b/i.test(text)) return 'study';
+  if (/\b(study|recall|revise|review notes|lab)\b/i.test(text) || STUDY_SUBJECT.test(text)) return 'study';
   if (/\b(lunch|dinner|meal)\b/i.test(text)) return 'meal';
   if (/^free\b/i.test(text)) return 'free';
   if (/^buffer\b/i.test(text)) return 'buffer';
@@ -279,11 +281,14 @@ function suggestGhosts(days, tray, budgets = {}, earliest = {}, layouts = {}) {
       const budget = budgets[block.goal];
       if (budget != null && goalMinutes(weekly, block.goal) + duration - (block.tail ?? 0) > budget * 60) continue;
       const startOfDay = Math.max((planMinutes(day.wake) ?? PLAN_START) + (day.startOffset ?? 0), day.workStart ?? 0, earliest[key] ?? 0);
+      const adjacent = ['project', 'almost'].includes(blockKind(block));
       for (let i = 0; i <= stack.length; i++) {
         const prev = stack[i - 1];
-        const start = Math.max(startOfDay, prev ? prev.until + gapAfter(prev) : 0);
+        const next = stack[i];
+        const beforeNext = adjacent && next ? next.start - duration - gapAfter(block) : 0;
+        const start = Math.max(startOfDay, prev ? prev.until + gapAfter(prev) : 0, beforeNext);
         const until = start + duration;
-        if (until > Math.min(SCREENS_OFF, day.workEnd ?? SCREENS_OFF, (stack[i]?.start ?? Infinity) - 5)) continue;
+        if (until > Math.min(SCREENS_OFF, day.workEnd ?? SCREENS_OFF, (next?.start ?? Infinity) - 5)) continue;
         const timed = { ...block, start, until, shelf: false };
         if (!ghostFits(day, key, tomorrow, examTomorrow, stack, i, timed)) continue;
         stack.splice(i, 0, timed);

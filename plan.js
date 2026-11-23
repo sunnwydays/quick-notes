@@ -248,10 +248,11 @@ function blockSource(tile) {
   return { copy: true, block: trayTodo(entry) };
 }
 
-function trayTodo(entry) {
+function trayTodo(entry, goals = plannerGoals()) {
   const text = bare(entry.text).replace(/\s+/g, ' ');
   const size = Number(/\b(30|45|60|90)\s*m(?:in)?\b/i.exec(text)?.[1]) || 45;
-  return planBlock(newId(), text, { todoId: entry.id, size });
+  const goal = goals.find((item) => text.toLowerCase().startsWith(`${bare(item.text).trim().toLowerCase()}:`));
+  return planBlock(newId(), text, { todoId: entry.id, size, goal: goal?.id ?? null });
 }
 
 function pinCollision(block, blocks) {
@@ -508,9 +509,8 @@ function applyTemplateEditor(event) {
 function blockColour(block) {
   const kind = blockKind(block);
   const text = block.text || '';
-  const studyCue = /\b(?:(?:ece|csc|mat|sta|phy|chm|bio)\s?[1-4]\d{2}|(?:practice|past) (?:exam|midterm)|exam prep|problem set)\b/i;
   const routineCue = /^(?:wake|breakfast|walk outside|nap|screens off|wind down|bedtime|shower)\b/i;
-  if (kind === 'study' || (!block.kind && studyCue.test(text))) return '#e7ddfa';
+  if (kind === 'study' || (!block.kind && STUDY_SUBJECT.test(text))) return '#e7ddfa';
   if (kind === 'routine' || kind === 'meal' || (!block.kind && routineCue.test(text))) return '#fbe5d5';
   if (kind === 'free' || kind === 'buffer') return '#e9f6e6';
   return goalColour(block.goal) || '#f6f8fa';
@@ -1043,11 +1043,7 @@ function renderPlanner() {
   const until = Math.ceil(Math.max(DEFAULT_TIMELINE_END, ...all.map((b) => b.until)) / 60) * 60;
   const goals = plannerGoals();
   const parked = new Set(plan.tray.map((block) => block.todoId));
-  const todos = entriesFor('Todo').filter((entry) => !parked.has(entry.id)).map((entry) => {
-    const block = trayTodo(entry);
-    const goal = goals.find((item) => block.text.toLowerCase().startsWith(`${bare(item.text).trim().toLowerCase()}:`));
-    return { ...block, goal: goal?.id ?? null };
-  });
+  const todos = entriesFor('Todo').filter((entry) => !parked.has(entry.id)).map((entry) => trayTodo(entry, goals));
   const now = new Date();
   const today = dayKey(now);
   const earliest = Object.fromEntries(plan.keys.map((key) => [key,
