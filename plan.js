@@ -297,6 +297,15 @@ $('plan-undo-btn').onclick = () => {
   $('plan-undo-btn').disabled = !undoStack.length;
 };
 
+// Ctrl/Cmd+Z undoes like the button, except while typing (that keeps the field's own undo).
+document.addEventListener('keydown', (event) => {
+  if (!(event.ctrlKey || event.metaKey) || event.shiftKey || event.altKey || event.key.toLowerCase() !== 'z') return;
+  if (event.target.matches('textarea, select, input:not([type=checkbox]):not([type=radio])')) return;
+  if ($('block-editor').open || $('plan-undo-btn').disabled) return;
+  event.preventDefault();
+  $('plan-undo-btn').click();
+});
+
 function removeFromDay(key, day, remaining) {
   storeDay(key, day.imported ? { ...day, blocks: remaining } : editDay(day, remaining));
 }
