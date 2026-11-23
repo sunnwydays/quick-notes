@@ -192,25 +192,49 @@ function unlocked({ restackStart, restackUntil, ...block }) {
 }
 
 // Write each timed block's shown time onto it (`blocks` is the day's edited list),
-// so an edit moves only the block it touches. Bumped blocks go to the shelf.
-function lockShownTimes(day, blocks = day.blocks) {
+// so nothing moves unless it has to. Bumped blocks go to the shelf.
+function lockShownTimes(day, blocks = day.blocks, firstId = null) {
   const { blocks: timed, bumped } = layoutDay(day);
   const starts = new Map(timed.map((block) => [block.id, block.start]));
   const bumpedIds = new Set(bumped.map((block) => block.id));
-  return editDay(day, blocks.map((block) => {
+  return editDay(day, pushApart(blocks.map((block) => {
     if (bumpedIds.has(block.id) && !block.shelf) return { ...untimedBlock(block), bumped: true };
     const start = block.restackStart ?? starts.get(block.id);
     if (block.shelf || block.pinned || block.actualStart != null || start == null) return block;
     return { ...block, restackStart: start, restackUntil: start + blockDuration(block) };
-  }), true);
+  }), firstId), true);
 }
 
-// Place a block at a time and keep the rest of the day where it is, overlaps included.
+// Pinned, already-run and `firstId` blocks hold their time. Any other block in the way
+// moves down to the next free spot, pushing the ones after it; past midnight it goes to the shelf.
+function pushApart(blocks, firstId) {
+  const startOf = (block) => block.actualStart ?? block.restackStart ?? planMinutes(block.pinned);
+  const holds = (block) => block.id === firstId || block.pinned || block.actualStart != null;
+  const timed = blocks.filter((block) => !block.shelf && startOf(block) != null);
+  const taken = timed.filter(holds).map((block) => [startOf(block), block.actualUntil ?? startOf(block) + blockDuration(block)]);
+  const moved = new Map();
+  const movable = timed.filter((block) => !holds(block)).sort((a, b) => startOf(a) - startOf(b));
+  let floor = -Infinity; // pushed blocks keep their order
+  for (const block of movable) {
+    const duration = blockDuration(block);
+    let start = Math.max(startOf(block), floor);
+    for (let clash; (clash = taken.find(([from, until]) => start < until && from < start + duration));) start = clash[1];
+    if (start + duration > PLAN_END) {
+      moved.set(block.id, { ...untimedBlock(block), bumped: true });
+      continue;
+    }
+    taken.push([start, start + duration]);
+    floor = start + duration;
+    if (start !== block.restackStart) moved.set(block.id, { ...block, restackStart: start, restackUntil: start + duration });
+  }
+  return blocks.map((block) => moved.get(block.id) ?? block);
+}
+
+// Put a block at a time; whatever it lands on moves down to make room.
 function placeInDay(day, blocks, placed, at = planMinutes(placed.pinned)) {
-  const rest = blocks.map((block) => block.id === placed.id ? unlocked(block) : block);
-  const locked = lockShownTimes(day, rest);
-  return { ...locked, blocks: locked.blocks.map((block) => block.id !== placed.id || block.pinned ? block
-    : { ...block, restackStart: at, restackUntil: at + blockDuration(block) }) };
+  const rest = blocks.map((block) => block.id !== placed.id ? block : block.pinned ? unlocked(block)
+    : { ...block, restackStart: at, restackUntil: at + blockDuration(block) });
+  return lockShownTimes(day, rest, placed.id);
 }
 
 function untimedBlock(block) {

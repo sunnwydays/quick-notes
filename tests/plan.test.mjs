@@ -218,8 +218,18 @@ test('deleting or resizing a block leaves every other block at the time it showe
   assert.deepEqual(times(layoutDay(resized)), [['breakfast', 420, 510], ['commute', 809, 855], ['cardio', 855, 910]]);
 });
 
-test('placing a block over another leaves the other one where it was', () => {
-  const day = { blocks: [block('one', 30), block('two', 60, { restackStart: 600 })] };
-  const placed = placeInDay(day, day.blocks, day.blocks[0], 610);
-  assert.deepEqual(times(layoutDay(placed)), [['two', 600, 660], ['one', 610, 640]]);
+test('placing a block on others pushes them down, around pins, and leaves earlier blocks alone', () => {
+  const day = { blocks: [
+    block('early', 30, { restackStart: 480 }), block('one', 30), block('two', 60, { restackStart: 600 }),
+    block('three', 30, { restackStart: 660 }), block('pin', 30, { pinned: '11:30' }), block('later', 30, { restackStart: 800 }),
+  ] };
+  const placed = placeInDay(day, day.blocks, day.blocks[1], 610);
+  assert.deepEqual(times(layoutDay(placed)),
+    [['early', 480, 510], ['one', 610, 640], ['pin', 690, 720], ['two', 720, 780], ['three', 780, 810], ['later', 810, 840]]);
+});
+
+test('growing a block pushes the next one down', () => {
+  const day = { blocks: [block('one', 30, { restackStart: 600 }), block('two', 30, { restackStart: 630 })] };
+  const grown = lockShownTimes(day, day.blocks.map((b) => b.id === 'one' ? { ...b, size: 60 } : b), 'one');
+  assert.deepEqual(times(layoutDay(grown)), [['one', 600, 660], ['two', 660, 690]]);
 });

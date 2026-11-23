@@ -196,11 +196,6 @@ button:disabled { opacity: .55; cursor: default; }
   height: calc(var(--duration) * var(--minute-height)); padding-block: 0; font-size: .94rem;
   display: flex; flex-direction: column;
 }
-.tile.timed.laned {
-  --span: calc(100% - var(--tile-left) - var(--tile-right));
-  inset-inline: calc(var(--tile-left) + var(--span) * var(--lane) / var(--lanes))
-    calc(var(--tile-right) + var(--span) * (var(--lanes) - var(--lane) - 1) / var(--lanes));
-}
 .tile.ghost:hover { opacity: .6; }
 .tile.ghost { cursor: pointer; opacity: .35; }
 .split-prompt { display: block; margin-top: .25rem; font-size: .78rem; color: #70410f; }

@@ -435,7 +435,7 @@ function moveBlock(source, target, changes = {}, { copy = false } = {}) {
     plan.tray = plan.tray.filter((item) => item.id !== old.id);
     plan.trayDirty = true;
   }
-  storeDay(target.date, moved && placeAt != null ? placeInDay(day, blocks, block, placeAt) : lockShownTimes(day, blocks));
+  storeDay(target.date, moved && placeAt != null ? placeInDay(day, blocks, block, placeAt) : lockShownTimes(day, blocks, sameDay ? old.id : null));
   markEdited();
   return '';
 }
@@ -1135,7 +1135,7 @@ function updateTemplateFields() {
 function replaceTemplate(day, name, template, event) {
   const positions = new Map(layoutDay(day).blocks.map((block) => [block.id, block.start]));
   const shown = lockShownTimes(day);
-  let kept = shown.blocks.filter((block) => !block.templateAnchor);
+  const kept = shown.blocks.filter((block) => !block.templateAnchor);
   let anchors = (template?.anchors || []).map(templateAnchor);
   const eventAt = event ? planMinutes(event.start) : null;
   if (event) {
@@ -1152,16 +1152,13 @@ function replaceTemplate(day, name, template, event) {
     }
     positions.set(anchor.id, planMinutes(anchor.pinned));
   }
-  // Blocks keep their times, except ones a new anchor lands on: those move to the next free spot.
-  const lockedAt = (block) => block.restackStart != null ? { ...block, pinned: blockKey(block.restackStart) } : block;
-  kept = kept.map((block) => pinCollision(lockedAt(block), anchors) ? unlocked(block) : block);
   const blocks = [...kept, ...anchors].sort((a, b) => (positions.get(a.id) ?? Infinity) - (positions.get(b.id) ?? Infinity));
   return { day: editDay({
     ...day, template: name, wake: template?.wake || '07:00', startOffset: template?.startOffset,
     deepCap: template?.deepCap, workStart: template?.workStart, workCap: template?.workCap,
     workEnd: template?.workBeforeEvent ? eventAt - 30 : undefined,
     noNewAfter: template?.noNewAfter, noGhosts: template?.noGhosts,
-  }, blocks, true) };
+  }, pushApart(blocks), true) };
 }
 
 function applyTemplateEditor(event) {
@@ -1659,29 +1656,6 @@ document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') closeDayMenus();
 });
 
-// Overlapping blocks share the column side by side: [lane, lanes in its overlap group].
-function overlapLanes(blocks) {
-  const lanes = new Map();
-  let group = [];
-  let ends = [];
-  let groupEnd = -Infinity;
-  const close = () => group.forEach(([id, lane]) => lanes.set(id, [lane, ends.length]));
-  for (const block of blocks) {
-    if (block.start >= groupEnd) {
-      close();
-      group = [];
-      ends = [];
-    }
-    let lane = ends.findIndex((end) => end <= block.start);
-    if (lane < 0) lane = ends.length;
-    ends[lane] = block.until;
-    group.push([block.id, lane]);
-    groupEnd = Math.max(groupEnd, block.until);
-  }
-  close();
-  return lanes;
-}
-
 function renderDay(key,{ blocks, bumped }, load, from, until, ghosts) {
   const date = keyDate(key);
   const day = plan.days[key];
@@ -1748,16 +1722,9 @@ function renderDay(key,{ blocks, bumped }, load, from, until, ghosts) {
     column.classList.add('today');
     timeline.append(element('span', 'now-line'));
   }
-  const lanes = overlapLanes(blocks);
   for (const [i, block] of blocks.entries()) {
     const tile = renderTile(block, key);
     Object.assign(tile.dataset, { start: block.start, until: block.until });
-    const [lane, laneCount] = lanes.get(block.id);
-    if (laneCount > 1) {
-      tile.classList.add('laned');
-      tile.style.setProperty('--lane', lane);
-      tile.style.setProperty('--lanes', laneCount);
-    }
     tile.classList.toggle('late', afterDeadline(key, block));
     const time = timeTile(tile, block.start, block.until, from);
     if (block.actualUntil != null) time.append(element('span', 'over-badge', '↗'));
@@ -1908,13 +1875,13 @@ function plannerDropTarget(event, source) {
   if (tile && date === source.date && tile.dataset.id === source.block.id) return null;
   if (slot.matches('[data-shelf]')) return { date, shelf: true, before: tile?.dataset.id, indicator: slot };
   const stack = layoutDay(plan.days[date]).blocks;
-  // Dropped on a tile: sit right after it (or end right as it starts), leaving it where it is.
+  // Dropped on a tile: take its slot (top half) or go right after it (bottom half); the rest moves down.
   if (tile) {
     const index = stack.findIndex((block) => block.id === tile.dataset.id);
     const rect = tile.getBoundingClientRect();
     const after = event.clientY > rect.top + rect.height / 2;
     const next = stack.slice(index + Number(after)).find((block) => block.id !== source.block.id);
-    const at = after ? Number(tile.dataset.until) : Math.max(0, Number(tile.dataset.start) - blockDuration(source.block));
+    const at = Number(after ? tile.dataset.until : tile.dataset.start);
     return { date, before: next?.id, at: blockKey(at), pin: false, indicator: tile, after };
   }
   const dragged = activeDrag?.tile;
