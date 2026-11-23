@@ -22,9 +22,10 @@ const TEMPLATES = {
     anchors: [['12:20', 25, 'Free', 'free'], ['21:30', 15, 'Review'], WIND_DOWN],
   },
   'Recovery / social': {
-    wake: '09:30', startOffset: 0, deepCap: 2, workCap: 2, noGhosts: true,
-    hint: 'Wake at 09:30 and keep it to two work blocks.',
-    anchors: [['11:30', 50, 'Lunch + dishes + read', 'meal'], ['12:20', 25, 'Free', 'free'],
+    wake: '09:00', startOffset: 0, deepCap: 2, workCap: 2, noGhosts: true,
+    hint: 'After a late night: up by 09:00, outside early, nap 25 minutes at most, usual bedtime. Two work blocks.',
+    anchors: [['09:00', 30, 'Wake + breakfast'], ['09:30', 30, 'Walk outside · morning light'],
+      ['11:30', 50, 'Lunch + dishes + read', 'meal'], ['12:20', 25, 'Free', 'free'], ['14:00', 25, 'Nap (25 min max)'],
       ['15:10', 45, 'Buffer', 'buffer'], ['17:00', 50, 'Dinner + dishes', 'meal'], WIND_DOWN],
   },
   'Welding Sunday': {
@@ -470,11 +471,42 @@ function recoverySuggested(key) {
   });
 }
 
+function defaultTemplate(key) {
+  return recoverySuggested(key) ? 'Recovery / social' : keyDate(key).getDay() === 0 ? 'Welding Sunday' : 'Weekday';
+}
+
+// Lays each day's usual template onto every day from today on that doesn't have one yet.
+function applyWeekRoutine() {
+  const today = dayKey(new Date());
+  const applied = [];
+  const clashes = [];
+  for (const key of plan.keys) {
+    if (key < today || plan.days[key].template) continue;
+    const name = defaultTemplate(key);
+    const template = getTemplate(name);
+    if (template?.event) continue;
+    const result = replaceTemplate(plan.days[key], name, template, null);
+    if (result.error) clashes.push(dayLabel(key));
+    else {
+      storeDay(key, result.day);
+      applied.push(key);
+    }
+  }
+  if (!applied.length) {
+    $('plan-status').textContent = clashes.length
+      ? `Routine overlaps a pinned block on ${clashes.join(', ')}.`
+      : 'Every day left this week already has a template.';
+    return;
+  }
+  markEdited(`Routine added to ${applied.length} day${applied.length === 1 ? '' : 's'}.`);
+  if (clashes.length) $('plan-status').textContent = `Routine skipped ${clashes.join(', ')}: it overlaps a pinned block.`;
+}
+
 function openTemplateEditor(key) {
   templateDate = key;
   const day = plan.days[key];
   const fields = $('template-form').elements;
-  const name = day.template || (recoverySuggested(key) ? 'Recovery / social' : keyDate(key).getDay() === 0 ? 'Welding Sunday' : 'Weekday');
+  const name = day.template || defaultTemplate(key);
   fillOptions(fields.template, [['', 'No template'], ...Object.keys(TEMPLATES).map((key) => [key, key])], name);
   const event = day.blocks.find((block) => block.templateAnchor && block.kind === 'event');
   fields.event.value = event?.text || '';
@@ -1449,6 +1481,7 @@ function startPlanner() {
   $('week-today').addEventListener('click', () => changePlannerWeek(homeMonday()));
   $('save-week').addEventListener('click', saveWeek);
   $('plan-now').addEventListener('click', () => openPopup());
+  $('week-routine').addEventListener('click', applyWeekRoutine);
   $('now-form').addEventListener('submit', applyPopup);
   $('now-form').elements.todo.addEventListener('change', fillPopupFields);
   $('now-cancel').addEventListener('click', () => $('now-editor').close());
