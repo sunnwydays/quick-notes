@@ -516,7 +516,7 @@ function blockColour(block) {
   return goalColour(block.goal) || '#f6f8fa';
 }
 
-function carryProjectNext(days) {
+function carryProjectNext(days, today, minute) {
   const updates = {};
   const nextByGoal = new Map();
   const update = (key, id, changes) => {
@@ -529,10 +529,13 @@ function carryProjectNext(days) {
       const target = nextByGoal.get(block.goal);
       const next = block.next?.trim();
       if (target && blockKind(block) === 'project' && next && block.nextApplied !== next) {
-        update(target.key, target.id, { text: next, kind: target.kind });
+        if (!target.claimed) update(target.key, target.id, { text: next, kind: target.kind });
+        target.claimed = true;
         update(key, block.id, { nextApplied: next });
       }
-      nextByGoal.set(block.goal, { key, id: block.id, kind: blockKind(block) || undefined });
+      if (key > today || (key === today && block.start >= minute)) {
+        nextByGoal.set(block.goal, { key, id: block.id, kind: blockKind(block) || undefined });
+      }
     }
   }
   return updates;
@@ -541,12 +544,14 @@ function carryProjectNext(days) {
 function carryNextAcrossWeeks(days, notes) {
   const weeks = plannerNotes(PLAN_WEEK);
   weeks.delete(plan.key);
+  const dates = [...weeks.values()].flatMap(({ value }) => Object.keys(value.days ?? {}));
+  const schedules = schedulesForWeek(dates);
   const allDays = { ...days };
   const external = new Map();
   for (const [key, saved] of weeks) {
     const ownDays = {};
     for (const [date, day] of Object.entries(saved.value.days ?? {})) {
-      const schedule = scheduleOn(date);
+      const schedule = schedules.get(date);
       if (Array.isArray(day?.blocks) && (schedule?.id ?? null) === (saved.value.sources?.[date] ?? null)) {
         ownDays[date] = day;
       }
@@ -555,7 +560,8 @@ function carryNextAcrossWeeks(days, notes) {
     Object.assign(allDays, ownDays);
     external.set(key, saved);
   }
-  const updates = carryProjectNext(allDays);
+  const now = new Date();
+  const updates = carryProjectNext(allDays, dayKey(now), now.getHours() * 60 + now.getMinutes());
   const changed = new Set();
   for (const key of Object.keys(days)) {
     if (!updates[key]) continue;
@@ -571,7 +577,7 @@ function carryNextAcrossWeeks(days, notes) {
       const day = revised.days[date] = updates[date];
       const text = scheduleText(date, day);
       if (changesSchedule(text)) {
-        const note = plannerEntry(SCHEDULE, text, scheduleOn(date));
+        const note = plannerEntry(SCHEDULE, text, schedules.get(date));
         notes.push(note);
         revised.sources[date] = note.id;
       }
