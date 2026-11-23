@@ -199,7 +199,6 @@ function dayFromSchedule(entry) {
     const [line, ...more] = block.lines;
     const [, title, done] = /^(.*?)\s*\(done = (.*)\)$/.exec(line) || [];
     day.blocks.push(planBlock(`${entry.id}-b${i}`, (title ?? line) || 'Untitled block', {
-      pinned: block.end == null ? null : blockKey(block.start),
       duration: block.until > block.start ? (block.end == null ? Math.min(45, block.until - block.start) : block.until - block.start) : 45,
       importedStart: block.start,
       done: done || '',
@@ -232,6 +231,10 @@ function openPlannerWeek() {
     const schedule = schedules.get(date);
     const day = saved?.value.days?.[date];
     days[date] = Array.isArray(day?.blocks) ? day : dayFromSchedule(schedule);
+    // Older imports treated every written time range as a pin.
+    if (day?.imported && Array.isArray(day.blocks) && day.blocks.some((block) => block.pinned)) {
+      days[date] = { ...day, blocks: day.blocks.map((block) => ({ ...block, pinned: null })) };
+    }
     sources[date] = Array.isArray(day?.blocks) ? saved.value.sources?.[date] ?? null : schedule?.id ?? null;
   }
   plan = { key, keys, days, sources, schedules, version: saved?.entry.id ?? null, dirtyDays: new Set(), scheduleDirty: new Set(),
@@ -928,7 +931,7 @@ function renderTile(block, date) {
   tile.style.setProperty('--tile-colour', blockColour(block));
   tile.append(element('span', 'tile-title', block.text));
   if (block.bumped) tile.append(element('span', 'bumped', block.bumpedFrom ? ` · Bumped from ${dayLabel(block.bumpedFrom, false)}` : ' · Bumped'));
-  if (block.pinned) {
+  if (planMinutes(block.pinned) != null) {
     const pin = element('span', 'pin', '📌');
     pin.title = `Pinned at ${block.pinned}`;
     tile.append(pin);
