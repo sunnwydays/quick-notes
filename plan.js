@@ -49,6 +49,7 @@ let editingGoal;
 let restacking;
 let selectedDay;
 let goalsOpen = false;
+let lastPointerType;
 
 function schedulesForWeek(keys) {
   const latest = new Map();
@@ -1170,10 +1171,66 @@ function showDropTarget(target) {
   activeDrag.target = target;
 }
 
+function timelineMinute(timeline, clientY, round = Math.round) {
+  const rect = timeline.getBoundingClientRect();
+  const from = Number(timeline.dataset.from);
+  const until = Number(timeline.dataset.until);
+  const scale = (rect.height - 8) / (until - from);
+  return Math.max(from, Math.min(until, from + 15 * round((clientY - rect.top) / scale / 15)));
+}
+
+// Press on an empty part of a day and drag to sketch a new item, like a calendar.
+function draftRange({ anchor, current }) {
+  return current > anchor ? [anchor, current] : [current, anchor + 15];
+}
+
+function openDraft(date, start, duration) {
+  const fields = duration == null ? {} : PLAN_SIZES.includes(duration) ? { size: duration } : { duration };
+  openBlockEditor({ fresh: true, block: planBlock(newId(), '', fields) }, { date, place: blockKey(start) });
+}
+
+function startDraft(event) {
+  const timeline = event.target.closest('.timeline');
+  if (!timeline || event.target.closest('.tile') || event.pointerType === 'touch') return;
+  event.preventDefault();
+  const anchor = Math.min(timelineMinute(timeline, event.clientY, Math.floor), PLAN_END - 15);
+  const preview = element('div', 'tile timed draft');
+  activeDrag = { draft: true, timeline, preview, anchor, current: anchor, pointer: event.pointerId, y: event.clientY, moved: false };
+}
+
+function moveDraft(event) {
+  if (!activeDrag.moved && Math.abs(event.clientY - activeDrag.y) < 6) return;
+  if (!activeDrag.moved) activeDrag.timeline.append(activeDrag.preview);
+  activeDrag.moved = true;
+  activeDrag.current = Math.min(timelineMinute(activeDrag.timeline, event.clientY), PLAN_END);
+  const [start, end] = draftRange(activeDrag);
+  const from = Number(activeDrag.timeline.dataset.from);
+  activeDrag.preview.style.setProperty('--minute', start - from);
+  activeDrag.preview.style.setProperty('--duration', end - start);
+  activeDrag.preview.textContent = `${blockKey(start)}–${blockKey(end)}`;
+}
+
+function endDraft(event) {
+  const drag = activeDrag;
+  activeDrag = null;
+  drag.preview.remove();
+  if (event.type !== 'pointerup') return;
+  const date = drag.timeline.closest('[data-day]').dataset.day;
+  if (!drag.moved) openDraft(date, drag.anchor);
+  else {
+    const [start, end] = draftRange(drag);
+    openDraft(date, start, end - start);
+  }
+}
+
 function startDrag(event) {
+  lastPointerType = event.pointerType;
   if (event.button !== 0 || activeDrag) return;
   const tile = event.target.closest('.tile[data-id]');
-  if (!tile) return;
+  if (!tile) {
+    startDraft(event);
+    return;
+  }
   const source = blockSource(tile);
   if (!source?.block) return;
   activeDrag = { tile, source, pointer: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
@@ -1181,6 +1238,10 @@ function startDrag(event) {
 
 function moveDrag(event) {
   if (activeDrag?.pointer !== event.pointerId) return;
+  if (activeDrag.draft) {
+    moveDraft(event);
+    return;
+  }
   if (!activeDrag.moved) {
     if (Math.hypot(event.clientX - activeDrag.x, event.clientY - activeDrag.y) < 6) return;
     clearTimeout(tileClick);
@@ -1228,6 +1289,10 @@ function scrollDuringDrag() {
 
 function endDrag(event) {
   if (activeDrag?.pointer !== event.pointerId) return;
+  if (activeDrag.draft) {
+    endDraft(event);
+    return;
+  }
   const { tile, source, moved, preview } = activeDrag;
   showDropTarget(null);
   activeDrag = null;
@@ -1343,6 +1408,12 @@ function startPlanner() {
   window.addEventListener('pointerup', endDrag);
   window.addEventListener('pointercancel', endDrag);
   $('week').addEventListener('click', (event) => {
+    const timeline = event.target.closest('.timeline');
+    // Phones scroll on a drag, so a tap on an empty part of a day adds an item there.
+    if (lastPointerType === 'touch' && timeline && !event.target.closest('.tile')) {
+      openDraft(timeline.closest('[data-day]').dataset.day, Math.min(timelineMinute(timeline, event.clientY, Math.floor), PLAN_END - 15));
+      return;
+    }
     const tile = event.target.closest('.tile[data-id]');
     if (!tile || tile.dataset.dragged || event.detail > 1) return;
     const open = () => {

@@ -192,6 +192,11 @@ button:disabled { opacity: .55; cursor: default; }
 .tile:has(.pin) .tail { margin-right: -1rem; }
 .bumped { font-size: .7rem; color: var(--muted); }
 .over-badge { margin-left: .25rem; font-weight: bold; color: #654325; }
+.timeline { user-select: none; cursor: cell; }
+.tile.draft {
+  border: 2px dashed #387fa6; pointer-events: none; font-size: .75rem; font-weight: bold;
+  padding: .1rem .38rem; justify-content: flex-start;
+}
 .tile.dragging { opacity: .45; }
 .tile.drag-preview {
   position: fixed; inset: auto; z-index: 10; pointer-events: none;
