@@ -1454,23 +1454,63 @@ function timeTile(tile, start, until, from) {
   return time;
 }
 
+function closeDayMenus() {
+  for (const menu of document.querySelectorAll('.day-menu:not([hidden])')) {
+    menu.hidden = true;
+    menu.previousElementSibling.querySelector('.day-menu-toggle').setAttribute('aria-expanded', 'false');
+  }
+}
+
+function toggleDayMenu(menu) {
+  const open = menu.hidden;
+  closeDayMenus();
+  menu.hidden = !open;
+  menu.previousElementSibling.querySelector('.day-menu-toggle').setAttribute('aria-expanded', String(open));
+}
+
+document.addEventListener('click', (event) => {
+  if (!event.target.closest('.day-head h3, .day-menu')) closeDayMenus();
+});
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') closeDayMenus();
+});
+
 function renderDay(key,{ blocks, bumped }, load, from, until, ghosts) {
   const date = keyDate(key);
   const day = plan.days[key];
   const column = element('article', 'panel day');
   column.dataset.day = key;
   const head = element('header', 'day-head');
-  const heading = element('h3', '', date.toLocaleDateString(undefined, { weekday: 'short' }));
-  heading.append(element('span', 'day-date', date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })));
+  // The header itself opens the day's setup menu, so its buttons don't repeat down the week.
+  const heading = element('h3');
+  const toggle = plannerButton('', () => toggleDayMenu(menu), 'day-menu-toggle');
+  toggle.setAttribute('aria-haspopup', 'menu');
+  toggle.setAttribute('aria-expanded', 'false');
+  toggle.title = 'Day options';
+  const name = element('span', 'day-name', date.toLocaleDateString(undefined, { weekday: 'short' }));
+  name.append(element('span', 'day-date', date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })));
   const info = [day.wake && `Wake ${day.wake}`, day.template].filter(Boolean);
-  head.append(heading, element('p', 'day-info', info.join(' · ')));
+  toggle.append(name, element('span', 'day-info', `${info.join(' · ')} ▾`));
+  heading.append(toggle);
+  const menu = element('div', 'day-menu');
+  menu.setAttribute('role', 'menu');
+  menu.hidden = true;
+  const menuItem = (text, action) => {
+    const item = plannerButton(text, () => { closeDayMenus(); action(); });
+    item.setAttribute('role', 'menuitem');
+    return item;
+  };
+  menu.append(menuItem('Template…', () => openTemplateEditor(key)), menuItem('Woke at…', () => openRestack(key)));
+  const title = element('div', 'day-title');
+  title.append(heading, menu);
+  head.append(title);
   if (changedInDash(key)) head.append(element('span', 'warning', 'Changed on phone'));
   const events = blocks.filter((block) => block.pinned && (block.kind === 'event' || block.tier === 'fixed' && !block.templateAnchor));
   for (const event of events) head.append(element('p', 'day-info day-event', `★ ${event.pinned} ${event.text}`));
   const dayActions = element('div', 'day-actions');
-  const template = plannerButton(recoverySuggested(key) && !day.template ? 'Recovery?' : 'Template', () => openTemplateEditor(key), 'day-action');
-  dayActions.append(template, plannerButton('Woke at…', () => openRestack(key), 'day-action'));
-  head.append(dayActions);
+  if (recoverySuggested(key) && !day.template) dayActions.append(plannerButton('Recovery?', () => openTemplateEditor(key), 'day-action'));
+  if (key === dayKey(new Date())) dayActions.append(plannerButton('Woke at…', () => openRestack(key), 'day-action'));
+  if (dayActions.children.length) head.append(dayActions);
   const shelf = element('div', 'shelf');
   shelf.dataset.shelf = '';
   shelf.append(element('h4', 'shelf-title', 'Untimed'));
