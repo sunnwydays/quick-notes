@@ -80,6 +80,8 @@ function openPlannerWeek() {
     }
     sources[date] = Array.isArray(day?.blocks) ? saved.value.sources?.[date] ?? null : schedule?.id ?? null;
   }
+  planSnap = null;
+  if (typeof hidePlanUndo === 'function') hidePlanUndo();
   plan = { key, keys, days, sources, schedules, version: saved?.entry.id ?? null, dirtyDays: new Set(), scheduleDirty: new Set(),
     budgets: goals?.value || {}, goalVersion: goals?.entry.id ?? null, goalsDirty: false,
     tray: Array.isArray(saved?.value.tray?.week) ? saved.value.tray.week : [], trayDirty: false, pendingMarks: [],
@@ -215,9 +217,37 @@ function isPlannerDirty() {
   return plan.dirtyDays.size > 0 || plan.trayDirty || plan.goalsDirty;
 }
 
-function markEdited() {
+// Planner Undo: renderPlanner snapshots the state it drew, so the snapshot taken
+// before an edit is what Undo restores. One level, like the Dash banner.
+let planSnap = null;
+let undoTimer;
+
+function snapshotPlan() {
+  const { days, tray, budgets, pendingMarks, dirtyDays, scheduleDirty, trayDirty, goalsDirty } = plan;
+  return structuredClone({ days, tray, budgets, pendingMarks, dirtyDays, scheduleDirty, trayDirty, goalsDirty });
+}
+
+function hidePlanUndo() {
+  clearTimeout(undoTimer);
+  $('plan-undo').hidden = true;
+}
+
+function markEdited(message = 'Change made.') {
+  const before = planSnap;
   $('plan-status').textContent = 'Unsaved planner changes';
   renderPlanner();
+  if (!before) return;
+  $('plan-undo-msg').textContent = message;
+  $('plan-undo').hidden = false;
+  $('plan-undo-btn').onclick = () => {
+    hidePlanUndo();
+    Object.assign(plan, structuredClone(before));
+    planSnap = null;
+    $('plan-status').textContent = 'Unsaved planner changes';
+    renderPlanner();
+  };
+  clearTimeout(undoTimer);
+  undoTimer = setTimeout(hidePlanUndo, 8000);
 }
 
 function removeFromDay(key, day, remaining) {
@@ -753,7 +783,7 @@ function acceptGhost({ key, block, shelf }) {
     plan.trayDirty = true;
   }
   storeDay(key, keepDayTimes(day, all, [...blocks, { ...placed, start, until }].sort((a, b) => a.start - b.start), bumped));
-  markEdited();
+  markEdited(`Added ${block.text.length > 40 ? block.text.slice(0, 40) + '…' : block.text}.`);
 }
 
 function dayWarnings(key, day, blocks) {
@@ -1112,6 +1142,7 @@ function renderPlanner() {
   }));
   $('week').querySelector('.day.selected').scrollTop = scroll;
   $('week').querySelector('.tray').scrollTop = trayScroll;
+  planSnap = snapshotPlan();
 }
 
 function selectDay(key) {
