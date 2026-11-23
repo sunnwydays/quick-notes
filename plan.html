@@ -60,16 +60,16 @@
       <h2 id="block-editor-title">Add item</h2>
       <label>Item <input name="text" required autofocus placeholder="e.g. Gym, or Lab 3 intro written"></label>
       <p id="block-where" class="muted"></p>
+      <div class="field-row">
+        <label>Length <select name="size"></select></label>
+        <label>Goal <select name="goal"></select></label>
+      </div>
       <details id="block-more">
         <summary>More</summary>
         <div class="more-fields">
           <label>Next <input name="next" placeholder="First step for the next block"></label>
           <div class="field-row">
-            <label>Length <select name="size"></select></label>
             <label>Tier <select name="tier"></select></label>
-          </div>
-          <div class="field-row">
-            <label>Goal <select name="goal"></select></label>
             <label>Tail (min) <input name="tail" type="number" min="0" max="120" step="5"></label>
           </div>
           <label>Kind <select name="kind"></select></label>
