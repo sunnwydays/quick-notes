@@ -302,7 +302,7 @@ label.choice:has(input:checked) { border-color: #5b8aa6; background: #eef6fb; }
   .template-block :is(input, select) { font-size: .8rem; }
 }
 #template-def .muted { margin: 0; }
-.template-day-scroll { max-height: 60vh; overflow-y: auto; overscroll-behavior: contain; --minute-height: 1.2px; padding-top: .4rem; }
+.template-day-scroll { max-height: 60vh; overflow-y: auto; overscroll-behavior: contain; --minute-height: 1.45px; padding-top: .4rem; }
 .template-day-scroll .hour { inset-inline: 0; }
 .template-day-scroll .hour-label { display: inline; }
 .template-day-scroll .tile.timed { inset-inline: 2.8rem .4rem; }
