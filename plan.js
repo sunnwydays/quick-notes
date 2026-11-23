@@ -366,14 +366,23 @@ function pinCollision(block, blocks) {
 //   before  id of the block it stacks in front of
 //   at      'HH:MM' to place it at on the timeline
 //   pin     true pins it at `at`, false unpins it; left out, it keeps the pin it had
-function moveBlock(source, target, changes = {}) {
+//   copy    (option) leaves the original where it is and drops a new block with a fresh id
+function moveBlock(source, target, changes = {}, { copy = false } = {}) {
   if (!source?.block) return 'That block is no longer available.';
   const old = source.block;
   const changed = { ...old, ...changes, bumped: false, bumpedFrom: undefined };
+  if (copy) {
+    // A duplicate is its own block: no link to the note and no progress carried over.
+    changed.id = newId();
+    changed.todoId = null;
+    changed.done = '';
+    delete changed.actualStart;
+    delete changed.actualUntil;
+  }
   const origin = source.date && plan.days[source.date];
   const remaining = origin?.blocks.filter((block) => block.id !== old.id);
   if (!target.date) {
-    if (origin) removeFromDay(source.date, origin, remaining);
+    if (origin && !copy) removeFromDay(source.date, origin, remaining);
     plan.tray = plan.tray.filter((block) => block.id !== old.id);
     plan.tray.push(untimedBlock(changed));
     plan.trayDirty = true;
@@ -381,7 +390,7 @@ function moveBlock(source, target, changes = {}) {
     return '';
   }
   const day = plan.days[target.date];
-  const blocks = source.date === target.date ? remaining : [...day.blocks];
+  const blocks = source.date === target.date && !copy ? remaining : [...day.blocks];
   // A block that is placed or (un)pinned starts fresh: its old actual times no longer apply.
   const moved = !target.shelf && (target.at != null || target.pin != null);
   let block;
@@ -395,12 +404,12 @@ function moveBlock(source, target, changes = {}) {
   const placeAt = target.shelf ? null : planMinutes(target.at) ?? planMinutes(block.pinned);
   if (placeAt != null && placeAt + blockDuration(block) > DAY_END) return 'Choose a time that ends by midnight.';
   const probe = placeAt != null ? { ...block, pinned: blockKey(placeAt) } : block;
-  const keepsActual = source.date === target.date && block.actualStart != null;
+  const keepsActual = !copy && source.date === target.date && block.actualStart != null;
   if (!keepsActual && pinCollision(probe, blocks)) return 'That time overlaps another pinned block.';
   const index = blocks.findIndex((item) => item.id === target.before);
   blocks.splice(index < 0 ? blocks.length : index, 0, block);
-  if (origin && source.date !== target.date) removeFromDay(source.date, origin, remaining);
-  if (source.parked) {
+  if (origin && source.date !== target.date && !copy) removeFromDay(source.date, origin, remaining);
+  if (source.parked && !copy) {
     plan.tray = plan.tray.filter((item) => item.id !== old.id);
     plan.trayDirty = true;
   }
@@ -2052,7 +2061,9 @@ function endDrag(event) {
     moveNote(source.entry?.id ?? source.block.todoId, target.moveTo, source.block.text);
     return;
   }
-  const error = target && moveBlock(source, target);
+  // Shift or Ctrl while dropping copies a planned or parked block instead of moving it.
+  const copy = (event.shiftKey || event.ctrlKey) && !source.copy;
+  const error = target && moveBlock(source, target, {}, { copy });
   if (!error && target?.indicator?.matches('[data-tab-day]')) selectDay(target.date);
   if (error) {
     tile.classList.add('invalid-drop');
