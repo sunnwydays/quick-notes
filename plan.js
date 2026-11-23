@@ -1310,6 +1310,20 @@ function startPlanner() {
   $('goal-cancel').addEventListener('click', () => $('goal-editor').close());
   $('restack-form').addEventListener('submit', applyRestack);
   $('restack-cancel').addEventListener('click', () => $('restack-editor').close());
+  for (const dialog of document.querySelectorAll('dialog')) {
+    // Close on a press and release that both land on the backdrop, not on a text drag that ends outside.
+    const outside = (event) => {
+      const box = dialog.getBoundingClientRect();
+      return event.target === dialog && (event.clientX < box.left || event.clientX > box.right ||
+        event.clientY < box.top || event.clientY > box.bottom);
+    };
+    let pressedOutside = false;
+    dialog.addEventListener('pointerdown', (event) => { pressedOutside = outside(event); });
+    dialog.addEventListener('click', (event) => {
+      if (pressedOutside && outside(event)) dialog.close();
+      pressedOutside = false;
+    });
+  }
   $('week').addEventListener('pointerdown', startDrag);
   window.addEventListener('pointermove', moveDrag, { passive: false });
   window.addEventListener('pointerup', endDrag);
