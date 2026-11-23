@@ -39,6 +39,8 @@ const arrowIcon = (d) =>
   `<path d="${d}"/></svg>`;
 const DOWN_ICON = arrowIcon('M12 4v16M5 13l7 7 7-7');
 const UP_ICON = arrowIcon('M12 20V4M5 11l7-7 7 7');
+// Todo's button is Back burner's own flame instead of an arrow, since it isn't a list above or below.
+const FLAME_ICON = arrowIcon(ICONS[BACK_BURNER]);
 
 // Whether Back burner's notes show under Working on, remembered per device.
 const BURNER_KEY = 'quicknotes-back-burner-hidden';
@@ -123,7 +125,8 @@ function entryRow(entry, cat) {
   const to = MOVES[cat];
   if (to) {
     div.dataset.moveTo = to;
-    const move = iconButton(`Move to ${to}`, to === BACK_BURNER ? DOWN_ICON : UP_ICON);
+    const icon = cat === 'Todo' ? FLAME_ICON : to === BACK_BURNER ? DOWN_ICON : UP_ICON;
+    const move = iconButton(`Move to ${to}`, icon);
     move.addEventListener('click', () => moveEntry(id));
     div.append(move);
   }
