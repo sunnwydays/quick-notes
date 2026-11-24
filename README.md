@@ -50,13 +50,31 @@ No new material after that, early night
 
 Open the **calendar icon** in Dash's home header. Drag a Todo onto a day's **Untimed** shelf to commit to the day, or into the timeline to give it a time. Scheduling copies the Todo and hides it from the planner's To Do while it's on a day. The original stays in Dash, where you can still tick it. Renaming or deleting a scheduled block does the same to its Todo, and the block editor's tick marks the Todo done while the block stays on the day. Click a block to rename it or change its length and goal; pin and the rest sit under **More**. Click a day's name to open its menu: **Template…** adds routine anchors to that day and **Woke at…** restacks it. Use **Routine** in the header to pick a template for each remaining day of the week in one window: tap a day on the left, then its template on the right (every day starts as Weekday). After a late night, pick **Recovery / social** for the next day: up by 09:00, a morning walk, a nap of at most 25 minutes and the usual bedtime. Click a **Working on** goal to set its weekly hours.
 
-- Blocks keep their times until something lands on them. Dropping or stretching a block onto others pushes them down in order, past pinned blocks (anything pushed past midnight goes to the shelf). A pinned block only moves when you drag it, and dragging (onto the timeline, a tile or a day tab) keeps the pin; only the block editor's Pin box removes it. A dragged block moves with the pointer from where you grabbed it. Dropped onto a pinned block, it goes right below it if the pointer is in the pin's lower half, otherwise it ends right where the pin starts. Deleting, shrinking or renaming a block never moves the others; nothing gets pulled up to fill a gap.
+- Deleting, shrinking, or renaming a block leaves the surrounding schedule in place. Stretching a block can push flexible work later. A pin stays attached when you drag its block to another time or day. Clear **Pin** in the editor to release it. For timeline drops, see [Rescheduling a block](#rescheduling-a-block).
 - Dashed blocks are suggestions. The planner checks the day's shelf first, then the week tray. It stays below 75% load and respects goal budgets. Click a ghost to schedule it. Old Todos prompt you to split off a first step, and days with at least ten parked AI tutor ideas show a drift badge.
 - **Now…** fits an interruption into today. Up to 15 minutes uses a gap, free time, or a buffer. Longer interruptions restack the day and return bumped blocks to the tray.
 - **Review today** shows the day's blocks with Dash's marks. The week header counts finished blocks that are still unmarked. Apply **NEXT** on a project block to carry the text into the next timed block for that goal.
 - On a phone or Boox (under 700px wide) the planner shows the tray beside one day. Switch days with the tabs, or drop a block on a tab to move it to that day. Tap **Goals** to show the goal chips.
 - The planner saves itself a second after each change, writing changed days as normal Schedule notes (no save button). Log in on both devices to see the plan on your phone or Boox.
 - Items added in the planner (**+**, a To do shelf, or drawing on a timeline) are also added to Todo, unless their kind is Free, Buffer, Meal or Routine; an existing Todo with the same text is linked instead.
+
+#### Rescheduling a block
+
+Drop an event just above **Shower and read** to finish when the routine begins. For a 45-minute event before a 10 PM shower, the preview shows **9:15–10:00 PM**.
+
+| Neighboring blocks | Break between them |
+| --- | --- |
+| Either block is a routine, meal, or buffer | 0 minutes |
+| Other blocks, earlier session under 35 minutes | 5 minutes |
+| Other blocks, earlier session 35 minutes or longer | 10 minutes |
+
+**Shower and read** and **Morning wash up and walk** count as routines. You can also set a block's kind in the editor. The break uses the actual scheduled length of the earlier session.
+
+- **Place it before or after.** Dropping just above a block uses the space before it, including any required break. For a pin, aim at its upper half to land before it or its lower half to land after it.
+- **Fit the session.** The planner tries the original duration and shifts flexible work later when necessary. Pinned blocks and recorded times hold their positions. When one limits the opening, the preview can shorten the dragged session if at least 70% of the original duration fits, rounded up to the next whole minute. Dragging a shortened block again uses its original estimate. An explicit resize sets a new estimate.
+- **Choose another slot.** A refused drop leaves the task in place. The planner highlights up to three full-length openings across the drop day and later days in the displayed week, with at most one per day. Click a suggested time, click its grid highlight, or drag the task onto it. Highlights pulse between 45% and 72% opacity for three seconds, then settle at 72%. Reduced motion keeps them steady.
+- **Skip one break.** If skipping the dragged session's outgoing break makes it fit, choose **Skip break this time**. For example, Dinner ends at 6:05 PM and Workout starts at 6:30 PM. A 35-minute practice needs at least 25 minutes. Keeping its five-minute break leaves only 20 minutes. Skipping the break schedules practice from 6:05 to 6:30.
+- **Keep the remainder.** After a squeeze, **Keep remaining minutes in To do** puts the leftover time on that day's shelf and makes the two portions independently sized sessions. Otherwise the original estimate stays available for a future move. **Undo** reverses the latest change.
 
 **Transfer:** three text boxes for copying text between computers, at `/#transfer/1` to `/#transfer/3`. They sync like notes (needs login on both sides), autosave a second after typing, and poll every 5 s (`PAD_POLL_MS`). **Previous** swaps in the last overwritten text (two kept, `PAD_KEEP`). No file support.
 

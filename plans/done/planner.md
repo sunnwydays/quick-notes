@@ -98,7 +98,7 @@ Playful and pastel, not Dash's e-ink black-on-white: this page is laptop-only, s
 4. Dragging within a day reorders the stack and re-times everything below. Dragging onto a pinned anchor's slot pins the block at that time instead.
 
 ### Gaps and breaks (inputs §4)
-- Gap after a block: 10 min after 30/45/60, 15 min after 90. Drawn, not draggable.
+- Current break lengths, exemptions, and drop behavior are documented under [Rescheduling a block](../../README.md#rescheduling-a-block).
 - A **named free block of 25 min right after lunch** is in every template. It's a real block so it can hold a walk, reading or a small pop-up.
 - Daily slack: at least 45 min of buffer on a full day. The template includes one 45 `buffer` block mid-afternoon (worst window: 12–17).
 - Exercise blocks carry a `tail` (default 30 min) drawn as a lighter section of the same block.
