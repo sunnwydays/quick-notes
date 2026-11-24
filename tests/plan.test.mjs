@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { snapTimelineDrop, timelineDropPlace, arrangeTimelineDrop, resizeWindow, fitResize, resizeDayBlock, fitTimelineDrop, fullOpening, foldTail, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, insertPopup, layoutDay, restackBeforeScreensOff, suggestGhosts, toggleBlockPin, parseQuickAdd } from '../plan-engine.js';
+import { snapTimelineDrop, timelineDropPlace, arrangeTimelineDrop, resizeWindow, fitResize, resizeDayBlock, fitTimelineDrop, fullOpening, foldTail, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, insertPopup, layoutDay, restackBeforeScreensOff, suggestGhosts, toggleBlockPin, parseQuickAdd, fitTemplateAnchors } from '../plan-engine.js';
 
 const block = (id, size, fields = {}) => ({ id, size, tier: 'medium', ...fields });
 const times = ({ blocks }) => blocks.map(({ id, start, until }) => [id, start, until]);
@@ -364,4 +364,15 @@ test('quick-add leaves numbers that are not times alone', () => {
   assert.deepEqual(parseQuickAdd('call 911'), { text: 'call 911' });
   assert.deepEqual(parseQuickAdd('5pm'), { text: '5pm' });
   assert.deepEqual(parseQuickAdd(''), { text: '' });
+});
+
+test('template blocks fit around blocks already on the day instead of pushing them', () => {
+  const anchor = (id, start, size, kind) => block(id, size, { kind, templateAnchor: true, restackStart: start, restackUntil: start + size });
+  const kept = [block('foosim', 30, { restackStart: 1146 }), block('prelab', 55, { restackStart: 1255 })];
+  const fitted = fitTemplateAnchors(kept, [anchor('buffer', 1260, 60, 'buffer'), anchor('shower', 1320, 60, 'routine')]);
+  assert.deepEqual(fitted.map(({ id, restackStart, restackUntil }) => [id, restackStart, restackUntil]), [['shower', 1320, 1380]]);
+  const trimmed = fitTemplateAnchors([block('prelab', 30, { restackStart: 1255 })], [anchor('buffer', 1260, 60, 'buffer')]);
+  assert.deepEqual(trimmed.map(({ restackStart, duration }) => [restackStart, duration]), [[1285, 35]]);
+  const moved = fitTemplateAnchors([block('study', 60, { restackStart: 1300 })], [anchor('shower', 1320, 60, 'routine')]);
+  assert.deepEqual(moved.map(({ restackStart }) => restackStart), [1240]);
 });

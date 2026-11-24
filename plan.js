@@ -1297,8 +1297,9 @@ function replaceTemplate(day, name, template, event) {
     if (pinCollision(anchor, [...kept, ...anchors.filter((block) => block !== anchor)])) {
       return { error: `${anchor.text} overlaps a pinned block. Move the pin or choose another event time.` };
     }
-    positions.set(anchor.id, planMinutes(anchor.pinned) ?? anchor.restackStart);
   }
+  anchors = fitTemplateAnchors(kept, anchors, planMinutes(template?.wake) ?? PLAN_START);
+  for (const anchor of anchors) positions.set(anchor.id, planMinutes(anchor.pinned) ?? anchor.restackStart);
   const blocks = [...kept, ...anchors].sort((a, b) => (positions.get(a.id) ?? Infinity) - (positions.get(b.id) ?? Infinity));
   return { day: editDay({
     ...day, template: name, wake: template?.wake || '07:00', startOffset: template?.startOffset,

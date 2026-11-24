@@ -242,6 +242,47 @@ function pushApart(blocks, firstId) {
   return blocks.map((block) => moved.get(block.id) ?? block);
 }
 
+// New template blocks fit around the blocks already on the day instead of pushing them:
+// each takes its template time when that's open, a buffer shrinks to the open part of its slot,
+// and anything else moves to the closest opening that ends by 11 PM (else midnight, else the shelf).
+function fitTemplateAnchors(kept, anchors, earliest = PLAN_START) {
+  const startOf = (block) => block.actualStart ?? block.restackStart ?? planMinutes(block.pinned);
+  const span = (block) => [startOf(block), block.actualUntil ?? startOf(block) + blockDuration(block)];
+  const taken = [...kept, ...anchors.filter((anchor) => anchor.pinned)]
+    .filter((block) => !block.shelf && startOf(block) != null).map(span);
+  const open = (from, until) => !taken.some(([a, b]) => from < b && a < until);
+  const flexible = anchors.filter((anchor) => !anchor.pinned).sort((a, b) => startOf(a) - startOf(b));
+  const fitted = new Map();
+  for (const anchor of flexible) {
+    const start = startOf(anchor);
+    const duration = blockDuration(anchor);
+    let at = open(start, start + duration) ? start : null;
+    let length = duration;
+    if (at == null && ['buffer', 'free'].includes(blockKind(anchor))) {
+      const cuts = taken.filter(([a, b]) => a < start + duration && start < b).sort((x, y) => x[0] - y[0]);
+      let cursor = start;
+      for (const [a, b] of [...cuts, [start + duration, start + duration]]) {
+        const end = Math.min(a, start + duration);
+        if (end - cursor >= (at == null ? 15 : length + 1)) [at, length] = [cursor, end - cursor];
+        cursor = Math.max(cursor, b);
+      }
+      if (at == null) continue; // no room left for the buffer: leave it out
+    } else if (at == null) {
+      const candidates = [...new Set(taken.flatMap(([a, b]) => [b, a - duration]))]
+        .filter((from) => from >= earliest && open(from, from + duration))
+        .sort((x, y) => Math.abs(x - start) - Math.abs(y - start));
+      at = candidates.find((from) => from + duration <= DEFAULT_TIMELINE_END) ?? candidates.find((from) => from + duration <= PLAN_END) ?? null;
+    }
+    if (at == null) {
+      fitted.set(anchor.id, untimedBlock(anchor));
+      continue;
+    }
+    taken.push([at, at + length]);
+    fitted.set(anchor.id, { ...anchor, duration: length, restackStart: at, restackUntil: at + length });
+  }
+  return anchors.flatMap((anchor) => anchor.pinned ? [anchor] : fitted.has(anchor.id) ? [fitted.get(anchor.id)] : []);
+}
+
 // Resize inside the current opening, including days saved with an existing overlap.
 function resizeWindow(day, id) {
   const { blocks } = layoutDay(day);
@@ -672,5 +713,5 @@ function parseQuickAdd(input) {
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { snapTimelineDrop, timelineDropPlace, timelineDropStart, arrangeTimelineDrop, resizeWindow, fitResize, resizeDayBlock, fitTimelineDrop, fullOpening, foldTail, layoutDay, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, toggleBlockPin, suggestGhosts,
-    insertPopup, restackBeforeScreensOff, parseQuickAdd };
+    insertPopup, restackBeforeScreensOff, parseQuickAdd, fitTemplateAnchors };
 }
