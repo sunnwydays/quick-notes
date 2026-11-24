@@ -1886,7 +1886,8 @@ function plannerDropTarget(event, source) {
   const copy = (event.shiftKey || event.ctrlKey) && !source.copy;
   const stack = dropStack(source, date, copy);
   const length = source.block.originalDuration ?? blockDuration(source.block);
-  const footprint = length + gapAfter({ ...source.block, skipBreak: false }, length);
+  const dragged = { ...source.block, skipBreak: false };
+  const startBefore = next => next.start - length - gapBetween(dragged, next, length);
   const pointer = timelineMinute(slot, event.clientY, { round: (minute) => minute });
   const edges = movingEdges(timelineEdges(slot, source.block.id), length);
   let time = timelineMinute(slot, event.clientY, { edges, offset: activeDrag?.grab ?? 0 });
@@ -1895,18 +1896,17 @@ function plannerDropTarget(event, source) {
   const pin = stack.find(item => (item.pinned || item.actualStart != null) && pointer >= item.start && pointer < item.until);
   if (highlight && matchesSource) time = Number(highlight.dataset.opening);
   else if (pin && time < pin.until && pin.start < time + length) {
-    time = pointer >= (pin.start + pin.until) / 2 ? pin.until + gapAfter(pin)
-      : pin.start - footprint;
+    time = pointer >= (pin.start + pin.until) / 2 ? pin.until + gapBetween(pin, dragged)
+      : startBefore(pin);
   }
   if (!highlight && !pin) {
     const previous = stack.find(item => (item.pinned || item.actualStart != null) && time >= item.start && time < item.until && pointer >= item.until);
-    if (previous) time = previous.until + gapAfter(previous);
+    if (previous) time = previous.until + gapBetween(previous, dragged);
     // Dropping in open space just above a block means finishing before it, break included.
     const next = stack.find(item => item.start > pointer && item.start >= time);
-    if (next && time + footprint > next.start) {
-      const start = next.start - footprint;
-      const clear = stack.every(item => item.start >= next.start || item.until + gapAfter(item) <= start);
-      if (clear && start >= Number(slot.dataset.from)) time = start;
+    if (next && time > startBefore(next)) {
+      const start = startBefore(next);
+      if (start >= Number(slot.dataset.from) && fitTimelineDrop(stack, dragged, start)?.duration === length) time = start;
     }
   }
   time = Math.max(Number(slot.dataset.from), Math.min(PLAN_END - 5, time));
@@ -1970,7 +1970,7 @@ function renderDropChoices() {
       }));
   } else {
     const original = source.block.originalDuration ?? blockDuration(source.block);
-    panel.append(element('span', '', `${source.block.text} needs at least ${minimumSession(original)} min, plus room for its break.`));
+    panel.append(element('span', '', `${source.block.text} needs at least ${minimumSession(original)} min in this slot.`));
     for (const tile of $('planner').querySelectorAll('.tile[data-id]')) {
       if (tile.dataset.id === source.block.id && tile.dataset.date === source.date) tile.classList.add('fit-source');
     }

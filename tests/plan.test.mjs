@@ -154,17 +154,17 @@ test('ghosts respect fixed blocks, tomorrow’s exam, and the strict load ceilin
     block('almost', 30, { text: 'Finish it', kind: 'almost' }),
   ];
   assert.deepEqual(suggestGhosts(days, tray).map(({ key, block }) => [key, block.id, block.start]), [
-    ['2026-11-23', 'prep', 930], ['2026-11-23', 'almost', 1105],
+    ['2026-11-23', 'prep', 930], ['2026-11-23', 'almost', 1110],
   ]);
   assert.deepEqual(suggestGhosts({ '2026-11-24': days['2026-11-24'] }, [block('load', 30, { text: 'Read' })]), []);
 });
 
-test('a project ghost ends before a meal with the usual gap', () => {
+test('a project ghost ends exactly when the meal begins', () => {
   const days = { '2026-11-23': { blocks: [
     block('lunch', 30, { text: 'Lunch', tier: 'fixed', pinned: '11:30' }),
   ] } };
   const [ghost] = suggestGhosts(days, [block('project', 45, { text: 'AI tutor' })]);
-  assert.deepEqual([ghost.block.start, ghost.block.until], [635, 680]);
+  assert.deepEqual([ghost.block.start, ghost.block.until], [645, 690]);
 });
 
 test('a late wake keeps fixed commitments through screens-off and bumps flexible work', () => {
@@ -263,4 +263,18 @@ test('a drop shifts flexible work around a pin before shortening the dragged ses
   assert.deepEqual(times({ blocks: fit.timed }), [['work', 675, 705], ['fixed', 650, 670]]);
   assert.equal(fitTimelineDrop(stack, block('practice', 35), 611).duration, 34);
   assert.equal(fitTimelineDrop(stack, block('practice', 35), 651), null);
+});
+
+test('events can touch either edge of routines, meals and buffers', () => {
+  const event = block('event', 45, { kind: 'event' });
+  for (const fields of [{ text: 'Shower and read' }, { kind: 'routine' }, { kind: 'meal' }, { kind: 'buffer' }]) {
+    const anchor = { ...block('anchor', 30, fields), pinned: '22:00', start: 1320, until: 1350 };
+    assert.equal(fitTimelineDrop([anchor], event, 1275).duration, 45);
+    assert.equal(fitTimelineDrop([anchor], event, 1350).duration, 45);
+    assert.equal(fullOpening([anchor], event, 1275, 1350, 1275), 1275);
+    const task = { ...event, start: 420, until: 465, pinned: '07:00' };
+    assert.equal(fitTimelineDrop([task], anchor, 465).duration, 30);
+    assert.deepEqual(layoutDay({ blocks: [event, block('middle', 30, fields), block('last', 45)] }).blocks
+      .map(item => item.start), [420, 465, 495]);
+  }
 });

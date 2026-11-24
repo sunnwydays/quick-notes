@@ -36,8 +36,9 @@ function foldTail(block) {
   return block.duration != null ? { ...rest, duration: length } : { ...rest, size: length };
 }
 
-function gapAfter(block, duration = block.start != null && block.until != null ? block.until - block.start : blockDuration(block)) {
-  if (block.skipBreak || ['routine', 'meal', 'buffer'].includes(blockKind(block))) return 0;
+function gapBetween(block, next, duration = block.start != null && block.until != null ? block.until - block.start : blockDuration(block)) {
+  const exempt = kind => kind === 'routine' || kind === 'meal' || kind === 'buffer';
+  if (block.skipBreak || exempt(blockKind(block)) || (next && exempt(blockKind(next)))) return 0;
   return duration < 35 ? 5 : 10;
 }
 
@@ -48,22 +49,22 @@ function placeBlocks(day, stack) {
     return start === null ? [] : [{ ...block, start, until: block.actualUntil ?? start + blockDuration(block) }];
   }).sort((a, b) => a.start - b.start);
   const byId = new Map(anchors.map((block) => [block.id, block]));
-  let cursor = wake;
+  let latest = null;
   const placed = [];
   for (const block of stack) {
     let timing = byId.get(block.id);
     if (!timing) {
       const duration = blockDuration(block);
-      let start = Math.max(cursor, block.importedStart ?? 0);
+      let start = Math.max(wake, latest ? latest.until + gapBetween(latest, block) : 0, block.importedStart ?? 0);
       for (const anchor of anchors) {
-        if (start >= anchor.until + gapAfter(anchor)) continue;
+        if (start >= anchor.until + gapBetween(anchor, block)) continue;
         if (start + duration <= anchor.start) break;
-        start = anchor.until + gapAfter(anchor);
+        start = anchor.until + gapBetween(anchor, block);
       }
       timing = { ...block, start, until: start + duration };
     }
     placed.push(timing);
-    cursor = Math.max(cursor, timing.until + gapAfter(timing));
+    if (!latest || timing.until >= latest.until) latest = timing;
     if (timing.actualUntil != null) {
       const fixed = anchors.find((anchor) => anchor.id !== block.id && anchor.tier === 'fixed'
         && anchor.start >= timing.start && anchor.start < timing.until);
@@ -140,7 +141,8 @@ function applyWake(day, wake) {
   const cutoff = Math.min(day.workEnd ?? SCREENS_OFF, SCREENS_OFF);
   const isAnchor = (block) => block.tier === 'fixed' || block.pinned || block.actualStart != null;
   const anchors = layout.filter(isAnchor);
-  let cursor = Math.max((planMinutes(wake) ?? PLAN_START) + (day.startOffset ?? 0), day.workStart ?? 0);
+  let previous = null;
+  const earliest = Math.max((planMinutes(wake) ?? PLAN_START) + (day.startOffset ?? 0), day.workStart ?? 0);
   const kept = [];
   for (const block of layout) {
     if (isAnchor(block)) {
@@ -148,16 +150,16 @@ function applyWake(day, wake) {
       continue;
     }
     const duration = block.until - block.start;
-    let start = Math.max(block.start, cursor);
+    let start = Math.max(block.start, earliest, previous ? previous.until + gapBetween(previous, block) : 0);
     for (const anchor of anchors) {
-      if (start >= anchor.until + gapAfter(anchor)) continue;
+      if (start >= anchor.until + gapBetween(anchor, block)) continue;
       if (start + duration <= anchor.start) break;
-      start = anchor.until + gapAfter(anchor);
+      start = anchor.until + gapBetween(anchor, block);
     }
     // Leave overflow untimed so the restack can bump it.
     if (start + duration > cutoff) continue;
     kept.push({ ...block, start, until: start + duration });
-    cursor = start + duration + gapAfter(block);
+    previous = kept[kept.length - 1];
   }
   const blocks = day.blocks.map((block) => ({ ...block, restackStart: undefined, restackUntil: undefined }));
   return editDay({ ...day, wake }, lockRestackTimes(blocks, kept), true);
@@ -247,7 +249,7 @@ function minimumSession(original) {
 function fitTimelineDrop(stack, block, start, skipBreak = false) {
   const original = block.originalDuration ?? blockDuration(block);
   const held = stack.filter(item => item.pinned || item.actualStart != null);
-  if (held.some(item => item.start <= start && start < item.until + gapAfter(item))) return null;
+  if (held.some(item => item.start <= start && start < item.until)) return null;
   const next = held.find(item => item.start > start);
   const candidate = { ...block, skipBreak };
   let duration = original;
@@ -255,28 +257,34 @@ function fitTimelineDrop(stack, block, start, skipBreak = false) {
     const room = next.start - start;
     duration = Math.min(original, room);
     // At 35 minutes the outgoing break changes, so check both sides of the boundary.
-    while (duration > 0 && duration + gapAfter(candidate, duration) > room) duration--;
+    while (duration > 0 && duration + gapBetween(candidate, next, duration) > room) duration--;
   }
   if (duration < minimumSession(original) || start + duration > PLAN_END) return null;
-  if (stack.some(item => item.until <= start && item.until + gapAfter(item) > start)) return null;
+  const preceding = stack.findLast(item => item.until <= start);
+  if (preceding && preceding.until + gapBetween(preceding, block) > start) return null;
 
-  let cursor = start + duration + gapAfter(candidate, duration);
+  let previous = { ...candidate, start, until: start + duration };
   const timed = [];
-  for (const item of stack) {
-    if (held.includes(item) || item.until <= start || item.start >= cursor) {
+  for (const [index, item] of stack.entries()) {
+    const cursor = previous.until + gapBetween(previous, item);
+    if (item.start >= cursor) {
+      timed.push(...stack.slice(index));
+      break;
+    }
+    if (held.includes(item) || item.until <= start) {
       timed.push(item);
       continue;
     }
     const length = item.until - item.start;
     let from = cursor;
     for (const anchor of held) {
-      if (from >= anchor.until + gapAfter(anchor)) continue;
-      if (from + length + gapAfter(item) <= anchor.start) break;
-      from = anchor.until + gapAfter(anchor);
+      if (from >= anchor.until + gapBetween(anchor, item)) continue;
+      if (from + length + gapBetween(item, anchor) <= anchor.start) break;
+      from = anchor.until + gapBetween(anchor, item);
     }
     if (from + length > PLAN_END) return null;
-    timed.push({ ...item, start: from, until: from + length });
-    cursor = from + length + gapAfter(item);
+    previous = { ...item, start: from, until: from + length };
+    timed.push(previous);
   }
   return { duration, original, timed };
 }
@@ -284,16 +292,16 @@ function fitTimelineDrop(stack, block, start, skipBreak = false) {
 // Return the closest full-length opening in a day without moving any other work.
 function fullOpening(stack, block, earliest, end, preferred, excludeStart) {
   const duration = block.originalDuration ?? blockDuration(block);
-  const gap = gapAfter({ ...block, skipBreak: false }, duration);
+  const candidate = { ...block, skipBreak: false };
   let cursor = earliest;
   let best = null;
   for (const next of [...stack, null]) {
-    const latest = Math.min(end, next ? next.start - gap : end) - duration;
+    const latest = Math.min(end, next ? next.start - gapBetween(candidate, next, duration) : end) - duration;
     if (cursor <= latest) {
       const start = Math.max(cursor, Math.min(preferred, latest));
       if (start !== excludeStart && (best == null || Math.abs(start - preferred) < Math.abs(best - preferred))) best = start;
     }
-    if (next) cursor = Math.max(cursor, next.until + gapAfter(next));
+    if (next) cursor = Math.max(earliest, next.until + gapBetween(next, block));
   }
   return best;
 }
@@ -341,7 +349,7 @@ function dayLoad(day, blocks) {
     if (work && until > from) {
       placed += until - from;
     }
-    const gapUntil = Math.min(block.until + gapAfter(block), blocks[i + 1]?.start ?? end, end);
+    const gapUntil = Math.min(block.until + gapBetween(block, blocks[i + 1]), blocks[i + 1]?.start ?? end, end);
     if (gapUntil > until && gapUntil > start) excluded.push([Math.max(start, until), gapUntil]);
   }
   let cursor = start;
@@ -420,10 +428,10 @@ function suggestGhosts(days, tray, budgets = {}, earliest = {}, layouts = {}) {
       for (let i = 0; i <= stack.length; i++) {
         const prev = stack[i - 1];
         const next = stack[i];
-        const beforeNext = adjacent && next ? next.start - duration - gapAfter(block) : 0;
-        const start = Math.max(startOfDay, prev ? prev.until + gapAfter(prev) : 0, beforeNext);
+        const beforeNext = adjacent && next ? next.start - duration - gapBetween(block, next) : 0;
+        const start = Math.max(startOfDay, prev ? prev.until + gapBetween(prev, block) : 0, beforeNext);
         const until = start + duration;
-        if (until > Math.min(SCREENS_OFF, day.workEnd ?? SCREENS_OFF, (next?.start ?? Infinity) - gapAfter(block))) continue;
+        if (until > Math.min(SCREENS_OFF, day.workEnd ?? SCREENS_OFF, (next?.start ?? Infinity) - gapBetween(block, next))) continue;
         const timed = { ...block, start, until, shelf: false };
         if (!ghostFits(day, key, tomorrow, examTomorrow, stack, i, timed)) continue;
         stack.splice(i, 0, timed);
@@ -494,7 +502,7 @@ function insertPopup(day, popup, minute) {
   const keep = blocks.filter((block) => block.start < boundary || fixed.includes(block));
   let start = boundary;
   for (const block of fixed) {
-    if (start < block.until && start + duration > block.start) start = block.until + gapAfter(block);
+    if (start < block.until && start + duration > block.start) start = block.until + gapBetween(block, popup);
   }
   if (start + duration > cutoff) return null;
   const displaced = blocks.filter((block) => block.pinned && !keep.includes(block) &&
