@@ -285,12 +285,12 @@ button.glance-block.now.primary { background: #fff; color: #000; outline: 2px so
 }
 #menu-btn { width: 56px; }
 #menu-btn[aria-expanded='true'] { background: #000; color: #fff; }
-/* Phones: the buttons come first and the search fills what's left, widening
-   over them while it has focus. */
+/* Phones: the search shares the row with the buttons, widening over them
+   while it has focus. */
 @media (max-width: 440px) {
-  .sync-row .search-row { order: 1; margin: 0 0 0 4px; }
   .sync-row:has(.search-row:focus-within) > :is(#sync-status, #transfer-btn, #planner-link, #menu-btn) { display: none; }
-  .search-row:focus-within { margin-left: 0; }
+  .sync-row .search-row { margin-right: 4px; }
+  .sync-row .search-row:focus-within { margin-right: 0; }
 }
 #menu {
   position: absolute; top: 100%; right: 0; z-index: 2; min-width: 240px;
