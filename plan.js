@@ -2083,7 +2083,7 @@ function plannerDropTarget(event, source) {
     place = timelineDropPlace(stack, pointer, time);
     if (place.at != null) place.at = clamp(snapTimelineDrop(stack, { ...source.block, skipBreak: false }, pointer, time, earliest));
   }
-  const fit = arrangeTimelineDrop(stack, source.block, place, earliest, skipBreak);
+  const fit = arrangeTimelineDrop(stack, source.block, place, earliest, skipBreak, dropOrigin(source, date, copy));
   const time = clamp(fit?.start ?? timelineDropStart(stack, source.block, place, earliest));
   const before = stack.find((block) => block.start >= time);
   return { date, at: blockKey(time), place, earliest, fit, copy, before: before?.id, indicator: slot, smart: true, skipBreak };
@@ -2093,10 +2093,16 @@ function dropStack(source, date, copy) {
   return layoutDay(plan.days[date]).blocks.filter(item => copy || source.date !== date || item.id !== source.block.id);
 }
 
+// Where a block moving within its own day sits now, so a drop inside its run can reorder.
+function dropOrigin(source, date, copy) {
+  if (copy || source.date !== date) return null;
+  return layoutDay(plan.days[date]).blocks.find(item => item.id === source.block.id) ?? null;
+}
+
 // The arrangement a timeline drop makes, recomputed from the saved day each time.
 function dropFit(source, target, copy) {
   return arrangeTimelineDrop(dropStack(source, target.date, copy), source.block,
-    target.place ?? { at: planMinutes(target.at) }, target.earliest, target.skipBreak);
+    target.place ?? { at: planMinutes(target.at) }, target.earliest, target.skipBreak, dropOrigin(source, target.date, copy));
 }
 
 function offerDropChoices(source, target, copy) {

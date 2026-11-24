@@ -351,10 +351,61 @@ function timelineDropStart(stack, block, place, earliest = 0) {
 
 // The whole arrangement one timeline drop produces, always from the original stack:
 // the dropped block's slot plus every other block's time (`timed`), or null if it can't fit.
-function arrangeTimelineDrop(stack, block, place, earliest = 0, skipBreak = false) {
+// `origin` is the dragged block's current slot when it moves within its own day.
+function arrangeTimelineDrop(stack, block, place, earliest = 0, skipBreak = false, origin = null) {
+  const reorder = origin && reorderTimelineDrop(stack, { ...block, start: origin.start, until: origin.until }, place, earliest);
+  if (reorder) return reorder;
   const start = timelineDropStart(stack, block, place, earliest);
   const fit = start == null ? null : fitTimelineDrop(stack, block, start, skipBreak);
   return fit && { start, until: start + fit.duration, ...fit };
+}
+
+// Dropping a block before or after another one in the same packed run (blocks separated only by
+// their breaks) just reorders that stretch: it starts where the stretch started, the blocks in between
+// slide over into the gap, and everything else keeps its time. Breaks follow the new neighbours;
+// if that runs long, the stretch's last block shortens, and the stretch never runs into the next block.
+function reorderTimelineDrop(stack, moved, place, earliest = 0) {
+  const targetId = place.before ?? place.after;
+  if (targetId == null || moved.pinned || moved.actualStart != null) return null;
+  const all = [...stack, moved].sort((a, b) => a.start - b.start);
+  const from = all.indexOf(moved);
+  const target = all.findIndex(item => item.id === targetId);
+  if (target < 0) return null;
+  const order = all.filter(item => item !== moved);
+  const at = order.findIndex(item => item.id === targetId) + (place.after ? 1 : 0);
+  order.splice(at, 0, moved);
+  const to = order.indexOf(moved);
+  if (to === from) return null;
+  const [lo, hi] = [Math.min(from, to), Math.max(from, to)];
+  const stretch = all.slice(lo, hi + 1);
+  if (stretch[0].start < earliest) return null;
+  for (const [i, item] of stretch.entries()) {
+    if (item.pinned || item.actualStart != null) return null;
+    const next = stretch[i + 1];
+    if (next && next.start - item.until > gapBetween(item, next, item.until - item.start)) return null;
+  }
+  const after = all[hi + 1];
+  const placed = [];
+  let cursor = stretch[0].start;
+  for (const [i, item] of order.slice(lo, hi + 1).entries()) {
+    const previous = placed[i - 1];
+    const start = previous ? previous.until + gapBetween(previous, item) : cursor;
+    placed.push({ ...item, start, until: start + (item.until - item.start) });
+  }
+  const last = placed[placed.length - 1];
+  const limit = after ? after.start - gapBetween(last, after) : Math.min(PLAN_END, Math.max(stretch[stretch.length - 1].until, DEFAULT_TIMELINE_END));
+  const resized = {};
+  if (last.until > limit) {
+    const length = last.until - last.start;
+    if (limit - last.start < minimumSession(length)) return null;
+    last.until = limit;
+    if (last !== placed.find(item => item.id === moved.id)) resized[last.id] = limit - last.start;
+  }
+  const slot = placed.find(item => item.id === moved.id);
+  const times = new Map(placed.map(item => [item.id, item]));
+  const timed = stack.map(item => times.get(item.id) ?? item);
+  return { start: slot.start, until: slot.until, duration: slot.until - slot.start, original: moved.until - moved.start,
+    timed, resized, removed: [] };
 }
 
 // Open time keeps the dropped time, apart from landing inside a break or just over the next block.
@@ -742,6 +793,6 @@ function parseQuickAdd(input) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { snapTimelineDrop, timelineDropPlace, timelineDropStart, arrangeTimelineDrop, resizeWindow, fitResize, resizeDayBlock, fitTimelineDrop, fullOpening, foldTail, dropStaleFixed, layoutDay, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, toggleBlockPin, suggestGhosts,
+  module.exports = { reorderTimelineDrop, snapTimelineDrop, timelineDropPlace, timelineDropStart, arrangeTimelineDrop, resizeWindow, fitResize, resizeDayBlock, fitTimelineDrop, fullOpening, foldTail, dropStaleFixed, layoutDay, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, toggleBlockPin, suggestGhosts,
     insertPopup, restackBeforeScreensOff, parseQuickAdd, fitTemplateAnchors, blockKind };
 }

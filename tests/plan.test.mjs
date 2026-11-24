@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { snapTimelineDrop, timelineDropPlace, arrangeTimelineDrop, resizeWindow, fitResize, resizeDayBlock, fitTimelineDrop, fullOpening, foldTail, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, insertPopup, layoutDay, restackBeforeScreensOff, suggestGhosts, toggleBlockPin, dropStaleFixed, parseQuickAdd, fitTemplateAnchors, blockKind } from '../plan-engine.js';
+import { reorderTimelineDrop, snapTimelineDrop, timelineDropPlace, arrangeTimelineDrop, resizeWindow, fitResize, resizeDayBlock, fitTimelineDrop, fullOpening, foldTail, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, insertPopup, layoutDay, restackBeforeScreensOff, suggestGhosts, toggleBlockPin, dropStaleFixed, parseQuickAdd, fitTemplateAnchors, blockKind } from '../plan-engine.js';
 
 const block = (id, size, fields = {}) => ({ id, size, tier: 'medium', ...fields });
 const times = ({ blocks }) => blocks.map(({ id, start, until }) => [id, start, until]);
@@ -427,4 +427,18 @@ test('a drop never pushes the last block past where the day ends', () => {
   assert.equal(short.duration, 105);
   assert.deepEqual(short.timed.find((item) => item.id === 'shower'), stack[1]);
   assert.equal(fitTimelineDrop(stack, block('302', 180, { kind: 'study' }), 1235), null);
+});
+
+test('dropping inside a packed run reorders it without moving anything outside', () => {
+  const at = (b, start, until) => ({ ...b, start, until });
+  const study = at(block('345', 90, { kind: 'study' }), 648, 738);
+  const stack = [
+    at(block('lab1', 35), 748, 783), at(block('lunch', 50, { kind: 'meal' }), 783, 833),
+    at(block('lab2', 35), 833, 868), at(block('upload', 45), 878, 923),
+  ];
+  const fit = arrangeTimelineDrop(stack, study, { after: 'lab2' }, 420, false, study);
+  assert.deepEqual([fit.start, fit.until], [778, 868]);
+  assert.deepEqual(fit.timed.map(({ id, start, until }) => [id, start, until]),
+    [['lab1', 648, 683], ['lunch', 683, 733], ['lab2', 733, 768], ['upload', 878, 923]]);
+  assert.equal(reorderTimelineDrop([...stack.slice(0, 3), at(block('upload', 45), 900, 945)], study, { after: 'upload' }), null);
 });
