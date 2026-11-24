@@ -1885,7 +1885,8 @@ function plannerDropTarget(event, source) {
   // The block's top follows the pointer, keeping the spot it was grabbed by.
   const copy = (event.shiftKey || event.ctrlKey) && !source.copy;
   const stack = dropStack(source, date, copy);
-  const length = activeDrag?.length ?? blockDuration(source.block);
+  const length = source.block.originalDuration ?? blockDuration(source.block);
+  const footprint = length + gapAfter({ ...source.block, skipBreak: false }, length);
   const pointer = timelineMinute(slot, event.clientY, { round: (minute) => minute });
   const edges = movingEdges(timelineEdges(slot, source.block.id), length);
   let time = timelineMinute(slot, event.clientY, { edges, offset: activeDrag?.grab ?? 0 });
@@ -1895,11 +1896,18 @@ function plannerDropTarget(event, source) {
   if (highlight && matchesSource) time = Number(highlight.dataset.opening);
   else if (pin && time < pin.until && pin.start < time + length) {
     time = pointer >= (pin.start + pin.until) / 2 ? pin.until + gapAfter(pin)
-      : pin.start - length - gapAfter(source.block, length);
+      : pin.start - footprint;
   }
   if (!highlight && !pin) {
     const previous = stack.find(item => (item.pinned || item.actualStart != null) && time >= item.start && time < item.until && pointer >= item.until);
     if (previous) time = previous.until + gapAfter(previous);
+    // Dropping in open space just above a block means finishing before it, break included.
+    const next = stack.find(item => item.start > pointer && item.start >= time);
+    if (next && time + footprint > next.start) {
+      const start = next.start - footprint;
+      const clear = stack.every(item => item.start >= next.start || item.until + gapAfter(item) <= start);
+      if (clear && start >= Number(slot.dataset.from)) time = start;
+    }
   }
   time = Math.max(Number(slot.dataset.from), Math.min(PLAN_END - 5, time));
   const before = stack.find((block) => block.start >= time);
