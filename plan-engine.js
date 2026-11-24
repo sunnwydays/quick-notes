@@ -519,14 +519,13 @@ function untimedBlock(block) {
 }
 
 // Kinds dropped from the picker; blocks still carrying one fall back to their name.
-const RETIRED_KINDS = ['event', 'prep'];
+const RETIRED_KINDS = ['event', 'prep', 'almost'];
 const EXERCISE_CUE = /\b(?:gym|workout|work out|cardio|lift(?:ing)?|jog(?:ging)?|swim(?:ming)?|yoga|stretch(?:ing)?|intramurals?|intra|scrim|tryouts?|prac|throw(?:ing)?|frisbee|ultimate|basketball|soccer|badminton|climb(?:ing)?)\b|^run\b|\brun \d/i;
 const TRAVEL_CUE = /^(?:travel|commute|drive|ride|bus|train|subway|ttc|transit|flight|fly|uber|taxi|walk to|bike to|head (?:to|home|out|back)|go|get to)\b|\b(?:commute|travel to|to (?:the )?airport)\b/i;
 
 function blockKind(block) {
   if (block.kind && !RETIRED_KINDS.includes(block.kind)) return block.kind;
   const text = block.text || '';
-  if (/\balmost done\b/i.test(text)) return 'almost';
   if (/\b(ai[- ]tutor|project)\b/i.test(text)) return 'project';
   if (/\b(study|recall|revise|review notes|lab)\b/i.test(text) || STUDY_SUBJECT.test(text)) return 'study';
   if (EXERCISE_CUE.test(text)) return 'exercise';
@@ -591,7 +590,6 @@ function ghostFits(day, key, tomorrow, examTomorrow, blocks, index, block) {
   if (kind === 'study' && project && block.start > project.start) return false;
   if (kind === 'project' && (blockKind(next ?? {}) !== 'meal' ||
     work.some((item) => item.start > block.start && blockKind(item) === 'study'))) return false;
-  if (kind === 'almost' && next?.tier !== 'fixed') return false;
   if (kind === 'fun' && (!dinner || block.until > dinner.start)) return false;
   const cutoff = day.noNewAfter ?? (examTomorrow ? 16 * 60 : Infinity);
   if (kind === 'study' && block.until > cutoff && !/\b(recall|review|warm[- ]?up|revise|revision)\b/i.test(block.text)) return false;
@@ -629,7 +627,7 @@ function suggestGhosts(days, tray, budgets = {}, earliest = {}, layouts = {}) {
       const budget = budgets[block.goal];
       if (budget != null && goalMinutes(weekly, block.goal) + duration > budget * 60) continue;
       const startOfDay = Math.max((planMinutes(day.wake) ?? PLAN_START) + (day.startOffset ?? 0), day.workStart ?? 0, earliest[key] ?? 0);
-      const adjacent = ['project', 'almost'].includes(blockKind(block));
+      const adjacent = blockKind(block) === 'project';
       for (let i = 0; i <= stack.length; i++) {
         const prev = stack[i - 1];
         const next = stack[i];

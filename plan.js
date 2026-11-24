@@ -2,7 +2,7 @@ const PLAN_COLOURS = ['#c8efd9', '#ffdcc8', '#e5dcfa', '#fff1ba', '#d5ebff', '#f
 const COLOUR_NAMES = ['Mint', 'Peach', 'Lavender', 'Butter yellow', 'Powder blue', 'Pink'];
 const BLOCK_KINDS = {
   '': 'Automatic', study: 'Study', project: 'Project / AI tutor',
-  almost: 'Almost done', fun: 'Open-ended fun', free: 'Free', buffer: 'Buffer',
+  fun: 'Open-ended fun', free: 'Free', buffer: 'Buffer',
   exercise: 'Exercise', routine: 'Routine', meal: 'Meal', travel: 'Travel',
 };
 const FIRST_WEEK_GOALS = { chess: 6, lab: 2, fitness: 6.5, study: 20 };
@@ -561,7 +561,7 @@ function openBlockEditor(source, target = blockTarget(source)) {
   const fields = $('block-form').elements;
   fields.text.value = block.text;
   fields.next.value = block.next;
-  fillOptions(fields.kind, Object.entries(BLOCK_KINDS), block.kind || '');
+  fillOptions(fields.kind, Object.entries(BLOCK_KINDS), Object.hasOwn(BLOCK_KINDS, block.kind) ? block.kind : '');
   fields.size.value = block.duration ?? block.size;
   const goals = plannerGoals().map((item) => [item.id, bare(item.text)]);
   if (block.goal && !goals.some(([id]) => id === block.goal)) goals.push([block.goal, 'Archived goal']);
@@ -1216,7 +1216,7 @@ function openTemplateDef(name) {
   fields.event.checked = Boolean(template.event);
   tplBlocks = (template.anchors || []).filter(([pinned]) => planMinutes(pinned) != null)
     .map(([at, duration, text, kind = 'routine', tail = 0, pin = kind === 'event']) =>
-      ({ id: newId(), start: planMinutes(at), duration: duration + tail, text, kind: kind === 'event' ? '' : kind, pin }));
+      ({ id: newId(), start: planMinutes(at), duration: duration + tail, text, kind: kind === 'event' || kind === 'almost' ? '' : kind, pin }));
   $('template-def-delete').hidden = name == null;
   $('template-def-error').hidden = true;
   $('template-def').showModal();

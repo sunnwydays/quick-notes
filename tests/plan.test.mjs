@@ -172,7 +172,7 @@ test('ghosts respect fixed blocks, tomorrow’s exam, and the strict load ceilin
     block('almost', 30, { text: 'Finish it', kind: 'almost' }),
   ];
   assert.deepEqual(suggestGhosts(days, tray).map(({ key, block }) => [key, block.id, block.start]), [
-    ['2026-11-23', 'prep', 930], ['2026-11-23', 'almost', 1110],
+    ['2026-11-23', 'prep', 930], ['2026-11-23', 'almost', 1045],
   ]);
   assert.deepEqual(suggestGhosts({ '2026-11-24': days['2026-11-24'] }, [block('load', 30, { text: 'Read' })]), []);
 });
@@ -410,6 +410,8 @@ test('automatic kind spots exercise and travel from the name, and ignores retire
   assert.equal(kind('Exam prep'), 'study');
   assert.equal(kind('Welding', { kind: 'event' }), '');
   assert.equal(kind('Go + settle', { kind: 'prep' }), 'travel');
+  assert.equal(kind('Almost done: finish it'), '');
+  assert.equal(kind('Almost done: study', { kind: 'almost' }), 'study');
 });
 
 test('a drop eats into the buffer after it instead of pushing later blocks', () => {
