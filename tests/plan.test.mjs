@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { snapTimelineDrop, timelineDropPlace, arrangeTimelineDrop, resizeWindow, fitResize, resizeDayBlock, fitTimelineDrop, fullOpening, foldTail, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, insertPopup, layoutDay, restackBeforeScreensOff, suggestGhosts, toggleBlockPin, dropStaleFixed, parseQuickAdd, fitTemplateAnchors } from '../plan-engine.js';
+import { snapTimelineDrop, timelineDropPlace, arrangeTimelineDrop, resizeWindow, fitResize, resizeDayBlock, fitTimelineDrop, fullOpening, foldTail, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, insertPopup, layoutDay, restackBeforeScreensOff, suggestGhosts, toggleBlockPin, dropStaleFixed, parseQuickAdd, fitTemplateAnchors, blockKind } from '../plan-engine.js';
 
 const block = (id, size, fields = {}) => ({ id, size, tier: 'medium', ...fields });
 const times = ({ blocks }) => blocks.map(({ id, start, until }) => [id, start, until]);
@@ -274,7 +274,7 @@ test('a drop shifts flexible work around a pin before shortening the dragged ses
 });
 
 test('events can touch either edge of routines, meals and buffers', () => {
-  const event = block('event', 45, { kind: 'event' });
+  const event = block('event', 45);
   for (const fields of [{ text: 'Shower and read' }, { kind: 'routine' }, { kind: 'meal' }, { kind: 'buffer' }]) {
     const anchor = { ...block('anchor', 30, fields), pinned: '22:00', start: 1320, until: 1350 };
     assert.equal(fitTimelineDrop([anchor], event, 1275).duration, 45);
@@ -383,4 +383,21 @@ test('template blocks fit around blocks already on the day instead of pushing th
   assert.deepEqual(trimmed.map(({ restackStart, duration }) => [restackStart, duration]), [[1285, 35]]);
   const moved = fitTemplateAnchors([block('study', 60, { restackStart: 1300 })], [anchor('shower', 1320, 60, 'routine')]);
   assert.deepEqual(moved.map(({ restackStart }) => restackStart), [1240]);
+});
+
+test('automatic kind spots exercise and travel from the name, and ignores retired kinds', () => {
+  const kind = (text, fields) => blockKind({ text, ...fields });
+  for (const text of ['gym + run + shower', 'Run 35m + shower', 'intramurals', 'tmu scrim', 'prac', 'throw', 'Afternoon cardio']) {
+    assert.equal(kind(text), 'exercise', text);
+  }
+  for (const text of ['Travel to game', 'Go + settle', 'commute home', 'TTC to campus', 'Uber to airport']) {
+    assert.equal(kind(text), 'travel', text);
+  }
+  for (const text of ['AI tutor: fix run loop', 'ECE454 Lab 3', 'Upload travel photos', 'deer: compute + parts request list']) {
+    assert.notEqual(kind(text), 'travel', text);
+    assert.notEqual(kind(text), 'exercise', text);
+  }
+  assert.equal(kind('Exam prep'), 'study');
+  assert.equal(kind('Welding', { kind: 'event' }), '');
+  assert.equal(kind('Go + settle', { kind: 'prep' }), 'travel');
 });

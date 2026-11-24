@@ -1,9 +1,9 @@
 const PLAN_COLOURS = ['#c8efd9', '#ffdcc8', '#e5dcfa', '#fff1ba', '#d5ebff', '#f9d9ea'];
 const COLOUR_NAMES = ['Mint', 'Peach', 'Lavender', 'Butter yellow', 'Powder blue', 'Pink'];
 const BLOCK_KINDS = {
-  '': 'Automatic', study: 'Study', project: 'Project / AI tutor', prep: 'Event prep',
+  '': 'Automatic', study: 'Study', project: 'Project / AI tutor',
   almost: 'Almost done', fun: 'Open-ended fun', free: 'Free', buffer: 'Buffer',
-  exercise: 'Exercise', routine: 'Routine', meal: 'Meal', travel: 'Travel', event: 'Fixed event',
+  exercise: 'Exercise', routine: 'Routine', meal: 'Meal', travel: 'Travel',
 };
 const FIRST_WEEK_GOALS = { chess: 6, lab: 2, fitness: 6.5, study: 20 };
 const WIND_DOWN = ['22:00', 60, 'Screens off · read, walk or paper'];
@@ -31,7 +31,7 @@ const TEMPLATES = {
   'Welding Sunday': {
     wake: '07:00', startOffset: 0, deepCap: 1, workCap: 1, workStart: 17 * 60,
     hint: 'Welding from 09:00 to 17:00, then an evening review.',
-    anchors: [['09:00', 480, 'Welding', 'event'], ['21:30', 15, 'Review'], WIND_DOWN],
+    anchors: [['09:00', 480, 'Welding', '', 0, true], ['21:30', 15, 'Review'], WIND_DOWN],
   },
   'Game day': {
     wake: '07:00', startOffset: 0, deepCap: 4, event: true, workBeforeEvent: true,
@@ -834,10 +834,11 @@ function linkTodo(text) {
   return { entry, added: true };
 }
 
-// Anchors are [time, length, title, kind, tail, pinned]. Only fixed events pin unless the template says so;
+// Anchors are [time, length, title, kind, tail, pinned]. Old templates pinned via an 'event' kind, so that still pins;
 // the rest hold their time like a restacked block, so other blocks can still push them.
-function templateAnchor([at, duration, text, kind = 'routine', tail = 0, pin = kind === 'event']) {
-  const fields = { duration: duration + tail, kind, templateAnchor: true };
+function templateAnchor([at, duration, text, kind = 'routine', tail = 0, pin = kind === 'event'], event = false) {
+  const fields = { duration: duration + tail, kind: kind === 'event' ? undefined : kind || undefined, templateAnchor: true };
+  if (event) fields.templateEvent = true;
   if (pin) return planBlock(newId(), text, { ...fields, pinned: at, tier: 'fixed' });
   const start = planMinutes(at);
   return planBlock(newId(), text, { ...fields, restackStart: start, restackUntil: start + duration + tail });
@@ -962,7 +963,7 @@ function openTemplateEditor(key) {
   const day = plan.days[key];
   const fields = $('template-form').elements;
   renderTemplateChoices(day.template || defaultTemplate(key));
-  const event = day.blocks.find((block) => block.templateAnchor && block.kind === 'event');
+  const event = day.blocks.find((block) => block.templateAnchor && (block.templateEvent || block.kind === 'event'));
   fields.event.value = event?.text || '';
   fields.start.value = event?.pinned || '';
   fields.duration.value = event?.duration || 60;
@@ -995,7 +996,7 @@ function renderTemplateChoices(selected) {
   $('template-choices').replaceChildren(...choices);
 }
 
-const ANCHOR_KINDS = ['routine', 'meal', 'exercise', 'free', 'buffer', 'event'];
+const ANCHOR_KINDS = ['', 'routine', 'meal', 'exercise', 'travel', 'free', 'buffer'];
 let editingTemplate = null;
 // The template being edited, laid out like a day: { id, start, duration, text, kind }.
 let tplBlocks = [];
@@ -1052,7 +1053,7 @@ function showTemplateBlock() {
   templateField('time').value = blockKey(block.start);
   templateField('mins').value = block.duration;
   const kinds = ANCHOR_KINDS.includes(block.kind) ? ANCHOR_KINDS : [...ANCHOR_KINDS, block.kind];
-  fillOptions(templateField('kind'), kinds.map((kind) => [kind, kind]), block.kind);
+  fillOptions(templateField('kind'), kinds.map((kind) => [kind, kind || 'automatic']), block.kind);
   templateField('pin').checked = Boolean(block.pin);
 }
 
@@ -1077,7 +1078,6 @@ function editTemplateBlock(event) {
   if (field === 'text') block.text = value;
   if (field === 'kind') {
     block.kind = value;
-    if (value === 'event') templateField('pin').checked = block.pin = true;
   }
   if (field === 'pin') block.pin = event.target.checked;
   if (field === 'time' && planMinutes(value) != null) block.start = planMinutes(value);
@@ -1195,7 +1195,7 @@ function openTemplateDef(name) {
   fields.event.checked = Boolean(template.event);
   tplBlocks = (template.anchors || []).filter(([pinned]) => planMinutes(pinned) != null)
     .map(([at, duration, text, kind = 'routine', tail = 0, pin = kind === 'event']) =>
-      ({ id: newId(), start: planMinutes(at), duration: duration + tail, text, kind, pin }));
+      ({ id: newId(), start: planMinutes(at), duration: duration + tail, text, kind: kind === 'event' ? '' : kind, pin }));
   $('template-def-delete').hidden = name == null;
   $('template-def-error').hidden = true;
   $('template-def').showModal();
@@ -1283,13 +1283,13 @@ function replaceTemplate(day, name, template, event) {
   const positions = new Map(layoutDay(day).blocks.map((block) => [block.id, block.start]));
   const shown = lockShownTimes(day);
   const kept = shown.blocks.filter((block) => !block.templateAnchor);
-  let anchors = (template?.anchors || []).map(templateAnchor);
+  let anchors = (template?.anchors || []).map((anchor) => templateAnchor(anchor));
   const eventAt = event ? planMinutes(event.start) : null;
   if (event) {
     const travel = template.workBeforeEvent ? 'Travel to game' : 'Go + settle';
     const eventAnchors = [
       templateAnchor([blockKey(eventAt - 30), 30, travel, 'travel', 0, true]),
-      templateAnchor([event.start, event.duration, event.text, 'event', 0, true]),
+      templateAnchor([event.start, event.duration, event.text, '', 0, true], true),
     ];
     anchors = [...anchors.filter((anchor) => !pinCollision(anchor, eventAnchors)), ...eventAnchors];
   }
@@ -1840,7 +1840,7 @@ function renderDay(key,{ blocks, bumped }, load, from, until, ghosts) {
     loadMeter(load, `${dayLabel(key)} load`));
   head.append(title, loadRow);
   if (changedInDash(key)) head.append(element('span', 'warning', 'Changed on phone'));
-  const events = blocks.filter((block) => block.pinned && (block.kind === 'event' || block.tier === 'fixed' && !block.templateAnchor));
+  const events = blocks.filter((block) => block.pinned && (block.templateEvent || block.kind === 'event' || block.tier === 'fixed' && !block.templateAnchor));
   for (const event of events) {
     const time = clock12(event.pinned).replace(':00', '');
     head.append(element('p', 'day-info day-event', `${time} ${event.text}`));

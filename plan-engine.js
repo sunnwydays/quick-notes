@@ -447,13 +447,19 @@ function untimedBlock(block) {
   return { ...untimed, pinned: null, shelf: true };
 }
 
+// Kinds dropped from the picker; blocks still carrying one fall back to their name.
+const RETIRED_KINDS = ['event', 'prep'];
+const EXERCISE_CUE = /\b(?:gym|workout|work out|cardio|lift(?:ing)?|jog(?:ging)?|swim(?:ming)?|yoga|stretch(?:ing)?|intramurals?|intra|scrim|tryouts?|prac|throw(?:ing)?|frisbee|ultimate|basketball|soccer|badminton|climb(?:ing)?)\b|^run\b|\brun \d/i;
+const TRAVEL_CUE = /^(?:travel|commute|drive|ride|bus|train|subway|ttc|transit|flight|fly|uber|taxi|walk to|bike to|head (?:to|home|out|back)|go|get to)\b|\b(?:commute|travel to|to (?:the )?airport)\b/i;
+
 function blockKind(block) {
-  if (block.kind) return block.kind;
+  if (block.kind && !RETIRED_KINDS.includes(block.kind)) return block.kind;
   const text = block.text || '';
   if (/\balmost done\b/i.test(text)) return 'almost';
   if (/\b(ai[- ]tutor|project)\b/i.test(text)) return 'project';
-  if (/\b(prep|settle)\b/i.test(text)) return 'prep';
   if (/\b(study|recall|revise|review notes|lab)\b/i.test(text) || STUDY_SUBJECT.test(text)) return 'study';
+  if (EXERCISE_CUE.test(text)) return 'exercise';
+  if (TRAVEL_CUE.test(text)) return 'travel';
   if (/\b(breakfast|lunch|dinner|meal)\b/i.test(text)) return 'meal';
   if (/^(?:morning wash|wash up|wake|walk outside|routine|nap|screens off|wind down|bedtime|shower)\b/i.test(text)) return 'routine';
   if (/^free\b/i.test(text)) return 'free';
@@ -462,7 +468,7 @@ function blockKind(block) {
 }
 
 function workBlock(block) {
-  return block.tier !== 'fixed' && !['free', 'buffer', 'meal', 'routine', 'exercise', 'travel', 'event'].includes(blockKind(block));
+  return block.tier !== 'fixed' && !['free', 'buffer', 'meal', 'routine', 'exercise', 'travel'].includes(blockKind(block));
 }
 
 function dayLoad(day, blocks) {
@@ -506,15 +512,14 @@ function ghostFits(day, key, tomorrow, examTomorrow, blocks, index, block) {
   const work = blocks.filter(workBlock);
   const kind = blockKind(block);
   const project = work.find((item) => blockKind(item) === 'project');
-  const nextDayPrep = (item) => blockKind(item) === 'prep' && (examTomorrow || item.deadline?.startsWith(tomorrow));
   const dinner = blocks.find((item) => blockKind(item) === 'meal' && item.start >= 16 * 60);
   const dueTomorrow = (item) => item.deadline?.startsWith(tomorrow);
   const first = work[0];
   if (afterDeadline(key, block) || (day.workCap ?? Infinity) <= work.length) return false;
   if (first && (dueTomorrow(block) ? block.start > first.start : dueTomorrow(first) && block.start < first.start)) return false;
-  if ((kind === 'study' || nextDayPrep(block)) && project && block.start > project.start) return false;
+  if (kind === 'study' && project && block.start > project.start) return false;
   if (kind === 'project' && (blockKind(next ?? {}) !== 'meal' ||
-    work.some((item) => item.start > block.start && (blockKind(item) === 'study' || nextDayPrep(item))))) return false;
+    work.some((item) => item.start > block.start && blockKind(item) === 'study'))) return false;
   if (kind === 'almost' && next?.tier !== 'fixed') return false;
   if (kind === 'fun' && (!dinner || block.until > dinner.start)) return false;
   const cutoff = day.noNewAfter ?? (examTomorrow ? 16 * 60 : Infinity);
@@ -718,5 +723,5 @@ function parseQuickAdd(input) {
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { snapTimelineDrop, timelineDropPlace, timelineDropStart, arrangeTimelineDrop, resizeWindow, fitResize, resizeDayBlock, fitTimelineDrop, fullOpening, foldTail, dropStaleFixed, layoutDay, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, toggleBlockPin, suggestGhosts,
-    insertPopup, restackBeforeScreensOff, parseQuickAdd, fitTemplateAnchors };
+    insertPopup, restackBeforeScreensOff, parseQuickAdd, fitTemplateAnchors, blockKind };
 }
