@@ -41,7 +41,7 @@ function dropStaleFixed(block) {
   return block.tier === 'fixed' && planMinutes(block.pinned) == null ? { ...block, tier: 'medium' } : block;
 }
 
-const BREAK_EXEMPT_KINDS = ['routine', 'meal', 'buffer'];
+const BREAK_EXEMPT_KINDS = ['routine', 'meal', 'exercise', 'buffer'];
 
 function gapBetween(block, next, duration = block.start != null && block.until != null ? block.until - block.start : blockDuration(block)) {
   if (block.skipBreak || BREAK_EXEMPT_KINDS.includes(blockKind(block)) || (next && BREAK_EXEMPT_KINDS.includes(blockKind(next)))) return 0;

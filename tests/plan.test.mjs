@@ -130,7 +130,7 @@ test('load excludes fixed time, exercise, and mandatory gaps', () => {
     { ...block('meal', 30, { tier: 'fixed' }), start: 1195, until: 1225 },
     { ...block('cardio', 60, { kind: 'exercise' }), start: 1235, until: 1295 },
   ];
-  assert.deepEqual(dayLoad(day, blocks), { usable: 65, placed: 45, ratio: 45 / 65 });
+  assert.deepEqual(dayLoad(day, blocks), { usable: 80, placed: 45, ratio: 45 / 80 });
 });
 
 test('ghosts reserve the shelf first and suggest each remaining Todo once without changing the plan', () => {
