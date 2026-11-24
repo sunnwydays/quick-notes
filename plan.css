@@ -188,8 +188,6 @@ button:disabled { opacity: .55; cursor: default; }
 .tile:has(.tile-size) { display: flex; align-items: baseline; gap: .3rem; }
 .tile:has(.tile-size) .tile-title { flex: 1; }
 .tile-size { flex: none; font-size: .68rem; color: var(--muted); }
-.pin { position: absolute; top: .2rem; right: .22rem; font-size: .7rem; }
-.tile:has(.pin) { padding-right: 1rem; }
 .tile.timed {
   --tile-left: .32rem; --tile-right: 8%;
   position: absolute; inset-inline: var(--tile-left) var(--tile-right); overflow: hidden; width: auto;

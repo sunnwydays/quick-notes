@@ -1652,18 +1652,15 @@ function renderTile(block, date) {
   tile.type = 'button';
   tile.dataset.id = block.id;
   if (date) tile.dataset.date = date;
-  tile.classList.toggle('fixed', block.tier === 'fixed');
+  // The hatched stripe marks anything held at its time: pinned blocks and fixed commitments.
+  tile.classList.toggle('fixed', block.tier === 'fixed' || planMinutes(block.pinned) != null);
   tile.style.setProperty('--tile-colour', blockColour(block));
   tile.append(element('span', 'tile-title', block.text));
   if (block.bumped) tile.append(element('span', 'bumped', block.bumpedFrom
     ? ` · Bumped from ${block.bumpedFrom === dayKey(new Date()) ? 'today' : dayLabel(block.bumpedFrom, false)}` : ' · Bumped'));
   if (!date || block.shelf) tile.append(element('span', 'tile-size', lengthLabel(block.duration ?? block.size)));
-  if (planMinutes(block.pinned) != null) {
-    const pin = element('span', 'pin', '📌');
-    pin.title = `Pinned at ${clock12(block.pinned)}`;
-    tile.append(pin);
-  }
-  tile.title = [block.text, block.done && `Done = ${block.done}`, block.next,
+  tile.title = [block.text, planMinutes(block.pinned) != null && `Pinned at ${clock12(block.pinned)}`,
+    block.done && `Done = ${block.done}`, block.next,
     block.actualUntil != null && `Ran over until ${clock12(block.actualUntil)}`].filter(Boolean).join('\n');
   return tile;
 }
