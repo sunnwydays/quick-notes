@@ -242,6 +242,41 @@ function pushApart(blocks, firstId) {
   return blocks.map((block) => moved.get(block.id) ?? block);
 }
 
+// Resize inside the current opening, including days saved with an existing overlap.
+function resizeWindow(day, id) {
+  const { blocks } = layoutDay(day);
+  const timed = blocks.find(block => block.id === id);
+  if (!timed) return null;
+  let earliest = Math.min(timed.start, Math.max((planMinutes(day.wake) ?? PLAN_START) + (day.startOffset ?? 0), day.workStart ?? 0));
+  let latest = PLAN_END;
+  for (const other of blocks) {
+    if (other.id === id) continue;
+    if (other.start < timed.start) earliest = Math.max(earliest, other.until);
+    else latest = Math.min(latest, other.start);
+  }
+  return { start: timed.start, earliest, latest };
+}
+
+function fitResize(window, requested) {
+  if (!window || window.latest <= window.earliest) return null;
+  const duration = Math.min(requested, window.latest - window.earliest);
+  const start = Math.max(window.earliest, Math.min(window.start, window.latest - duration));
+  return { start, until: start + duration };
+}
+
+function resizeDayBlock(day, block, range) {
+  const layout = layoutDay(day);
+  const { start, until } = range;
+  const resized = { ...unlocked(block), duration: until - start, originalDuration: undefined, skipBreak: undefined };
+  if (block.pinned) resized.pinned = blockKey(start);
+  if (block.actualStart != null) resized.actualStart = start;
+  if (block.actualUntil != null) resized.actualUntil = until;
+  const timed = layout.blocks.map(item => item.id === block.id ? { ...item, start, until } : item)
+    .sort((a, b) => a.start - b.start);
+  const blocks = day.blocks.map(item => item.id === block.id ? resized : item);
+  return keepDayTimes(day, lockRestackTimes(blocks, timed), timed, layout.bumped);
+}
+
 function minimumSession(original) {
   return Math.ceil(original * 7 / 10);
 }
@@ -521,6 +556,6 @@ function insertPopup(day, popup, minute) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { fitTimelineDrop, fullOpening, foldTail, layoutDay, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, toggleBlockPin, suggestGhosts,
+  module.exports = { resizeWindow, fitResize, resizeDayBlock, fitTimelineDrop, fullOpening, foldTail, layoutDay, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, toggleBlockPin, suggestGhosts,
     insertPopup, restackBeforeScreensOff };
 }

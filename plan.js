@@ -433,6 +433,19 @@ function moveBlock(source, target, changes = {}, { copy = false } = {}) {
     // Unpinning without a new time leaves the block where it was.
     if (sameDay && target.at == null) stay = restackStart ?? planMinutes(changed.pinned);
   }
+  if (sameDay && !target.shelf && !moved && blockDuration(changed) !== blockDuration(old)) {
+    const window = resizeWindow(day, old.id);
+    if (window) {
+      const requested = blockDuration(changed);
+      const range = fitResize(window, requested);
+      if (!range || range.until - range.start < requested) {
+        return `Only ${Math.max(0, window.latest - window.earliest)} minutes fit between the surrounding blocks.`;
+      }
+      storeDay(target.date, resizeDayBlock(day, changed, range));
+      markEdited();
+      return '';
+    }
+  }
   const fit = target.smart && dropFit(source, target, copy);
   if (target.smart && !fit) return 'This session needs more room.';
   if (fit) block = { ...block, duration: fit.duration, originalDuration: fit.original, skipBreak: Boolean(target.skipBreak) };
@@ -2072,7 +2085,7 @@ function movePreview(target) {
 // end) when the pointer is within a finger's width of it, so blocks still stack flush.
 const EDGE_SNAP_PX = 10;
 
-function timelineMinute(timeline, clientY, { round = Math.round, edges = [], offset = 0 } = {}) {
+function timelineMinute(timeline, clientY, { round = Math.round, edges = [], offset = 0, clamp = true } = {}) {
   const rect = timeline.getBoundingClientRect();
   const from = Number(timeline.dataset.from);
   const until = Number(timeline.dataset.until);
@@ -2083,7 +2096,7 @@ function timelineMinute(timeline, clientY, { round = Math.round, edges = [], off
   for (const edge of edges) {
     if (Math.abs(edge - raw) <= best) { minute = edge; best = Math.abs(edge - raw); }
   }
-  return Math.max(from, Math.min(until, minute));
+  return clamp ? Math.max(from, Math.min(until, minute)) : minute;
 }
 
 // Start and end minutes of the timed blocks on a planner timeline, apart from one.
@@ -2164,6 +2177,14 @@ function tileBottomEdgeAt(event) {
   return best;
 }
 
+function previewResize(drag, { start, until }) {
+  drag.tile.style.setProperty('--minute', start - Number(drag.timeline.dataset.from));
+  drag.tile.style.setProperty('--duration', until - start);
+  const time = drag.tile.querySelector('.tile-time');
+  time.firstChild.textContent = clock12(start);
+  time.querySelector('.tile-end').textContent = `–${clock12(until)}`;
+}
+
 function startDrag(event) {
   lastPointerType = event.pointerType;
   if (event.target.closest('.fit-opening')) return;
@@ -2178,7 +2199,8 @@ function startDrag(event) {
     tile.setPointerCapture(event.pointerId);
     activeDrag = { resize: true, tile, source, timeline: tile.closest('.timeline'), pointer: event.pointerId,
       start: Number(tile.dataset.start), until: Number(tile.dataset.until), moved: false };
-    activeDrag.end = activeDrag.until;
+    activeDrag.grab = timelineMinute(activeDrag.timeline, event.clientY, { round: minute => minute, clamp: false }) - activeDrag.until;
+    activeDrag.window = resizeWindow(plan.days[source.date], source.block.id);
     return;
   }
   const tile = event.target.closest('.tile[data-id]');
@@ -2206,12 +2228,17 @@ function moveDrag(event) {
   if (activeDrag.resize) {
     event.preventDefault();
     const drag = activeDrag;
-    drag.edges ??= timelineEdges(drag.timeline, drag.source.block.id);
-    drag.end = Math.min(Math.max(timelineMinute(drag.timeline, event.clientY, { edges: drag.edges }), drag.start + 15), DAY_END);
-    drag.moved = true;
-    drag.tile.style.setProperty('--duration', drag.end - drag.start);
-    const endLabel = drag.tile.querySelector('.tile-end');
-    if (endLabel) endLabel.textContent = `–${clock12(drag.end)}`;
+    if (!drag.window) return;
+    const options = { offset: drag.grab, clamp: false };
+    const pointer = timelineMinute(drag.timeline, event.clientY, options);
+    const end = pointer < drag.window.latest
+      ? timelineMinute(drag.timeline, event.clientY, { ...options, edges: [drag.window.latest] }) : pointer;
+    drag.requested = Math.max(Math.min(15, drag.until - drag.start), end - drag.start);
+    const range = fitResize(drag.window, drag.requested);
+    if (range) {
+      drag.moved = true;
+      previewResize(drag, range);
+    }
     return;
   }
   if (!activeDrag.moved) {
@@ -2275,21 +2302,19 @@ function endDrag(event) {
     return;
   }
   if (activeDrag.resize) {
-    const { tile, source, moved, end, until } = activeDrag;
+    const drag = activeDrag;
+    const { tile, source, moved, requested } = drag;
     activeDrag = null;
     tile.dataset.dragged = 'true';
     setTimeout(() => delete tile.dataset.dragged, 0);
-    if (!moved || event.type !== 'pointerup' || end === until) {
-      tile.style.setProperty('--duration', until - Number(tile.dataset.start));
-      const endLabel = tile.querySelector('.tile-end');
-      if (endLabel) endLabel.textContent = `–${clock12(until)}`;
+    const day = plan.days[source.date];
+    const block = day?.blocks.find(item => item.id === source.block.id);
+    const range = moved && block && fitResize(resizeWindow(day, block.id), requested);
+    if (event.type !== 'pointerup' || !range || (range.start === drag.start && range.until === drag.until)) {
+      previewResize(drag, drag);
       return;
     }
-    const day = plan.days[source.date];
-    const duration = end - Number(tile.dataset.start);
-    const resized = { ...source.block, duration, originalDuration: undefined, skipBreak: undefined };
-    const blocks = day.blocks.map((block) => block.id === resized.id ? resized : block);
-    storeDay(source.date, placeInDay(day, blocks, resized, Number(tile.dataset.start)));
+    storeDay(source.date, resizeDayBlock(day, block, range));
     markEdited();
     return;
   }

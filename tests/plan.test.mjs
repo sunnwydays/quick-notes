@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { fitTimelineDrop, fullOpening, foldTail, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, insertPopup, layoutDay, restackBeforeScreensOff, suggestGhosts, toggleBlockPin } from '../plan-engine.js';
+import { resizeWindow, fitResize, resizeDayBlock, fitTimelineDrop, fullOpening, foldTail, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, insertPopup, layoutDay, restackBeforeScreensOff, suggestGhosts, toggleBlockPin } from '../plan-engine.js';
 
 const block = (id, size, fields = {}) => ({ id, size, tier: 'medium', ...fields });
 const times = ({ blocks }) => blocks.map(({ id, start, until }) => [id, start, until]);
@@ -277,4 +277,29 @@ test('events can touch either edge of routines, meals and buffers', () => {
     assert.deepEqual(layoutDay({ blocks: [event, block('middle', 30, fields), block('last', 45)] }).blocks
       .map(item => item.start), [420, 465, 495]);
   }
+});
+
+test('resizing uses the opening below first, then above, for pinned and unpinned blocks', () => {
+  for (const pinned of [null, '21:09']) {
+    const buffer = block('Buffer', 45, { pinned, restackStart: 1269 });
+    const day = { blocks: [block('before', 20, { restackStart: 1210 }), buffer,
+      block('Shower and read', 60, { pinned: '22:00' })] };
+    const window = resizeWindow(day, buffer.id);
+    assert.deepEqual(fitResize(window, 48), { start: 1269, until: 1317 });
+    assert.deepEqual(fitResize(window, 100), { start: 1230, until: 1320 });
+    const range = fitResize(window, 70);
+    const updated = resizeDayBlock(day, buffer, range);
+    const expected = [['before', 1210, 1230], ['Buffer', 1250, 1320], ['Shower and read', 1320, 1380]];
+    assert.deepEqual(times(layoutDay(updated)), expected);
+    assert.deepEqual(times(layoutDay({ ...updated, pinLayout: undefined })), expected);
+    assert.equal(updated.blocks[1].pinned, pinned && '20:50');
+  }
+});
+
+test('resizing can recover a saved overlap and grow upward at midnight', () => {
+  const buffer = block('Buffer', 70, { pinned: '21:09' });
+  const day = { blocks: [buffer, block('Shower', 60, { pinned: '22:00' })] };
+  assert.deepEqual(fitResize(resizeWindow(day, buffer.id), 70), { start: 1250, until: 1320 });
+  const late = { blocks: [block('late', 25, { pinned: '23:35' })] };
+  assert.deepEqual(fitResize(resizeWindow(late, 'late'), 60), { start: 1380, until: 1440 });
 });
