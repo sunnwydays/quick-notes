@@ -129,7 +129,22 @@ function applyRenames(d) {
 let data = load();
 
 function persist() {
+  prunePlannerVersions();
   localStorage.setItem(STORE_KEY, JSON.stringify(data));
+}
+
+// Each planner save adds a full new version and only the newest per key is
+// read, so delete the older ones and drop their text to keep storage small.
+function prunePlannerVersions() {
+  const now = new Date().toISOString();
+  for (const category of [PLAN_WEEK, PLAN_TEMPLATE, PLAN_GOALS]) {
+    const keep = new Set([...plannerNotes(category).values()].map((note) => note.entry.id));
+    for (const e of data.entries) {
+      if (e.category !== category || keep.has(e.id)) continue;
+      if (!e.deletedAt) touch(e, { deletedAt: now, deletedHow: 'replaced', text: '' });
+      else if (e.text) touch(e, { text: '' });
+    }
+  }
 }
 
 // Every open tab or window of the app shares this storage but keeps its own
