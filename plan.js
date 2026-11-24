@@ -44,7 +44,6 @@ let monday;
 let plan;
 let activeDrag;
 let editedBlock;
-let tileClick;
 let templateDate;
 let editingGoal;
 let restacking;
@@ -2285,7 +2284,6 @@ function daySwipeUp(event) {
   const dy = event.clientY - start.y;
   if (Math.abs(dx) <= 60 || Math.abs(dx) <= 1.5 * Math.abs(dy)) return;
   daySwipedAt = Date.now();
-  clearTimeout(tileClick);
   const step = dx < 0 ? 1 : -1;
   const index = plan.keys.indexOf(selectedDay) + step;
   if (index >= 0 && index < plan.keys.length) {
@@ -2310,7 +2308,6 @@ function startDrag(event) {
     const source = blockSource(tile);
     if (!source?.block) return;
     event.preventDefault();
-    clearTimeout(tileClick);
     tile.setPointerCapture(event.pointerId);
     activeDrag = { resize: true, tile, source, timeline: tile.closest('.timeline'), pointer: event.pointerId,
       start: Number(tile.dataset.start), until: Number(tile.dataset.until), moved: false,
@@ -2369,7 +2366,6 @@ function moveDrag(event) {
   }
   if (!activeDrag.moved) {
     if (Math.hypot(event.clientX - activeDrag.x, event.clientY - activeDrag.y) < 6) return;
-    clearTimeout(tileClick);
     activeDrag.moved = true;
     const bounds = activeDrag.tile.getBoundingClientRect();
     const preview = activeDrag.tile.cloneNode(true);
@@ -2667,15 +2663,7 @@ function startPlanner() {
       if (tile.dataset.source === 'Todo' && urgentTodos().some((entry) => entry.id === tile.dataset.id)) openPopup(tile.dataset.id);
       else if (source?.block) openBlockEditor(source);
     };
-    if (event.detail === 0) open();
-    else tileClick = setTimeout(open, 260);
-  });
-  tilesArea.addEventListener('dblclick', (event) => {
-    const tile = event.target.closest('.tile[data-id]');
-    if (!tile) return;
-    clearTimeout(tileClick);
-    if ($('block-editor').open) $('block-editor').close();
-    deleteBlock(blockSource(tile));
+    open();
   });
   window.addEventListener('beforeunload', (event) => {
     flushAutosave(false);
