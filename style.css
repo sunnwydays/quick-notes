@@ -248,6 +248,8 @@ button.glance-block.now.primary { background: #fff; color: #000; outline: 2px so
 .block.marked-done:not(.now), .block.marked-over:not(.now), .block.marked-skipped:not(.now) { color: #555; }
 .block .mark-btn { display: flex; align-items: center; justify-content: center; flex: none; width: 44px; height: 44px; min-height: 0; padding: 0; }
 .block.now .mark-btn { color: #fff; }
+/* Unmarked, not yet over: a word instead of an empty box, since a tap skips it. */
+.block .mark-btn.skip-btn { font-size: 16px; }
 /* Held long enough to mark it ran over (gestures.js onHoldRelease). */
 .block .mark-btn.primary { background: #000; color: #fff; }
 .block.now .mark-btn.primary { background: #fff; color: #000; }

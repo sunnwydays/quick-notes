@@ -544,7 +544,11 @@ function blockRow(b, state, mark, day, scheduleId = null) {
     btn.setAttribute('aria-label', status === 'skipped' ? 'Clear skipped' : 'Mark skipped');
     // Unmarked counts as done, but only a block that's over gets the tick.
     const past = state === 'done' || day < dayKey(new Date());
-    btn.append(markIcon(status || (past ? 'done' : ''), 26));
+    if (!status && !past) {
+      // Not over and unmarked: say what a tap does, rather than showing an empty box.
+      btn.classList.add('skip-btn');
+      btn.textContent = 'Skip';
+    } else btn.append(markIcon(status || 'done', 26));
     btn.addEventListener('click', () => {
       if (!btn.held) cycleMark(day, b);
     });
