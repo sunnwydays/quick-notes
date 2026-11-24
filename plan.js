@@ -430,7 +430,9 @@ function moveBlock(source, target, changes = {}, { copy = false } = {}) {
     // Unpinning without a new time leaves the block where it was.
     if (sameDay && target.at == null) stay = restackStart ?? planMinutes(changed.pinned);
   }
-  if (sameDay && !target.shelf && !moved && blockDuration(changed) !== blockDuration(old)) {
+  // Compare with the saved block: the editor hands over a source that already carries the new length.
+  const saved = remaining && origin.blocks.find((item) => item.id === old.id);
+  if (sameDay && !target.shelf && !moved && saved && blockDuration(changed) !== blockDuration(saved)) {
     const window = resizeWindow(day, old.id);
     if (window) {
       const requested = blockDuration(changed);
