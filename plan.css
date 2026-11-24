@@ -147,7 +147,7 @@ button:disabled { opacity: .55; cursor: default; }
 .meal-connectors {
   position: absolute; grid-area: 3 / 2 / 4 / -1; inset: 0;
   width: 100%; height: 100%; z-index: 1; pointer-events: none;
-  overflow: visible; fill: none; stroke-width: 6; stroke-linecap: round;
+  overflow: visible; fill: none; stroke: #5689bd; stroke-width: 6; stroke-linecap: round;
 }
 .board:has(.drag-live) .meal-connectors { visibility: hidden; }
 .before-wake {

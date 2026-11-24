@@ -54,7 +54,6 @@ let dropChoices = null;
 let goalsOpen = false;
 let lastPointerType;
 let mealConnectorObserver;
-let mealConnectorPairs = [];
 
 function schedulesForWeek(keys) {
   const latest = new Map();
@@ -1966,12 +1965,9 @@ function renderDay(key,{ blocks, bumped }, load, from, until, ghosts) {
 
 function renderMealConnectors(week, columns) {
   mealConnectorObserver?.disconnect();
-  mealConnectorPairs = [];
+  const pairs = [];
   const svgNamespace = 'http://www.w3.org/2000/svg';
-  const svg = (tag) => document.createElementNS(svgNamespace, tag);
-  const overlay = svg('svg');
-  const defs = svg('defs');
-  overlay.append(defs);
+  const overlay = document.createElementNS(svgNamespace, 'svg');
   for (const meal of ['lunch', 'dinner']) {
     const tiles = columns.map((day) => day.querySelectorAll(`[data-meal="${meal}"]`));
     for (let day = 1; day < tiles.length; day++) {
@@ -1980,22 +1976,13 @@ function renderMealConnectors(week, columns) {
       for (let i = 0; i < Math.min(left.length, right.length); i++) {
         left[i].classList.add('meal-joins-right');
         right[i].classList.add('meal-joins-left');
-        const gradient = svg('linearGradient');
-        gradient.id = `meal-line-${mealConnectorPairs.length}`;
-        gradient.setAttribute('gradientUnits', 'userSpaceOnUse');
-        const startColour = svg('stop');
-        const endColour = svg('stop');
-        endColour.setAttribute('offset', '1');
-        gradient.append(startColour, endColour);
-        defs.append(gradient);
-        const path = svg('path');
-        path.setAttribute('stroke', `url(#${gradient.id})`);
+        const path = document.createElementNS(svgNamespace, 'path');
         overlay.append(path);
-        mealConnectorPairs.push({ left: left[i], right: right[i], path, gradient });
+        pairs.push({ left: left[i], right: right[i], path });
       }
     }
   }
-  if (!mealConnectorPairs.length) {
+  if (!pairs.length) {
     mealConnectorObserver = null;
     return;
   }
@@ -2005,7 +1992,7 @@ function renderMealConnectors(week, columns) {
   mealConnectorObserver = new ResizeObserver(() => {
     const bounds = overlay.getBoundingClientRect();
     if (!bounds.width) return;
-    for (const { left, right, path, gradient } of mealConnectorPairs) {
+    for (const { left, right, path } of pairs) {
       const start = left.getBoundingClientRect();
       const end = right.getBoundingClientRect();
       const leftStyle = getComputedStyle(left);
@@ -2020,23 +2007,13 @@ function renderMealConnectors(week, columns) {
         ? start.width / 2 : parseFloat(leftStyle.borderTopLeftRadius));
       const to = end.right - bounds.left - (right.classList.contains('meal-joins-right')
         ? end.width / 2 : parseFloat(rightStyle.borderTopRightRadius));
-      gradient.setAttribute('x1', x1);
-      gradient.setAttribute('x2', x2);
       path.setAttribute('d', `M ${from} ${y1} H ${x1} C ${bend} ${y1} ${bend} ${y2} ${x2} ${y2} H ${to}`);
     }
-    updateMealConnectorColours();
   });
   mealConnectorObserver.observe(overlay);
-  for (const { left, right } of mealConnectorPairs) {
+  for (const { left, right } of pairs) {
     mealConnectorObserver.observe(left);
     mealConnectorObserver.observe(right);
-  }
-}
-
-function updateMealConnectorColours() {
-  for (const { left, right, gradient } of mealConnectorPairs) {
-    gradient.firstElementChild.setAttribute('stop-color', getComputedStyle(left).backgroundColor);
-    gradient.lastElementChild.setAttribute('stop-color', getComputedStyle(right).backgroundColor);
   }
 }
 
@@ -2113,7 +2090,6 @@ function showNow() {
     tile.classList.toggle('current', date === today && Number(start) <= minute && minute < Number(until));
     tile.classList.toggle('past', date < today || date === today && Number(until) <= minute);
   }
-  updateMealConnectorColours();
   const line = $('week').querySelector('.day.today .now-line');
   if (!line) return;
   const timeline = line.parentElement;
