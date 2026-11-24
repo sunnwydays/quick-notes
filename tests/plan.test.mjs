@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { snapTimelineDrop, resizeWindow, fitResize, resizeDayBlock, fitTimelineDrop, fullOpening, foldTail, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, insertPopup, layoutDay, restackBeforeScreensOff, suggestGhosts, toggleBlockPin } from '../plan-engine.js';
+import { snapTimelineDrop, timelineDropPlace, arrangeTimelineDrop, resizeWindow, fitResize, resizeDayBlock, fitTimelineDrop, fullOpening, foldTail, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, insertPopup, layoutDay, restackBeforeScreensOff, suggestGhosts, toggleBlockPin } from '../plan-engine.js';
 
 const block = (id, size, fields = {}) => ({ id, size, tier: 'medium', ...fields });
 const times = ({ blocks }) => blocks.map(({ id, start, until }) => [id, start, until]);
@@ -309,12 +309,39 @@ test('a drag near the bottom of Study 454 lands after its break regardless of th
   for (const pinned of [null, '18:15']) {
     const study = { ...block('Study 454', 75, { pinned }), start: 1095, until: 1170 };
     const stack = [study, { ...block('later', 30, { pinned: '20:45' }), start: 1245, until: 1275 }];
+    const drop = (item, pointer, top) => arrangeTimelineDrop(stack, item,
+      timelineDropPlace(stack, pointer, snapTimelineDrop(stack, item, pointer, top, 420)), 420);
     for (const [pointer, top] of [[1155, 1151], [1169, 1170], [1172, 1151], [1177, 1172], [1170, 1170]]) {
-      const start = snapTimelineDrop(stack, task, pointer, top, 420);
-      assert.equal(start, 1180);
-      assert.equal(fitTimelineDrop(stack, task, start).duration, 47);
+      const fit = drop(task, pointer, top);
+      assert.equal(fit.start, 1180);
+      assert.equal(fit.duration, 47);
     }
-    assert.equal(snapTimelineDrop(stack, task, 1188, 1185, 420), 1185);
-    assert.equal(snapTimelineDrop(stack, block('Dinner', 45, { kind: 'meal' }), 1155, 1151, 420), 1170);
+    assert.equal(drop(task, 1188, 1185).start, 1185);
+    assert.equal(drop(block('Dinner', 45, { kind: 'meal' }), 1155, 1151).start, 1170);
+  }
+});
+
+test('dropping on a block inserts before its upper half or after its lower half', () => {
+  const deer = block('deer project', 90);
+  for (const pinned of [null, '14:15']) {
+    const stack = [
+      { ...block('Upload travel photos', 45), start: 810, until: 855 },
+      { ...block('Workout', 60, { pinned }), start: 855, until: 915 },
+    ];
+    const place = (pointer) => timelineDropPlace(stack, pointer, pointer);
+    assert.deepEqual(place(870), { before: 'Workout' });
+    assert.deepEqual(place(900), { after: 'Workout' });
+    assert.deepEqual(place(930), { at: 930 });
+
+    const after = arrangeTimelineDrop(stack, deer, place(900), 420);
+    assert.deepEqual([after.start, after.until], [925, 1015]);
+    assert.deepEqual(times({ blocks: after.timed }), times({ blocks: stack }));
+
+    const before = arrangeTimelineDrop(stack, deer, place(870), 420);
+    if (pinned) assert.equal(before, null);
+    else {
+      assert.deepEqual([before.start, before.until], [865, 955]);
+      assert.deepEqual(times({ blocks: before.timed }), [['Upload travel photos', 810, 855], ['Workout', 965, 1025]]);
+    }
   }
 });

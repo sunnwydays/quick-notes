@@ -447,7 +447,7 @@ function moveBlock(source, target, changes = {}, { copy = false } = {}) {
   const fit = target.smart && dropFit(source, target, copy);
   if (target.smart && !fit) return 'This session needs more room.';
   if (fit) block = { ...block, duration: fit.duration, originalDuration: fit.original, skipBreak: Boolean(target.skipBreak) };
-  const placeAt = target.shelf ? null : planMinutes(target.at) ?? planMinutes(block.pinned) ?? stay;
+  const placeAt = target.shelf ? null : fit ? fit.start : planMinutes(target.at) ?? planMinutes(block.pinned) ?? stay;
   if (placeAt != null && placeAt + blockDuration(block) > DAY_END) return 'Choose a time that ends by midnight.';
   const probe = placeAt != null ? { ...block, pinned: blockKey(placeAt) } : block;
   const keepsActual = !copy && source.date === target.date && block.actualStart != null;
@@ -1912,29 +1912,40 @@ function plannerDropTarget(event, source) {
     if (tile && date === source.date && tile.dataset.id === source.block.id) return null;
     return { date, shelf: true, before: tile?.dataset.id, indicator: slot };
   }
-  // The block's top follows the pointer, keeping the spot it was grabbed by.
-  const copy = (event.shiftKey || event.ctrlKey) && !source.copy;
+  // Hit-test the day as saved (previews only move tiles on screen), so the target
+  // doesn't flip while blocks slide. Over a block, its upper half means before it and
+  // its lower half after it; in open time the block's top follows the pointer.
+  const copy = Boolean(activeDrag?.copying) && !source.copy;
   const stack = dropStack(source, date, copy);
-  const length = source.block.originalDuration ?? blockDuration(source.block);
-  const dragged = { ...source.block, skipBreak: false };
-  const pointer = timelineMinute(slot, event.clientY, { round: (minute) => minute });
-  const edges = movingEdges(timelineEdges(slot, source.block.id), length);
-  let time = timelineMinute(slot, event.clientY, { edges, offset: activeDrag?.grab ?? 0 });
+  const earliest = Number(slot.dataset.from);
+  const clamp = (minute) => Math.max(earliest, Math.min(PLAN_END - 5, minute));
   const highlight = under.closest('[data-opening]');
   const matchesSource = dropChoices?.source?.block.id === source.block.id && dropChoices.copy === copy;
-  if (highlight && matchesSource) time = Number(highlight.dataset.opening);
-  else time = snapTimelineDrop(stack, dragged, pointer, time, Number(slot.dataset.from));
-  time = Math.max(Number(slot.dataset.from), Math.min(PLAN_END - 5, time));
+  const skipBreak = Boolean(highlight && matchesSource && highlight.dataset.skipBreak);
+  let place;
+  if (highlight && matchesSource) place = { at: Number(highlight.dataset.opening) };
+  else {
+    const length = source.block.originalDuration ?? blockDuration(source.block);
+    const pointer = timelineMinute(slot, event.clientY, { round: (minute) => minute });
+    const edges = movingEdges(timelineEdges(slot, source.block.id), length);
+    const time = timelineMinute(slot, event.clientY, { edges, offset: activeDrag?.grab ?? 0 });
+    place = timelineDropPlace(stack, pointer, time);
+    if (place.at != null) place.at = clamp(snapTimelineDrop(stack, { ...source.block, skipBreak: false }, pointer, time, earliest));
+  }
+  const fit = arrangeTimelineDrop(stack, source.block, place, earliest, skipBreak);
+  const time = clamp(fit?.start ?? timelineDropStart(stack, source.block, place, earliest));
   const before = stack.find((block) => block.start >= time);
-  return { date, at: blockKey(time), before: before?.id, indicator: slot, smart: true, skipBreak: Boolean(highlight && matchesSource && highlight.dataset.skipBreak) };
+  return { date, at: blockKey(time), place, earliest, fit, copy, before: before?.id, indicator: slot, smart: true, skipBreak };
 }
 
 function dropStack(source, date, copy) {
   return layoutDay(plan.days[date]).blocks.filter(item => copy || source.date !== date || item.id !== source.block.id);
 }
 
+// The arrangement a timeline drop makes, recomputed from the saved day each time.
 function dropFit(source, target, copy) {
-  return fitTimelineDrop(dropStack(source, target.date, copy), source.block, planMinutes(target.at), target.skipBreak);
+  return arrangeTimelineDrop(dropStack(source, target.date, copy), source.block,
+    target.place ?? { at: planMinutes(target.at) }, target.earliest, target.skipBreak);
 }
 
 function offerDropChoices(source, target, copy) {
@@ -2018,52 +2029,75 @@ function renderDropChoices() {
 }
 
 function showDropTarget(target) {
-  const last = activeDrag.target?.indicator;
-  last?.classList.remove('drop-target', 'drop-after');
+  activeDrag.target?.indicator?.classList.remove('drop-target', 'drop-line');
+  movePreview(target);
   const indicator = target?.indicator;
-  const live = movePreview(target);
-  if (!live) indicator?.classList.add('drop-target');
-  if (target?.after) indicator.classList.add('drop-after');
-  if (target?.at != null && indicator.dataset.from) indicator.style.setProperty('--drop-minute', planMinutes(target.at) - Number(indicator.dataset.from));
+  if (indicator?.matches('.timeline')) {
+    // One solid line where the block goes when it's inserted before or after another; none in open time.
+    if (target.place.at == null) {
+      indicator.classList.add('drop-line');
+      indicator.style.setProperty('--drop-minute', planMinutes(target.at) - Number(indicator.dataset.from));
+    }
+  } else indicator?.classList.add('drop-target');
   activeDrag.target = target;
 }
 
-// A timed block being dragged over a timeline is drawn there at the time it would land;
-// anywhere else a small copy follows the pointer. Returns whether it's drawn in place.
+function setTileTime(tile, start, until) {
+  const time = tile.querySelector('.tile-time');
+  if (!time) return;
+  time.firstChild.textContent = clock12(start);
+  time.querySelector('.tile-end').textContent = `–${clock12(until)}`;
+}
+
+// A small copy of the block follows the pointer the whole drag. Over a timeline the day
+// also shows the drop's arrangement: the block where it lands and the blocks it shifts.
 function movePreview(target) {
-  const { preview, tile, position } = activeDrag;
-  if (!preview) return false;
-  const live = target?.at != null && target.indicator.matches('.timeline') && tile.classList.contains('timed');
-  preview.classList.toggle('drag-preview', !live);
-  preview.classList.toggle('drag-live', live);
-  const copying = Boolean(activeDrag.copying) && !activeDrag.source.copy;
+  const drag = activeDrag;
+  const { preview, tile, position, source } = drag;
+  if (!preview) return;
+  for (const { el, minute, start, until } of drag.shifted ?? []) {
+    el.style.setProperty('--minute', minute);
+    setTileTime(el, start, until);
+    el.classList.remove('drag-shifted');
+  }
+  drag.shifted = [];
+  drag.landing?.remove();
+  drag.landing = null;
+  if (position) {
+    // On touch the copy sits above the finger so the insertion line stays visible.
+    const { clientX: x, clientY: y } = position;
+    Object.assign(preview.style, drag.touch
+      ? { left: `${x - drag.width / 2}px`, top: `${y - drag.height - 36}px` }
+      : { left: `${x + 12}px`, top: `${y + 12}px` });
+  }
+  const live = Boolean(target?.smart && target.indicator.matches('.timeline'));
+  const copying = live ? target.copy : Boolean(drag.copying) && !source.copy;
   tile.classList.toggle('drag-hidden', live && !copying);
   tile.classList.toggle('dragging', !copying);
-  if (live) {
-    const start = planMinutes(target.at);
-    if (preview.parentElement !== target.indicator) target.indicator.append(preview);
-    Object.assign(preview.style, { left: '', top: '', width: '', height: '' });
-    preview.style.setProperty('--minute', start - Number(target.indicator.dataset.from));
-    const fit = dropFit(activeDrag.source, target, copying);
-    const duration = fit?.duration ?? activeDrag.length;
-    preview.style.setProperty('--duration', duration);
-    preview.classList.toggle('fit-blocked', !fit);
-    preview.querySelector('.tile-title').textContent = !fit ? 'Needs more room'
-      : fit.duration < fit.original ? `${duration} of ${fit.original} min · ${activeDrag.source.block.text}` : activeDrag.source.block.text;
-    const time = preview.querySelector('.tile-time');
-    if (time) {
-      time.firstChild.textContent = clock12(start);
-      time.querySelector('.tile-end').textContent = `–${clock12(start + duration)}`;
-    }
-  } else {
-    preview.classList.remove('fit-blocked');
-    const title = preview.querySelector('.tile-title');
-    if (title) title.textContent = activeDrag.source.block.text;
-    if (preview.parentElement !== document.body) document.body.append(preview);
-    Object.assign(preview.style, { width: `${activeDrag.width}px`, height: `${activeDrag.height}px` });
-    if (position) Object.assign(preview.style, { left: `${position.clientX + 10}px`, top: `${position.clientY + 10}px` });
+  if (!live) return;
+  const timeline = target.indicator;
+  const from = Number(timeline.dataset.from);
+  const { fit } = target;
+  const start = planMinutes(target.at);
+  const landing = renderTile(source.block, target.date);
+  delete landing.dataset.id;
+  landing.tabIndex = -1;
+  landing.setAttribute('aria-hidden', 'true');
+  timeTile(landing, start, start + (fit?.duration ?? drag.length), from);
+  landing.classList.add('drag-live');
+  landing.classList.toggle('fit-blocked', !fit);
+  landing.querySelector('.tile-title').textContent = !fit ? 'Needs more room'
+    : fit.duration < fit.original ? `${fit.duration} of ${fit.original} min · ${source.block.text}` : source.block.text;
+  timeline.append(landing);
+  drag.landing = landing;
+  for (const item of fit?.timed ?? []) {
+    const el = timeline.querySelector(`.tile.timed[data-id="${CSS.escape(item.id)}"]:not(.ghost)`);
+    if (!el || Number(el.dataset.start) === item.start) continue;
+    drag.shifted.push({ el, minute: el.style.getPropertyValue('--minute'), start: Number(el.dataset.start), until: Number(el.dataset.until) });
+    el.style.setProperty('--minute', item.start - from);
+    setTileTime(el, item.start, item.until);
+    el.classList.add('drag-shifted');
   }
-  return live;
 }
 
 // Times are free to the minute, but land on a nearby edge (another block's start or
@@ -2165,9 +2199,7 @@ function tileBottomEdgeAt(event) {
 function previewResize(drag, { start, until }) {
   drag.tile.style.setProperty('--minute', start - Number(drag.timeline.dataset.from));
   drag.tile.style.setProperty('--duration', until - start);
-  const time = drag.tile.querySelector('.tile-time');
-  time.firstChild.textContent = clock12(start);
-  time.querySelector('.tile-end').textContent = `–${clock12(until)}`;
+  setTileTime(drag.tile, start, until);
 }
 
 function startDrag(event) {
@@ -2196,7 +2228,7 @@ function startDrag(event) {
   const source = blockSource(tile);
   if (!source?.block) return;
   activeDrag = { tile, source, pointer: event.pointerId, x: event.clientX, y: event.clientY, moved: false,
-    length: blockDuration(source.block) };
+    length: blockDuration(source.block), touch: event.pointerType === 'touch' };
   const timeline = tile.classList.contains('timed') && tile.closest('.timeline');
   if (timeline) {
     activeDrag.length = Number(tile.dataset.until) - Number(tile.dataset.start);
@@ -2235,7 +2267,9 @@ function moveDrag(event) {
     preview.classList.add('drag-preview');
     preview.setAttribute('aria-hidden', 'true');
     preview.tabIndex = -1;
-    Object.assign(activeDrag, { width: bounds.width, height: bounds.height });
+    // Kept small so it reads as a handle, not a second copy of the arrangement.
+    Object.assign(activeDrag, { width: Math.min(bounds.width, 200), height: Math.min(bounds.height, 44) });
+    Object.assign(preview.style, { width: `${activeDrag.width}px`, height: `${activeDrag.height}px` });
     document.body.append(preview);
     activeDrag.preview = preview;
     activeDrag.tile.classList.add('dragging');
@@ -2257,6 +2291,9 @@ function dragModifierChanged(event) {
   showDropTarget(plannerDropTarget(activeDrag.position, activeDrag.source));
 }
 document.addEventListener('keydown', dragModifierChanged);
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && activeDrag) endDrag({ type: 'cancel', pointerId: activeDrag.pointer });
+});
 document.addEventListener('keyup', dragModifierChanged);
 
 function scrollDuringDrag() {
@@ -2304,15 +2341,20 @@ function endDrag(event) {
     return;
   }
   const { tile, source, moved, preview } = activeDrag;
-  // Work out the drop while the drag (and its grab offset) is still live.
-  const target = moved && event.type === 'pointerup' ? plannerDropTarget(event, source) : null;
+  // Release applies exactly what was previewed; anything else cancels and restores the view.
+  const target = moved && event.type === 'pointerup' ? activeDrag.target : null;
   showDropTarget(null);
   activeDrag = null;
   preview?.remove();
   tile.classList.remove('dragging', 'drag-hidden');
+  if (moved) {
+    // Swallow the click that follows the release, even after an Escape mid-drag.
+    tile.dataset.dragged = 'true';
+    const clear = () => setTimeout(() => delete tile.dataset.dragged, 0);
+    if (event.type === 'pointerup') clear();
+    else window.addEventListener('pointerup', clear, { once: true });
+  }
   if (!moved || event.type !== 'pointerup') return;
-  tile.dataset.dragged = 'true';
-  setTimeout(() => delete tile.dataset.dragged, 0);
   if (target?.moveTo) {
     if (source.parked) {
       plan.tray = plan.tray.filter((block) => block.id !== source.block.id);
@@ -2323,7 +2365,7 @@ function endDrag(event) {
     return;
   }
   // Shift or Ctrl while dropping copies a planned or parked block instead of moving it.
-  const copy = (event.shiftKey || event.ctrlKey) && !source.copy;
+  const copy = target?.copy ?? ((event.shiftKey || event.ctrlKey) && !source.copy);
   const error = target && moveBlock(source, target, {}, { copy });
   if (!error && target?.indicator?.matches('[data-tab-day]')) selectDay(target.date);
   if (error) {

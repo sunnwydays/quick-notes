@@ -250,19 +250,22 @@ button:disabled { opacity: .55; cursor: default; }
 .tile.dragging { opacity: .45; }
 .board.resizing, .board.resizing .tile, .board.resizing .timeline,
 .timeline.resizing, .timeline.resizing .tile { cursor: ns-resize; }
+/* The pointer copy: small, tilted and translucent so the arrangement below stays readable. */
 .tile.drag-preview {
-  position: fixed; inset: auto; z-index: 10; pointer-events: none;
-  box-shadow: 0 5px 14px #24485a44; transform: rotate(-2deg) scale(1.04);
+  position: fixed; inset: auto; z-index: 20; pointer-events: none; opacity: .85;
+  box-shadow: 0 5px 14px #24485a44; transform: rotate(-2deg);
   transition: none; overflow: hidden;
 }
-.tile.drag-live { z-index: 10; pointer-events: none; box-shadow: 0 5px 14px #24485a44; transition: none; }
+.tile.drag-preview .tile-time { display: none; }
+/* Where the block lands, and the blocks it shifts, previewed on the timeline. */
+.tile.drag-live { z-index: 10; pointer-events: none; outline: 2px solid #387fa6; outline-offset: -2px; transition: none; }
+.tile.drag-shifted { transition: top 120ms ease-out; }
 .tile.drag-hidden { visibility: hidden; }
 .tray.drop-target, .tray-box.drop-target, .shelf.drop-target { outline: 2px dashed #387fa6; outline-offset: -3px; }
 .tile.drop-target { border-top: 3px dashed #387fa6; }
-.tile.drop-after { border-top: 1px solid #172e431c; border-bottom: 3px dashed #387fa6; }
-.timeline.drop-target::after {
-  content: ''; position: absolute; inset-inline: .28rem;
-  top: calc(var(--drop-minute) * var(--minute-height)); border-top: 2px dashed #387fa6;
+.timeline.drop-line::after {
+  content: ''; position: absolute; z-index: 11; inset-inline: .1rem; height: 3px; border-radius: 2px;
+  top: calc(var(--drop-minute) * var(--minute-height) - 2px); background: #387fa6;
   pointer-events: none;
 }
 @keyframes invalid-drop {
@@ -417,7 +420,7 @@ label.choice:has(input:checked) { border-color: #5b8aa6; background: #eef6fb; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tile, .meter-fill { transition: none; }
+  .tile, .tile.drag-shifted, .meter-fill { transition: none; }
   .invalid-drop { animation-duration: 1ms; }
 }
 

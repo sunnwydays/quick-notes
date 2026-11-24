@@ -281,17 +281,40 @@ function minimumSession(original) {
   return Math.ceil(original * 7 / 10);
 }
 
-// Resolve the grab offset and the break before validating a timeline drop.
+// What a pointer picks on a timeline, hit-testing the stack as it was when the drag began:
+// the upper half of a block means before it, the lower half after it, open time keeps `time`.
+function timelineDropPlace(stack, pointer, time) {
+  const under = stack.find(item => pointer >= item.start && pointer < item.until);
+  if (!under) return { at: time };
+  return pointer < (under.start + under.until) / 2 ? { before: under.id } : { after: under.id };
+}
+
+// Where the dragged block starts for a place: after a block means after its break; before a
+// block means as close above it as fits, else right after the block before it.
+function timelineDropStart(stack, block, place, earliest = 0) {
+  if (place.at != null) return place.at;
+  const index = stack.findIndex(item => item.id === (place.before ?? place.after));
+  if (index < 0) return null;
+  const target = stack[index];
+  if (place.after) return Math.max(earliest, target.until + gapBetween(target, block));
+  const length = block.originalDuration ?? blockDuration(block);
+  const previous = stack[index - 1];
+  return Math.max(earliest, previous ? previous.until + gapBetween(previous, block) : earliest,
+    target.start - length - gapBetween(block, target, length));
+}
+
+// The whole arrangement one timeline drop produces, always from the original stack:
+// the dropped block's slot plus every other block's time (`timed`), or null if it can't fit.
+function arrangeTimelineDrop(stack, block, place, earliest = 0, skipBreak = false) {
+  const start = timelineDropStart(stack, block, place, earliest);
+  const fit = start == null ? null : fitTimelineDrop(stack, block, start, skipBreak);
+  return fit && { start, until: start + fit.duration, ...fit };
+}
+
+// Open time keeps the dropped time, apart from landing inside a break or just over the next block.
 function snapTimelineDrop(stack, block, pointer, time, earliest) {
   const length = block.originalDuration ?? blockDuration(block);
   const before = next => next.start - length - gapBetween(block, next, length);
-  const under = stack.find(item => pointer >= item.start && pointer < item.until);
-  if (under) {
-    if (pointer >= (under.start + under.until) / 2) return under.until + gapBetween(under, block);
-    if ((under.pinned || under.actualStart != null) && time < under.until && under.start < time + length) return before(under);
-    return time;
-  }
-
   const previous = stack.findLast(item => item.until <= pointer);
   if (previous) {
     const after = previous.until + gapBetween(previous, block);
@@ -580,6 +603,6 @@ function insertPopup(day, popup, minute) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { snapTimelineDrop, resizeWindow, fitResize, resizeDayBlock, fitTimelineDrop, fullOpening, foldTail, layoutDay, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, toggleBlockPin, suggestGhosts,
+  module.exports = { snapTimelineDrop, timelineDropPlace, timelineDropStart, arrangeTimelineDrop, resizeWindow, fitResize, resizeDayBlock, fitTimelineDrop, fullOpening, foldTail, layoutDay, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, toggleBlockPin, suggestGhosts,
     insertPopup, restackBeforeScreensOff };
 }
