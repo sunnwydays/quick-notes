@@ -14,7 +14,7 @@ Live: https://dash-notes.vercel.app
 - A folder's name or a word for it goes there and is removed: `bring blender` → `- blender` in Bring. Words, including Gboard mishearings, are in `FOLDER_WORDS` in `autofile.js`.
 - A project's own name works too.
 - `I think …` / `I feel …` → Thought, `today was …` → Journal, keeping the words (`FOLDER_CUES`).
-- `now call the dentist` or `asap call the dentist` → Todo as `now: call the dentist`. The planner offers it under **Now…**.
+- `now call the dentist` or `asap call the dentist` → Todo as `now: call the dentist`. The planner offers it under **Fit in now**.
 - Anything else → Todo. Schedule is never picked.
 
 **Home screen:** built-in categories are circles in a "flower" round **Add note**; projects sit above them. Icons are SVG so they stay sharp on e-ink. Under the header are a few unscheduled to-dos (newest, then the oldest with its age) and today's schedule (the block on now in black). Hold a to-do or schedule line to tick it (`HOLD_TO_DONE_MS`). The document icon opens **Transfer** and the calendar icon opens the **Week planner**. The ☰ menu holds **New project**, **Export**, **Help** and **Log in**. Help's text lives in `index.html`, so update it when behaviour changes.
@@ -52,7 +52,7 @@ Open the **calendar icon** in Dash's home header. Drag a Todo onto a day's **Unt
 
 - Deleting, shrinking, or renaming a block leaves the surrounding schedule in place. A pin stays attached when you drag its block to another time or day. Clear **Pin** in the editor to release it. For timeline drops, see [Rescheduling a block](#rescheduling-a-block).
 - Dashed blocks are suggestions. The planner checks the day's shelf first, then the week tray. It stays below 75% load and respects goal budgets. Click a ghost to schedule it. Old Todos prompt you to split off a first step, and days with at least ten parked AI tutor ideas show a drift badge.
-- **Now…** fits an interruption into today. Up to 15 minutes uses a gap, free time, or a buffer. Longer interruptions restack the day and return bumped blocks to the tray.
+- **Fit in now** fits an interruption into today. Up to 15 minutes uses a gap, free time, or a buffer. Longer interruptions restack the day and return bumped blocks to the tray.
 - **Review today** shows the day's blocks with Dash's marks. The week header counts finished blocks that are still unmarked. Apply **NEXT** on a project block to carry the text into the next timed block for that goal.
 - On a phone or Boox (under 700px wide) the planner shows the tray beside one day. Switch days with the tabs, or drop a block on a tab to move it to that day. Tap **Goals** to show the goal chips.
 - The planner saves itself a second after each change, writing changed days as normal Schedule notes (no save button). Log in on both devices to see the plan on your phone or Boox.
