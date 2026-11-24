@@ -1704,8 +1704,8 @@ function renderDay(key,{ blocks, bumped }, load, from, until, ghosts) {
   const menu = element('div', 'day-menu');
   menu.setAttribute('role', 'menu');
   menu.hidden = true;
-  const info = [day.wake?.replace(/^0(?=\d:)/, ''), day.template].filter(Boolean).join(' ');
-  if (info) menu.append(element('p', 'day-info', info));
+  if (day.wake) menu.append(element('p', 'day-info', `Wake ${day.wake.replace(/^0(?=\d:)/, '')}`));
+  if (day.template) menu.append(element('p', 'day-info', day.template));
   const menuItem = (text, action) => {
     const item = plannerButton(text, () => { closeDayMenus(); action(); });
     item.setAttribute('role', 'menuitem');
