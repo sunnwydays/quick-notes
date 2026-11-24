@@ -86,7 +86,7 @@
       <li><b>Replace</b> (the two arrows next to Delete) deletes a note and opens the text box for a new one, for ticking off a task and writing the next. Todo, Journal, Thought, Bring, Working on and Back burner don't have it.</li>
       <li>Tap the document icon to open <b>Transfer</b>, which has three blank text boxes for copying text between computers. Paste into one, then open it on the other computer and tap <b>Copy</b>. Bookmark <b>/#transfer/1</b>, <b>/#transfer/2</b> or <b>/#transfer/3</b> to open a box directly. They sync when you're logged in, and stay until you <b>Clear</b> them.</li>
       <li>In <b>Schedule</b>, paste a plan or type one line per block, like <i>9:00-11:30 Foosball</i>. A heading like <i>Mon</i> starts a day's schedule. Use ‹ › or swipe to change days. <b>New</b> and <b>Edit</b> save versions you can see under <b>All saved</b>. Tap <b>Skip</b> beside an upcoming block to mark it <i>Skipped</i>, and tap its icon to clear that mark.</li>
-      <li>Use <b>Woke at…</b> after a late start. Tap <b>Ran over…</b> for the current or most recently started block, or hold a specific block's box. Enter the actual end time and an optional reason to record the mark and retime today's remaining work. Fixed commitments stay in place. Start a handwritten block title with <i>Fixed:</i> to keep its time.</li>
+      <li>Use <b>Woke at…</b> after a late start. Tap <b>Ran over…</b> for the current or most recently started block, or hold a specific block's icon. Enter the actual end time and an optional reason to record the mark and retime today's remaining work. Fixed commitments stay in place. Start a handwritten block title with <i>Fixed:</i> to keep its time.</li>
       <li>In <b>Todo</b>, to-dos already on a planner day sit under <b>Scheduled</b> with their day and time, and the home screen shows only the unscheduled ones.</li>
       <li>In the <b>Week planner</b>, drag a Todo onto an <b>To do</b> shelf or into a timeline, or tap a dashed suggestion to accept it. It leaves the planner's To Do while it's on a day, but the original stays in Dash's Todo. Renaming, deleting or ticking (in the block editor) a scheduled block does the same to its Todo. Click a day's name for <b>Template…</b> to pick, edit or create a day template (a blank one lets you add your own events), or <b>Routine</b> to pick a template for each day of the week, or click a goal to set its weekly hours. Dropping or stretching a block onto others pushes them (and whatever follows) down, skipping pinned blocks, which never move unless you drag them (and dragging keeps the pin; only the block editor's Pin box removes it); deleting or shrinking one leaves a gap instead of pulling the rest up. The planner saves to your Schedule by itself a second after each change, and items you add there also go into Todo.</li>
       <li>Drop a block just above another to finish before it with the required break. Routines, meals and buffers can touch the blocks on either side. Other sessions get 5 minutes afterward if under 35 minutes, or 10 minutes if 35 minutes or longer. A tight drop can shorten a session to 70% of its original length. If it cannot fit, choose a highlighted opening or skip the outgoing break when offered.</li>
@@ -174,6 +174,18 @@
     <span id="undo-msg"></span>
     <button id="undo-btn">Undo</button>
   </div>
+
+  <dialog id="over-dialog" aria-labelledby="over-title">
+    <form id="over-form" method="dialog">
+      <h2 id="over-title"></h2>
+      <label>Ended at <input name="time" type="time"></label>
+      <label>Reason <input name="reason" placeholder="Optional" autocomplete="off"></label>
+      <div class="actions">
+        <button type="submit" value="ok" class="primary">OK</button>
+        <button type="submit" value="cancel" formnovalidate>Cancel</button>
+      </div>
+    </form>
+  </dialog>
 
   <script src="data.js"></script>
   <script src="views.js"></script>

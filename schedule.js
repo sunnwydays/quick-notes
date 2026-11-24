@@ -472,25 +472,31 @@ function cycleMark(day, b) {
   addMark(day, b, { status: mark && mark.status === 'skipped' ? 'cleared' : 'skipped' });
 }
 
-// One prompt for both: "11:40 chatted with coach". It starts at the time it's
-// being marked if that's past the block's end (so the usual case is just OK),
-// else at the end. A time without am/pm is read as after the block's start. No
-// time at the start makes the whole line the reason.
+// A small dialog (index.html) for the end time and an optional reason. The time
+// starts at when it's being marked if that's past the block's end (so the usual
+// case is just OK), else at the end. The planner page has no such dialog.
 function markOver(day, b, scheduleId = null) {
+  const dialog = document.getElementById('over-dialog');
+  if (!dialog || dialog.open) return;
   const now = new Date();
   const nowMin = day === dayKey(now) ? now.getHours() * 60 + now.getMinutes() : -1;
-  const answer = prompt(`Ran over · ${b.lines.find(Boolean) || clock(b.start)}\nEnter the end time and an optional reason.`,
-    `${clock(Math.min(Math.max(nowMin, b.until), DAY_END - 1))} `);
-  if (answer == null) return;
-  const s = answer.trim();
-  const t = readTime(s);
-  const fields = {
-    status: 'over',
-    endedAt: t ? blockKey(Math.min(minutes(t, b.start), DAY_END - 1)) : null,
-    reason: (t ? s.slice(t.length) : s).replace(/^[\s,:;–—-]+/, ''),
-  };
-  if (scheduleId && day === dayKey(now) && fields.endedAt) restackSavedSchedule(day, scheduleId, { over: b, fields });
-  else addMark(day, b, fields);
+  const form = $('over-form');
+  $('over-title').textContent = `Ran over · ${b.lines.find(Boolean) || clock(b.start)}`;
+  form.elements.time.value = blockKey(Math.min(Math.max(nowMin, b.until), DAY_END - 1));
+  form.elements.reason.value = '';
+  dialog.returnValue = '';
+  dialog.addEventListener('close', () => {
+    if (dialog.returnValue !== 'ok') return;
+    const time = form.elements.time.value;
+    const fields = {
+      status: 'over',
+      endedAt: time ? blockKey(Math.min(keyMinutes(time), DAY_END - 1)) : null,
+      reason: form.elements.reason.value.trim(),
+    };
+    if (scheduleId && day === dayKey(new Date()) && fields.endedAt) restackSavedSchedule(day, scheduleId, { over: b, fields });
+    else addMark(day, b, fields);
+  }, { once: true });
+  dialog.showModal();
 }
 
 function markLabel(mark) {

@@ -321,6 +321,15 @@ input {
 }
 #login p { margin: 12px 0 0; }
 
+/* The ran-over dialog (schedule.js markOver). */
+#over-dialog { width: min(92vw, 420px); padding: 16px; color: #000; background: #fff; border: 2px solid #000; border-radius: 12px; }
+#over-dialog::backdrop { background: rgba(0, 0, 0, .5); }
+#over-form { margin: 0; }
+#over-form h2 { margin: 0; font-size: 20px; overflow-wrap: anywhere; }
+#over-form label { display: flex; flex-direction: column; gap: 4px; font-weight: 700; }
+#over-form .actions { display: flex; gap: 8px; }
+#over-form .actions button { flex: 1; }
+
 /* Phones: home and login sit at the bottom of the display so everything is in thumb reach,
    except the sync row, which stays at the top of the home screen.
    The notes list reads from the top, with the title (and Add and Back on its right) pinned to the bottom of the
