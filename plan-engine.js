@@ -281,6 +281,30 @@ function minimumSession(original) {
   return Math.ceil(original * 7 / 10);
 }
 
+// Resolve the grab offset and the break before validating a timeline drop.
+function snapTimelineDrop(stack, block, pointer, time, earliest) {
+  const length = block.originalDuration ?? blockDuration(block);
+  const before = next => next.start - length - gapBetween(block, next, length);
+  const under = stack.find(item => pointer >= item.start && pointer < item.until);
+  if (under) {
+    if (pointer >= (under.start + under.until) / 2) return under.until + gapBetween(under, block);
+    if ((under.pinned || under.actualStart != null) && time < under.until && under.start < time + length) return before(under);
+    return time;
+  }
+
+  const previous = stack.findLast(item => item.until <= pointer);
+  if (previous) {
+    const after = previous.until + gapBetween(previous, block);
+    if (time >= previous.start && time < after) return after;
+  }
+  const next = stack.find(item => item.start > pointer && item.start >= time);
+  if (next && time > before(next)) {
+    const start = before(next);
+    if (start >= earliest && fitTimelineDrop(stack, block, start)?.duration === length) return start;
+  }
+  return time;
+}
+
 // An intentional timeline drop can move flexible work, but pins and recorded time hold.
 function fitTimelineDrop(stack, block, start, skipBreak = false) {
   const original = block.originalDuration ?? blockDuration(block);
@@ -556,6 +580,6 @@ function insertPopup(day, popup, minute) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { resizeWindow, fitResize, resizeDayBlock, fitTimelineDrop, fullOpening, foldTail, layoutDay, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, toggleBlockPin, suggestGhosts,
+  module.exports = { snapTimelineDrop, resizeWindow, fitResize, resizeDayBlock, fitTimelineDrop, fullOpening, foldTail, layoutDay, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, toggleBlockPin, suggestGhosts,
     insertPopup, restackBeforeScreensOff };
 }

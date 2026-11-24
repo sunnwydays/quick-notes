@@ -1917,28 +1917,13 @@ function plannerDropTarget(event, source) {
   const stack = dropStack(source, date, copy);
   const length = source.block.originalDuration ?? blockDuration(source.block);
   const dragged = { ...source.block, skipBreak: false };
-  const startBefore = next => next.start - length - gapBetween(dragged, next, length);
   const pointer = timelineMinute(slot, event.clientY, { round: (minute) => minute });
   const edges = movingEdges(timelineEdges(slot, source.block.id), length);
   let time = timelineMinute(slot, event.clientY, { edges, offset: activeDrag?.grab ?? 0 });
   const highlight = under.closest('[data-opening]');
   const matchesSource = dropChoices?.source?.block.id === source.block.id && dropChoices.copy === copy;
-  const pin = stack.find(item => (item.pinned || item.actualStart != null) && pointer >= item.start && pointer < item.until);
   if (highlight && matchesSource) time = Number(highlight.dataset.opening);
-  else if (pin && time < pin.until && pin.start < time + length) {
-    time = pointer >= (pin.start + pin.until) / 2 ? pin.until + gapBetween(pin, dragged)
-      : startBefore(pin);
-  }
-  if (!highlight && !pin) {
-    const previous = stack.find(item => (item.pinned || item.actualStart != null) && time >= item.start && time < item.until && pointer >= item.until);
-    if (previous) time = previous.until + gapBetween(previous, dragged);
-    // Dropping in open space just above a block means finishing before it, break included.
-    const next = stack.find(item => item.start > pointer && item.start >= time);
-    if (next && time > startBefore(next)) {
-      const start = startBefore(next);
-      if (start >= Number(slot.dataset.from) && fitTimelineDrop(stack, dragged, start)?.duration === length) time = start;
-    }
-  }
+  else time = snapTimelineDrop(stack, dragged, pointer, time, Number(slot.dataset.from));
   time = Math.max(Number(slot.dataset.from), Math.min(PLAN_END - 5, time));
   const before = stack.find((block) => block.start >= time);
   return { date, at: blockKey(time), before: before?.id, indicator: slot, smart: true, skipBreak: Boolean(highlight && matchesSource && highlight.dataset.skipBreak) };

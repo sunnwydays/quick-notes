@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { resizeWindow, fitResize, resizeDayBlock, fitTimelineDrop, fullOpening, foldTail, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, insertPopup, layoutDay, restackBeforeScreensOff, suggestGhosts, toggleBlockPin } from '../plan-engine.js';
+import { snapTimelineDrop, resizeWindow, fitResize, resizeDayBlock, fitTimelineDrop, fullOpening, foldTail, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, insertPopup, layoutDay, restackBeforeScreensOff, suggestGhosts, toggleBlockPin } from '../plan-engine.js';
 
 const block = (id, size, fields = {}) => ({ id, size, tier: 'medium', ...fields });
 const times = ({ blocks }) => blocks.map(({ id, start, until }) => [id, start, until]);
@@ -302,4 +302,19 @@ test('resizing can recover a saved overlap and grow upward at midnight', () => {
   assert.deepEqual(fitResize(resizeWindow(day, buffer.id), 70), { start: 1250, until: 1320 });
   const late = { blocks: [block('late', 25, { pinned: '23:35' })] };
   assert.deepEqual(fitResize(resizeWindow(late, 'late'), 60), { start: 1380, until: 1440 });
+});
+
+test('a drag near the bottom of Study 454 lands after its break regardless of the grab offset', () => {
+  const task = block('next study', 47);
+  for (const pinned of [null, '18:15']) {
+    const study = { ...block('Study 454', 75, { pinned }), start: 1095, until: 1170 };
+    const stack = [study, { ...block('later', 30, { pinned: '20:45' }), start: 1245, until: 1275 }];
+    for (const [pointer, top] of [[1155, 1151], [1169, 1170], [1172, 1151], [1177, 1172], [1170, 1170]]) {
+      const start = snapTimelineDrop(stack, task, pointer, top, 420);
+      assert.equal(start, 1180);
+      assert.equal(fitTimelineDrop(stack, task, start).duration, 47);
+    }
+    assert.equal(snapTimelineDrop(stack, task, 1188, 1185, 420), 1185);
+    assert.equal(snapTimelineDrop(stack, block('Dinner', 45, { kind: 'meal' }), 1155, 1151, 420), 1170);
+  }
 });
