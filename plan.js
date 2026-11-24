@@ -756,6 +756,20 @@ function quickReschedule(kind) {
   if (target.date) selectDay(target.date);
 }
 
+// Pinning or unpinning an existing timed item saves at once, so closing the editor keeps it.
+function savePinNow(event) {
+  const source = editedBlock;
+  const { date, shelf } = source?.target ?? {};
+  if (source.fresh || !date || shelf) return;
+  const pinned = event.target.checked ? source.start : null;
+  const updated = toggleBlockPin(plan.days[date], source.block.id, pinned);
+  if (!updated) return;
+  plan.days[date] = updated;
+  plan.dirtyDays.add(date);
+  source.block = { ...source.block, pinned };
+  markEdited();
+}
+
 function applyBlockEditor(event) {
   event.preventDefault();
   const fields = event.target.elements;
@@ -2676,6 +2690,7 @@ function startPlanner() {
   $('block-form').addEventListener('submit', applyBlockEditor);
   for (const input of document.querySelectorAll('input[data-scrub]')) initScrub(input);
   $('block-form').addEventListener('change', updateEditorFields);
+  $('block-form').elements.pin.addEventListener('change', savePinNow);
   $('block-form').elements.text.addEventListener('input', updateQuickHint);
   $('block-cancel').addEventListener('click', () => $('block-editor').close());
   for (const button of $('block-quick').querySelectorAll('[data-quick]')) {
