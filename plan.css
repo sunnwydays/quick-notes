@@ -76,7 +76,7 @@ button:disabled { opacity: .55; cursor: default; }
 }
 .board-scroll { min-height: 0; overflow: auto; border: 1px solid var(--line); border-radius: var(--radius); background: #f1f7fb; }
 #week {
-  display: grid;
+  position: relative; display: grid;
   grid-template-columns: 2.6rem repeat(7, minmax(125px, 1fr));
   grid-template-rows: auto auto auto auto;
   gap: 0;
@@ -144,6 +144,12 @@ button:disabled { opacity: .55; cursor: default; }
 .shelf.empty .shelf-title { margin: 0; }
 .shelf.empty .day-add { margin-top: 0; padding-block: 0; }
 .timeline { position: relative; height: calc(var(--minutes) * var(--minute-height) + .5rem); }
+.meal-connectors {
+  position: absolute; grid-area: 3 / 2 / 4 / -1; inset: 0;
+  width: 100%; height: 100%; z-index: 1; pointer-events: none;
+  stroke: #a48464; stroke-width: 2;
+}
+.board:has(.drag-live) .meal-connectors { visibility: hidden; }
 .before-wake {
   position: absolute; inset: 0 0 auto; height: calc(var(--duration) * var(--minute-height));
   background: #e1e4e7; border-bottom: 1px solid #aab2ba; cursor: not-allowed;
@@ -437,7 +443,7 @@ label.choice:has(input:checked) { border-color: #5b8aa6; background: #eef6fb; }
   .tray h3 { font-size: 1rem; }
   .tray-tile { font-size: .85rem; }
   .day { display: none; }
-  .time-gutter { display: none; }
+  .time-gutter, .meal-connectors { display: none; }
   .hour { inset-inline: 0; }
   .hour-label { display: inline; }
   .tile.timed { --tile-left: 2.6rem; }

@@ -53,6 +53,7 @@ let selectedDay;
 let dropChoices = null;
 let goalsOpen = false;
 let lastPointerType;
+let mealConnectorObserver;
 
 function schedulesForWeek(keys) {
   const latest = new Map();
@@ -1936,6 +1937,10 @@ function renderDay(key,{ blocks, bumped }, load, from, until, ghosts) {
   for (const block of blocks) {
     const tile = renderTile(block, key);
     Object.assign(tile.dataset, { start: block.start, until: block.until });
+    if (blockKind(block) === 'meal') {
+      const meal = /\b(lunch|dinner)\b/i.exec(block.text);
+      if (meal) tile.dataset.meal = meal[0].toLowerCase();
+    }
     tile.classList.toggle('late', afterDeadline(key, block));
     const time = timeTile(tile, block.start, block.until, from);
     if (block.actualUntil != null) time.append(element('span', 'over-badge', '↗'));
@@ -1954,6 +1959,49 @@ function renderDay(key,{ blocks, bumped }, load, from, until, ghosts) {
   for (const warning of dayWarnings(key, day, blocks)) footer.append(element('span', 'warning', warning));
   column.append(head, shelf, timeline, footer);
   return column;
+}
+
+function renderMealConnectors(week, columns) {
+  mealConnectorObserver?.disconnect();
+  const svgNamespace = 'http://www.w3.org/2000/svg';
+  const overlay = document.createElementNS(svgNamespace, 'svg');
+  const pairs = [];
+  for (const meal of ['lunch', 'dinner']) {
+    const tiles = columns.map((day) => day.querySelectorAll(`[data-meal="${meal}"]`));
+    for (let day = 1; day < tiles.length; day++) {
+      const left = tiles[day - 1];
+      const right = tiles[day];
+      for (let i = 0; i < Math.min(left.length, right.length); i++) {
+        const line = document.createElementNS(svgNamespace, 'line');
+        overlay.append(line);
+        pairs.push({ left: left[i], right: right[i], line });
+      }
+    }
+  }
+  if (!pairs.length) {
+    mealConnectorObserver = null;
+    return;
+  }
+  overlay.classList.add('meal-connectors');
+  overlay.setAttribute('aria-hidden', 'true');
+  week.prepend(overlay);
+  mealConnectorObserver = new ResizeObserver(() => {
+    const bounds = overlay.getBoundingClientRect();
+    if (!bounds.width) return;
+    for (const { left, right, line } of pairs) {
+      const start = left.getBoundingClientRect();
+      const end = right.getBoundingClientRect();
+      line.setAttribute('x1', start.right - bounds.left);
+      line.setAttribute('y1', start.top + start.height / 2 - bounds.top);
+      line.setAttribute('x2', end.left - bounds.left);
+      line.setAttribute('y2', end.top + end.height / 2 - bounds.top);
+    }
+  });
+  mealConnectorObserver.observe(overlay);
+  for (const { left, right } of pairs) {
+    mealConnectorObserver.observe(left);
+    mealConnectorObserver.observe(right);
+  }
 }
 
 function renderPlanner() {
@@ -2005,11 +2053,13 @@ function renderPlanner() {
     gutter.append(label);
   }
   renderTray();
-  $('week').replaceChildren(gutter, ...plan.keys.map((key, i) => {
+  const columns = plan.keys.map((key, i) => {
     const column = renderDay(key, layouts[i], loads[i], from, until, ghosts.filter((ghost) => ghost.key === key));
     column.classList.toggle('selected', key === selectedDay);
     return column;
-  }));
+  });
+  $('week').replaceChildren(gutter, ...columns);
+  renderMealConnectors($('week'), columns);
   $('week').querySelector('.day.selected').scrollTop = scroll;
   $('tray').querySelector('.tray-box').scrollTop = trayScroll;
   renderDropChoices();
