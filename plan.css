@@ -400,6 +400,8 @@ label.choice:has(input:checked) { border-color: #5b8aa6; background: #eef6fb; }
   .masthead .actions, .system-actions { display: contents; }
   .masthead { justify-content: flex-start; gap: .15rem .25rem; }
   .planner-title { gap: .3rem; margin-inline-end: auto; }
+  /* One header row on a phone: the tab already says it's the planner, and the crossed-out cloud says logged out. */
+  .planner-title h1, #sync-status .sync-login { display: none; }
   .masthead button { font-size: .85rem; }
   .masthead button:not(.icon) { padding: .3rem .5rem; }
   #sync-status svg { width: 20px; height: 20px; }
