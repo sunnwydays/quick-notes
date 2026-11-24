@@ -1363,6 +1363,9 @@ function applyTemplateEditor(event) {
 }
 
 function blockColour(block) {
+  // A goal's own colour wins over the kind colours, so assigning a goal always shows.
+  const goalFill = goalColour(block.goal);
+  if (goalFill) return goalFill;
   const kind = blockKind(block);
   const text = block.text || '';
   const routineCue = /^(?:wake|breakfast|walk outside|nap|screens off|wind down|bedtime|shower)\b/i;
@@ -1370,7 +1373,7 @@ function blockColour(block) {
   if (kind === 'routine' || kind === 'meal' || (!block.kind && routineCue.test(text))) return '#efd3b8';
   if (kind === 'free' || kind === 'buffer') return '#d6ecd0';
   // Blocks without a goal get a real neutral, so they don't read as greyed out like ghosts or late blocks.
-  return goalColour(block.goal) || '#dbe7f0';
+  return '#dbe7f0';
 }
 
 function carryProjectNext(days, today, minute) {
