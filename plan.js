@@ -1878,6 +1878,7 @@ function showNow() {
   for (const tile of $('week').querySelectorAll('.tile.timed[data-date]')) {
     const { date, start, until } = tile.dataset;
     tile.classList.toggle('current', date === today && Number(start) <= minute && minute < Number(until));
+    tile.classList.toggle('past', date < today || date === today && Number(until) <= minute);
   }
   const line = $('week').querySelector('.day.today .now-line');
   if (!line) return;

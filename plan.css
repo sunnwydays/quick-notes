@@ -169,7 +169,9 @@ button:disabled { opacity: .55; cursor: default; }
 }
 .now-line[hidden] { display: none; }
 .day.today .day-date { background: var(--now); color: #fff; border-radius: 999px; padding: 0 .4rem; }
-.tile.timed.current { filter: saturate(2.4); box-shadow: 0 0 0 2px var(--now); }
+.tile.timed.current { box-shadow: 0 0 0 2px var(--now); }
+/* Finished blocks fade back so what's on now and next stands out. */
+.tile.timed.past { opacity: .55; filter: saturate(.5); }
 .tile {
   position: relative; background: var(--tile-colour, #edf4fa); color: var(--ink);
   border: 1px solid #172e431c; border-bottom-width: 3px; border-radius: 9px;
