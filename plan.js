@@ -449,6 +449,8 @@ function moveBlock(source, target, changes = {}, { copy = false } = {}) {
   if (target.smart && !fit) return 'This session needs more room.';
   if (fit) block = { ...block, duration: fit.duration, originalDuration: fit.original, skipBreak: Boolean(target.skipBreak) };
   const placeAt = target.shelf ? null : fit ? fit.start : planMinutes(target.at) ?? planMinutes(block.pinned) ?? stay;
+  const wake = dayWake(day);
+  if ((target.at != null || !sameDay) && placeAt != null && placeAt < wake) return `Choose a time at or after ${clock12(wake)}.`;
   if (placeAt != null && placeAt + blockDuration(block) > DAY_END) return 'Choose a time that ends by midnight.';
   const probe = placeAt != null ? { ...block, pinned: blockKey(placeAt) } : block;
   const keepsActual = !copy && source.date === target.date && block.actualStart != null;
@@ -699,9 +701,8 @@ function updateEditorFields() {
   fields.pin.disabled = $('block-pin').hidden;
 }
 
-// The timeline's own start for a day, so a typed time clamps like a dropped one.
-function timelineFrom(date) {
-  return Number(document.querySelector(`[data-day="${date}"] .timeline`)?.dataset.from) || 0;
+function dayWake(day) {
+  return planMinutes(day.wake) ?? PLAN_START;
 }
 
 // What a timeline drop at `minute` looks like, the same arrangement a drag would make.
@@ -709,7 +710,7 @@ function timelineFrom(date) {
 function timelineMoveTarget(source, date, minute, pin = false) {
   const stack = dropStack(source, date, false);
   if (pin) return { date, shelf: false, at: blockKey(minute), pin: true, before: stack.find((b) => b.start >= minute)?.id };
-  const earliest = timelineFrom(date);
+  const earliest = dayWake(plan.days[date]);
   const place = { at: minute };
   const fit = arrangeTimelineDrop(stack, source.block, place, earliest, false);
   const start = Math.max(earliest, Math.min(PLAN_END - 5, fit?.start ?? timelineDropStart(stack, source.block, place, earliest)));
@@ -818,6 +819,11 @@ function applyBlockEditor(event) {
   const oldIndex = day?.blocks.findIndex((block) => block.id === original.id) ?? -1;
   let before = oldIndex < 0 ? undefined : day.blocks[oldIndex + 1]?.id;
   const minute = planMinutes(time);
+  const wake = day && dayWake(day);
+  if (timeChanged && minute < wake) {
+    showEditorError(`Choose a time at or after ${clock12(wake)}.`);
+    return;
+  }
   if (onTimeline && (pinChanged || timeChanged || oldIndex < 0)) {
     before = layoutDay(day).blocks.find((b) => b.id !== original.id && b.start >= minute)?.id;
   }
@@ -1879,8 +1885,10 @@ function renderDay(key,{ blocks, bumped }, load, from, until, ghosts) {
     shelf.append(tile);
   }
   const timeline = element('div', 'timeline');
+  const wake = dayWake(day);
   timeline.dataset.from = from;
   timeline.dataset.until = until;
+  timeline.dataset.wake = wake;
   const addUntimed = () => openBlockEditor({ fresh: true, block: planBlock(newId(), '') }, { date: key, shelf: true });
   const add = plannerButton('+', addUntimed, 'day-add');
   add.setAttribute('aria-label', `Add an untimed item for ${dayLabel(key)}`);
@@ -1890,6 +1898,12 @@ function renderDay(key,{ blocks, bumped }, load, from, until, ghosts) {
     if (!event.target.closest('button')) addUntimed();
   });
   timeline.style.setProperty('--minutes', until - from);
+  if (wake > from) {
+    const shade = element('div', 'before-wake');
+    shade.style.setProperty('--duration', wake - from);
+    shade.title = `Unavailable until ${clock12(wake)}`;
+    timeline.append(shade);
+  }
   for (let hour = from; hour < until; hour += 60) {
     const line = element('span', 'hour');
     line.append(element('span', 'hour-label', clock12(hour).replace(':00', '')));
@@ -1935,8 +1949,9 @@ function renderPlanner() {
   refreshReviewStatus();
   refreshReviewRows();
   const all = layouts.flatMap((layout) => layout.blocks);
-  const from = Math.floor(Math.min(PLAN_START, ...all.map((b) => b.start)) / 60) * 60;
-  const until = Math.ceil(Math.max(DEFAULT_TIMELINE_END, ...all.map((b) => b.until)) / 60) * 60;
+  const wakes = plan.keys.map((key) => dayWake(plan.days[key]));
+  const from = Math.floor(Math.min(PLAN_START, ...wakes, ...all.map((b) => b.start)) / 60) * 60;
+  const until = Math.ceil(Math.max(DEFAULT_TIMELINE_END, Math.max(...wakes) + 1, ...all.map((b) => b.until)) / 60) * 60;
   const goals = plannerGoals();
   const parked = new Set(plan.tray.map((block) => block.todoId));
   const todos = entriesFor('Todo').filter((entry) => !parked.has(entry.id)).map((entry) => trayTodo(entry, goals));
@@ -2063,12 +2078,14 @@ function plannerDropTarget(event, source) {
     if (tile && date === source.date && tile.dataset.id === source.block.id) return null;
     return { date, shelf: true, before: tile?.dataset.id, indicator: slot };
   }
+  const earliest = Number(slot.dataset.wake);
+  const pointer = timelineMinute(slot, event.clientY, { round: (minute) => minute });
+  if (pointer < earliest) return null;
   // Hit-test the day as saved (previews only move tiles on screen), so the target
   // doesn't flip while blocks slide. Over a block, its upper half means before it and
   // its lower half after it; in open time the block's top follows the pointer.
   const copy = Boolean(activeDrag?.copying) && !source.copy;
   const stack = dropStack(source, date, copy);
-  const earliest = Number(slot.dataset.from);
   const clamp = (minute) => Math.max(earliest, Math.min(PLAN_END - 5, minute));
   const highlight = under.closest('[data-opening]');
   const matchesSource = dropChoices?.source?.block.id === source.block.id && dropChoices.copy === copy;
@@ -2077,7 +2094,6 @@ function plannerDropTarget(event, source) {
   if (highlight && matchesSource) place = { at: Number(highlight.dataset.opening) };
   else {
     const length = source.block.originalDuration ?? blockDuration(source.block);
-    const pointer = timelineMinute(slot, event.clientY, { round: (minute) => minute });
     const edges = movingEdges(timelineEdges(slot, source.block.id), length);
     const time = timelineMinute(slot, event.clientY, { edges, offset: activeDrag?.grab ?? 0 });
     place = timelineDropPlace(stack, pointer, time);
@@ -2300,7 +2316,7 @@ function movingEdges(edges, length) {
 
 // Press on an empty part of a day and drag to sketch a new item, like a calendar.
 function draftRange({ anchor, current }) {
-  return current > anchor ? [anchor, current] : [current, anchor + 15];
+  return current > anchor ? [anchor, current] : [current, Math.min(PLAN_END, anchor + 15)];
 }
 
 function openDraft(date, start, duration) {
@@ -2308,26 +2324,32 @@ function openDraft(date, start, duration) {
   openBlockEditor({ fresh: true, block: planBlock(newId(), '', fields) }, { date, at: blockKey(start) });
 }
 
+function draftStart(timeline, clientY, edges) {
+  const minute = timelineMinute(timeline, clientY, { round: Math.floor, edges });
+  return Math.max(Number(timeline.dataset.wake), Math.min(minute, PLAN_END - 15));
+}
+
 function startDraft(event) {
   const timeline = event.target.closest('.timeline');
-  if (!timeline || event.target.closest('.tile') || event.pointerType === 'touch') return;
+  if (!timeline || event.target.closest('.tile, .before-wake') || event.pointerType === 'touch') return;
   event.preventDefault();
   const edges = timelineEdges(timeline);
-  const anchor = Math.min(timelineMinute(timeline, event.clientY, { round: Math.floor, edges }), PLAN_END - 15);
+  const anchor = draftStart(timeline, event.clientY, edges);
   const preview = element('div', 'tile timed draft');
   activeDrag = { draft: true, timeline, preview, edges, anchor, current: anchor, pointer: event.pointerId, y: event.clientY, moved: false };
 }
 
 function moveDraft(event) {
   if (!activeDrag.moved && Math.abs(event.clientY - activeDrag.y) < 6) return;
-  if (!activeDrag.moved) activeDrag.timeline.append(activeDrag.preview);
+  const { timeline, preview, edges } = activeDrag;
+  if (!activeDrag.moved) timeline.append(preview);
   activeDrag.moved = true;
-  activeDrag.current = Math.min(timelineMinute(activeDrag.timeline, event.clientY, { edges: activeDrag.edges }), PLAN_END);
+  activeDrag.current = Math.max(Number(timeline.dataset.wake), Math.min(timelineMinute(timeline, event.clientY, { edges }), PLAN_END));
   const [start, end] = draftRange(activeDrag);
-  const from = Number(activeDrag.timeline.dataset.from);
-  activeDrag.preview.style.setProperty('--minute', start - from);
-  activeDrag.preview.style.setProperty('--duration', end - start);
-  activeDrag.preview.textContent = `${clock12(start)}–${clock12(end)}`;
+  const from = Number(timeline.dataset.from);
+  preview.style.setProperty('--minute', start - from);
+  preview.style.setProperty('--duration', end - start);
+  preview.textContent = `${clock12(start)}–${clock12(end)}`;
 }
 
 function endDraft(event) {
@@ -2797,8 +2819,8 @@ function startPlanner() {
     if (Date.now() - daySwipedAt < 400) return;
     const timeline = event.target.closest('.timeline');
     // Phones scroll on a drag, so a tap on an empty part of a day adds an item there.
-    if (lastPointerType === 'touch' && timeline && !event.target.closest('.tile')) {
-      openDraft(timeline.closest('[data-day]').dataset.day, Math.min(timelineMinute(timeline, event.clientY, { round: Math.floor, edges: timelineEdges(timeline) }), PLAN_END - 15));
+    if (lastPointerType === 'touch' && timeline && !event.target.closest('.tile, .before-wake')) {
+      openDraft(timeline.closest('[data-day]').dataset.day, draftStart(timeline, event.clientY, timelineEdges(timeline)));
       return;
     }
     const tile = event.target.closest('.tile[data-id]');

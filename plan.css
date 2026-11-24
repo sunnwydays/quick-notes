@@ -144,6 +144,10 @@ button:disabled { opacity: .55; cursor: default; }
 .shelf.empty .shelf-title { margin: 0; }
 .shelf.empty .day-add { margin-top: 0; padding-block: 0; }
 .timeline { position: relative; height: calc(var(--minutes) * var(--minute-height) + .5rem); }
+.before-wake {
+  position: absolute; inset: 0 0 auto; height: calc(var(--duration) * var(--minute-height));
+  background: #e1e4e7; border-bottom: 1px solid #aab2ba; cursor: not-allowed;
+}
 .hour, .timed { position: absolute; top: calc(var(--minute) * var(--minute-height)); }
 .hour {
   inset-inline: 0; border-top: 1px solid #dfe8ee; color: var(--muted);
