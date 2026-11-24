@@ -82,13 +82,13 @@ function placeBlocks(day, stack) {
 
 // Pinned positions are reservations. Remove the lowest-priority work and lay
 // out again until the flexible work fits. Shelf blocks never enter the stack.
-function layoutDay(day) {
+function layoutDay(day, restacking = false) {
   if (day.pinLayout) {
     const byId = new Map(day.blocks.map((block) => [block.id, block]));
     return {
       blocks: day.pinLayout.blocks.filter(({ id }) => byId.has(id))
         .map(({ id, start, until }) => ({ ...byId.get(id), start, until })),
-      bumped: day.pinLayout.bumped.filter((id) => byId.has(id)).map((id) => byId.get(id)),
+      bumped: day.pinLayout.bumped.map((id) => byId.get(id)).filter((block) => block && !block.shelf),
     };
   }
   if (day.imported) {
@@ -100,25 +100,26 @@ function layoutDay(day) {
     };
   }
   const wake = planMinutes(day.wake) ?? PLAN_START;
-  const cutoff = day.workEnd ?? PLAN_END;
+  const cutoffFor = (block) => restacking ? restackCutoff(day, block) : day.workEnd ?? PLAN_END;
   let stack = day.blocks.filter((block) => !block.shelf);
   const overruns = stack.filter((block) => block.actualUntil != null);
   const canBump = (block) => block.tier !== 'fixed' && block.actualStart == null && block.restackStart == null;
   const bumped = stack.filter((block) => {
     const pin = planMinutes(block.pinned);
     return canBump(block) && pin !== null && (pin < Math.max(wake, day.workStart ?? 0) ||
-      pin + blockDuration(block) > cutoff ||
+      pin + blockDuration(block) > cutoffFor(block) ||
       overruns.some((actual) => pin < actual.actualUntil && pin + blockDuration(block) > actual.actualStart));
   });
   stack = stack.filter((block) => !bumped.includes(block));
   let blocks = placeBlocks(day, stack);
   for (;;) {
     const future = blocks.filter(canBump);
-    const overflow = future.some((block) => block.until > cutoff);
+    const overflow = future.some((block) => block.until > cutoffFor(block));
     const work = future.filter(workBlock);
     const pastWork = blocks.filter((block) => !canBump(block) && workBlock(block)).length;
     if (!overflow && (!work.length || work.length + pastWork <= (day.workCap ?? Infinity))) break;
-    const candidates = overflow ? future : work;
+    const candidates = overflow ? future.filter((block) =>
+      !restacking || blockKind(block) !== 'routine' || block.until > cutoffFor(block)) : work;
     const lowest = candidates.reduce((a, b) => PLAN_TIERS.indexOf(a.tier) < PLAN_TIERS.indexOf(b.tier) ? a : b);
     const removed = stack.find((block) => block.id === lowest.id);
     bumped.push(removed);
@@ -140,39 +141,62 @@ function applyOverrun(day, id, endedAt) {
   return { day: editDay(day, blocks, true), timed };
 }
 
+function restackCutoff(day, block) {
+  return blockKind(block) === 'routine' ? PLAN_END : Math.min(day.workEnd ?? SCREENS_OFF, SCREENS_OFF);
+}
+
 // Only push what the later wake actually overlaps; blocks already after it
 // stay put unless the pushed blocks run into them.
 function applyWake(day, wake) {
-  const layout = layoutDay(day).blocks;
-  const cutoff = Math.min(day.workEnd ?? SCREENS_OFF, SCREENS_OFF);
+  const { blocks: timed, bumped: alreadyBumped } = layoutDay(day);
   const isAnchor = (block) => block.tier === 'fixed' || block.pinned || block.actualStart != null;
-  const anchors = layout.filter(isAnchor);
+  const anchors = timed.filter(isAnchor);
   let previous = null;
   const earliest = Math.max((planMinutes(wake) ?? PLAN_START) + (day.startOffset ?? 0), day.workStart ?? 0);
   const kept = [];
-  for (const block of layout) {
+  const bumped = [...alreadyBumped];
+  const bufferLengths = new Map();
+  for (const block of timed) {
     if (isAnchor(block)) {
       kept.push(block);
       continue;
     }
     const duration = block.until - block.start;
     let start = Math.max(block.start, earliest, previous ? previous.until + gapBetween(previous, block) : 0);
+    if (start === block.start) {
+      kept.push(block);
+      previous = null;
+      continue;
+    }
+    const kind = blockKind(block);
+    if (kind === 'buffer' || kind === 'free') {
+      const remaining = Math.max(0, block.until - start);
+      bufferLengths.set(block.id, remaining);
+      if (remaining) kept.push({ ...block, start });
+      if (start <= block.until) previous = null;
+      continue;
+    }
     for (const anchor of anchors) {
       if (start >= anchor.until + gapBetween(anchor, block)) continue;
       if (start + duration <= anchor.start) break;
       start = anchor.until + gapBetween(anchor, block);
     }
-    // Leave overflow untimed so the restack can bump it.
-    if (start + duration > cutoff) continue;
-    kept.push({ ...block, start, until: start + duration });
-    previous = kept[kept.length - 1];
+    if (start + duration > restackCutoff(day, block)) {
+      bumped.push(block);
+      continue;
+    }
+    previous = { ...block, start, until: start + duration };
+    kept.push(previous);
   }
-  const blocks = day.blocks.map((block) => ({ ...block, restackStart: undefined, restackUntil: undefined }));
-  return editDay({ ...day, wake }, lockRestackTimes(blocks, kept), true);
+  const blocks = day.blocks.filter((block) => bufferLengths.get(block.id) !== 0).map((block) =>
+    bufferLengths.has(block.id) ? { ...unlocked(block), duration: bufferLengths.get(block.id) } : unlocked(block));
+  kept.sort((a, b) => a.start - b.start);
+  const edited = editDay({ ...day, wake }, lockRestackTimes(blocks, kept), true);
+  return keepDayTimes(edited, edited.blocks, kept, bumped);
 }
 
 function restackBeforeScreensOff(day) {
-  const { blocks, bumped } = layoutDay({ ...day, workEnd: Math.min(day.workEnd ?? SCREENS_OFF, SCREENS_OFF) });
+  const { blocks, bumped } = layoutDay(day, true);
   return keepDayTimes(day, day.blocks, blocks, bumped);
 }
 

@@ -192,7 +192,7 @@ test('a late wake keeps fixed commitments through screens-off and bumps flexible
     block('low', 60, { importedStart: 1225, tier: 'low' }),
     block('screens off', 60, { importedStart: 1320, tier: 'fixed', pinned: '22:00' }),
   ] };
-  const result = layoutDay(restackBeforeScreensOff(applyWake(day, '20:45')));
+  const result = layoutDay(applyWake(day, '20:45'));
   assert.deepEqual(times(result), [['fixed meeting', 1140, 1170], ['must', 1245, 1290], ['screens off', 1320, 1380]]);
   assert.deepEqual(result.bumped.map(({ id }) => id), ['low']);
 });
@@ -203,8 +203,81 @@ test('a later wake only pushes blocks it overlaps', () => {
     block('next', 30, { restackStart: 530, restackUntil: 560 }),
     block('later', 60, { restackStart: 720, restackUntil: 780 }),
   ] };
-  const result = layoutDay(restackBeforeScreensOff(applyWake(day, '08:15')));
+  const result = layoutDay(applyWake(day, '08:15'));
   assert.deepEqual(times(result), [['early', 495, 525], ['next', 530, 560], ['later', 720, 780]]);
+});
+
+test('starting at the first block keeps the displayed day, including the evening routine', () => {
+  const day = { wake: '09:00', imported: true, blocks: [
+    block('first', 30, { importedStart: 555 }),
+    block('back to back', 30, { importedStart: 585 }),
+    block('event', 60, { importedStart: 829, pinned: '13:49' }),
+    block('screens off', 60, { importedStart: 1320, text: 'Screens off · read, walk or paper' }),
+  ] };
+  const changed = applyWake(day, '09:15');
+  assert.equal(changed.wake, '09:15');
+  assert.deepEqual(times(layoutDay(changed)), times(layoutDay(day)));
+  assert.deepEqual(layoutDay(changed).bumped, []);
+});
+
+test('a later wake fills the morning gap and leaves the rest of the displayed day alone', () => {
+  const day = { wake: '09:00', imported: true, blocks: [
+    block('first', 30, { importedStart: 540 }),
+    block('second', 30, { importedStart: 575 }),
+    block('after gap', 30, { importedStart: 660 }),
+    block('back to back', 30, { importedStart: 690 }),
+    block('screens off', 60, { importedStart: 1320 }),
+  ] };
+  const result = layoutDay(applyWake(day, '09:15'));
+  assert.deepEqual(times(result), [
+    ['first', 555, 585], ['second', 590, 620], ['after gap', 660, 690],
+    ['back to back', 690, 720], ['screens off', 1320, 1380],
+  ]);
+  assert.deepEqual(result.bumped, []);
+});
+
+test('a later wake uses only the needed minutes of an unpinned buffer', () => {
+  const day = { wake: '09:00', imported: true, blocks: [
+    block('first', 30, { importedStart: 540 }),
+    block('buffer', 30, { importedStart: 570, kind: 'buffer' }),
+    block('next', 30, { importedStart: 600 }),
+  ] };
+  const result = layoutDay(applyWake(day, '09:15'));
+  assert.deepEqual(times(result), [['first', 555, 585], ['buffer', 585, 600], ['next', 600, 630]]);
+  assert.deepEqual(result.bumped, []);
+  const consumed = applyWake(day, '09:30');
+  assert.deepEqual(times(layoutDay(consumed)), [['first', 570, 600], ['next', 600, 630]]);
+  assert.equal(consumed.blocks.some(({ id }) => id === 'buffer'), false);
+  assert.deepEqual(times(layoutDay(applyWake(day, '09:35'))), [['first', 575, 605], ['next', 610, 640]]);
+});
+
+test('a pushed routine can move past screens-off', () => {
+  const day = { wake: '22:00', blocks: [
+    block('screens off', 60, { restackStart: 1320, text: 'Screens off · read, walk or paper' }),
+  ] };
+  const result = layoutDay(applyWake(day, '22:15'));
+  assert.deepEqual(times(result), [['screens off', 1335, 1395]]);
+  assert.deepEqual(result.bumped, []);
+});
+
+test('an overrun can bump late work while preserving the evening routine', () => {
+  const day = { wake: '21:00', blocks: [
+    block('running', 30),
+    block('work', 30, { tier: 'must' }),
+    block('screens off', 60, { pinned: '22:30', kind: 'routine', tier: 'low' }),
+  ] };
+  const overrun = applyOverrun(day, 'running', 1305);
+  const result = layoutDay(restackBeforeScreensOff(overrun.day));
+  assert.deepEqual(times(result), [['running', 1260, 1305], ['screens off', 1350, 1410]]);
+  assert.deepEqual(result.bumped.map(({ id }) => id), ['work']);
+});
+
+test('a bumped block already stored on the shelf is not listed as a second bump', () => {
+  const day = {
+    blocks: [block('screens off', 60, { shelf: true, bumped: true })],
+    pinLayout: { blocks: [], bumped: ['screens off'] },
+  };
+  assert.deepEqual(layoutDay(day).bumped, []);
 });
 
 test('a short interruption uses only the time it needs from a pinned buffer', () => {

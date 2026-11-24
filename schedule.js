@@ -297,7 +297,7 @@ function restackSavedSchedule(key, expectedId, { wake, over, fields }) {
   const currentPlan = value.sources?.[key] === entry.id && Array.isArray(previous?.blocks);
   const day = currentPlan && !previous.imported ? previous : pinScheduleCommitments(
     currentPlan ? previous : dayFromSchedule(entry), currentPlan ? null : previous);
-  let changed;
+  let restacked;
   if (over) {
     const timed = layoutDay(day).blocks.find((block) => block.start === over.start);
     const result = timed && applyOverrun(day, timed.id, planMinutes(fields.endedAt));
@@ -305,11 +305,10 @@ function restackSavedSchedule(key, expectedId, { wake, over, fields }) {
       alert('Choose an end time after the block started.');
       return;
     }
-    changed = result.day;
+    restacked = restackBeforeScreensOff(result.day);
   } else {
-    changed = applyWake(day, wake);
+    restacked = applyWake(day, wake);
   }
-  const restacked = restackBeforeScreensOff(changed);
   const { bumped } = layoutDay(restacked);
   const bumpedIds = new Set(bumped.map((block) => block.id));
   restacked.blocks = restacked.blocks.map((block) => bumpedIds.has(block.id)

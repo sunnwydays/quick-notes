@@ -1667,7 +1667,7 @@ function applyRestack(event) {
   const day = plan.days[key];
   const time = fields.time.value;
   if (id == null) {
-    storeDay(key, restackBeforeScreensOff(applyWake(day, time)));
+    storeDay(key, applyWake(day, time));
   } else {
     const result = applyOverrun(day, id, planMinutes(time));
     if (!result) {
