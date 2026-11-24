@@ -1250,7 +1250,8 @@ function blockColour(block) {
   if (kind === 'study' || (!block.kind && STUDY_SUBJECT.test(text))) return '#e7ddfa';
   if (kind === 'routine' || kind === 'meal' || (!block.kind && routineCue.test(text))) return '#fbe5d5';
   if (kind === 'free' || kind === 'buffer') return '#e9f6e6';
-  return goalColour(block.goal) || '#f6f8fa';
+  // Blocks without a goal get a real neutral, so they don't read as greyed out like ghosts or late blocks.
+  return goalColour(block.goal) || '#dbe7f0';
 }
 
 function carryProjectNext(days, today, minute) {
