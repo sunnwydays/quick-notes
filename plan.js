@@ -1659,6 +1659,8 @@ function renderTray() {
     tray.append(tile);
   }
   $('tray').replaceChildren(tray, someday);
+  // On a phone an empty To Do shrinks to a strip so the day gets the width.
+  document.querySelector('.board').classList.toggle('tray-empty', !tray.querySelector('.tile'));
 }
 
 function lengthLabel(minutes) {

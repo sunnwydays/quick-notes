@@ -423,6 +423,8 @@ label.choice:has(input:checked) { border-color: #5b8aa6; background: #eef6fb; }
   .day-tab[aria-pressed="true"] .day-tab-date { color: #fff; }
   .day-tab.drop-target { outline: 2px dashed #387fa6; outline-offset: 1px; }
   .board { grid-template-columns: minmax(0, 36fr) minmax(0, 64fr); gap: .35rem; }
+  .board.tray-empty:not(:has(.someday[open])) { grid-template-columns: 4.8rem minmax(0, 1fr); }
+  .board.tray-empty .tray-box[data-tray] > p.muted { display: none; }
   .board-scroll { overflow: hidden; }
   #week { height: 100%; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
   .tray { overflow: hidden; }
