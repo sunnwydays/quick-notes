@@ -105,8 +105,10 @@ button:disabled { opacity: .55; cursor: default; }
   border: 0; background: none; padding: .15rem .25rem; margin: -.15rem -.25rem; width: calc(100% + .5rem); border-radius: 8px;
 }
 .day-menu-toggle:hover, .day-menu-toggle[aria-expanded="true"] { background: #eef6fb; }
-.day-name { display: flex; gap: .25rem; justify-content: space-between; align-items: baseline; }
-.day-menu-toggle .day-info { display: block; }
+.day-name { display: flex; gap: .25rem; align-items: baseline; }
+.day-name .day-date { margin-inline-start: auto; }
+.day-arrow { font-size: .7rem; color: var(--muted); }
+.day-menu .day-info { margin: 0; padding: .2rem .5rem; }
 .day-menu {
   position: absolute; z-index: 5; left: -.2rem; top: calc(100% + .2rem); display: grid; gap: .2rem; min-width: 8rem;
   padding: .3rem; background: #fff; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 6px 18px #26465e2e;

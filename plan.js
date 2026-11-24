@@ -1696,12 +1696,16 @@ function renderDay(key,{ blocks, bumped }, load, from, until, ghosts) {
   toggle.title = 'Day options';
   const name = element('span', 'day-name', date.toLocaleDateString(undefined, { weekday: 'short' }));
   name.append(element('span', 'day-date', date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })));
-  const info = [day.wake?.replace(/^0(?=\d:)/, ''), day.template].filter(Boolean);
-  toggle.append(name, element('span', 'day-info', `${info.join(' ')} ▾`));
+  const arrow = element('span', 'day-arrow', '▾');
+  arrow.setAttribute('aria-hidden', 'true');
+  name.append(arrow);
+  toggle.append(name);
   heading.append(toggle);
   const menu = element('div', 'day-menu');
   menu.setAttribute('role', 'menu');
   menu.hidden = true;
+  const info = [day.wake?.replace(/^0(?=\d:)/, ''), day.template].filter(Boolean).join(' ');
+  if (info) menu.append(element('p', 'day-info', info));
   const menuItem = (text, action) => {
     const item = plannerButton(text, () => { closeDayMenus(); action(); });
     item.setAttribute('role', 'menuitem');
@@ -1713,7 +1717,7 @@ function renderDay(key,{ blocks, bumped }, load, from, until, ghosts) {
   head.append(title);
   if (changedInDash(key)) head.append(element('span', 'warning', 'Changed on phone'));
   const events = blocks.filter((block) => block.pinned && (block.kind === 'event' || block.tier === 'fixed' && !block.templateAnchor));
-  for (const event of events) head.append(element('p', 'day-info day-event', `★ ${event.pinned} ${event.text}`));
+  for (const event of events) head.append(element('p', 'day-info day-event', event.text));
   const dayActions = element('div', 'day-actions');
   if (recoverySuggested(key) && !day.template) dayActions.append(plannerButton('Recovery?', () => openTemplateEditor(key), 'day-action'));
   if (dayActions.children.length) head.append(dayActions);
