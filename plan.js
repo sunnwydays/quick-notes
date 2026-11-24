@@ -1717,7 +1717,10 @@ function renderDay(key,{ blocks, bumped }, load, from, until, ghosts) {
   head.append(title);
   if (changedInDash(key)) head.append(element('span', 'warning', 'Changed on phone'));
   const events = blocks.filter((block) => block.pinned && (block.kind === 'event' || block.tier === 'fixed' && !block.templateAnchor));
-  for (const event of events) head.append(element('p', 'day-info day-event', event.text));
+  for (const event of events) {
+    const time = clock12(event.pinned).replace(':00', '');
+    head.append(element('p', 'day-info day-event', `${time} ${event.text}`));
+  }
   const dayActions = element('div', 'day-actions');
   if (recoverySuggested(key) && !day.template) dayActions.append(plannerButton('Recovery?', () => openTemplateEditor(key), 'day-action'));
   if (dayActions.children.length) head.append(dayActions);
