@@ -108,13 +108,22 @@ button:disabled { opacity: .55; cursor: default; }
 .day-name { display: flex; gap: .25rem; align-items: baseline; }
 .day-name .day-date { margin-inline-start: auto; }
 .day-arrow { font-size: .7rem; color: var(--muted); }
-.day-menu .day-info { margin: 0; padding: .2rem .5rem; }
 .day-menu {
-  position: absolute; z-index: 5; left: -.2rem; top: calc(100% + .2rem); display: grid; gap: .2rem; min-width: 8rem;
+  position: absolute; z-index: 5; left: -.2rem; top: calc(100% + .2rem); display: grid; gap: .2rem; width: 11rem;
   padding: .3rem; background: #fff; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 6px 18px #26465e2e;
 }
-.day-menu button { text-align: left; border: 0; padding: .35rem .5rem; font-size: .88rem; }
-.day-menu button:hover { background: #eef6fb; }
+.day-menu button {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-content: center; gap: .08rem .65rem;
+  min-height: 44px; padding: .4rem .55rem; border: 0; border-radius: 6px; text-align: left;
+  font-size: .9rem; line-height: 1.2; overflow-wrap: anywhere;
+}
+.day-option-label { font-size: .75rem; color: var(--muted); }
+.day-menu button strong { grid-column: 1; }
+.day-menu button::after {
+  content: ''; grid-area: 1 / 2 / span 2; align-self: center;
+  width: .35rem; height: .35rem; border: solid var(--muted); border-width: 1.5px 1.5px 0 0; transform: rotate(45deg);
+}
+.day-menu button:is(:hover, :focus-visible) { background: #eef6fb; }
 .day-date, .day-info { font-size: .75rem; font-weight: normal; color: var(--muted); }
 .day-info { margin-top: .2rem; }
 .day-event, .tile-title { font-weight: 600; }
@@ -403,6 +412,7 @@ label.choice:has(input:checked) { border-color: #5b8aa6; background: #eef6fb; }
   .gap, .now-line { inset-inline-start: 2.6rem; }
   .day.selected { border-inline-end: 1px solid var(--line); display: block; grid-row: 1; overflow-y: auto; overscroll-behavior: contain; }
   .day-head h3 { font-size: 1.05rem; }
+  .day-menu { max-width: calc(100% + .4rem); }
 }
 
 @media (prefers-reduced-motion: reduce) {

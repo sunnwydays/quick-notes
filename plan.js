@@ -1717,14 +1717,16 @@ function renderDay(key,{ blocks, bumped }, load, from, until, ghosts) {
   const menu = element('div', 'day-menu');
   menu.setAttribute('role', 'menu');
   menu.hidden = true;
-  if (day.wake) menu.append(element('p', 'day-info', `Wake ${day.wake.replace(/^0(?=\d:)/, '')}`));
-  if (day.template) menu.append(element('p', 'day-info', day.template));
-  const menuItem = (text, action) => {
-    const item = plannerButton(text, () => { closeDayMenus(); action(); });
+  const menuItem = (label, value, action) => {
+    const item = plannerButton('', () => { closeDayMenus(); action(); });
     item.setAttribute('role', 'menuitem');
+    item.append(element('span', 'day-option-label', label), element('strong', '', value));
     return item;
   };
-  menu.append(menuItem('Template…', () => openTemplateEditor(key)), menuItem('Woke at…', () => openRestack(key)));
+  menu.append(
+    menuItem('Template', day.template || 'Choose template', () => openTemplateEditor(key)),
+    menuItem('Woke at', day.wake?.replace(/^0(?=\d:)/, '') || 'Set time', () => openRestack(key))
+  );
   const title = element('div', 'day-title');
   title.append(heading, menu);
   head.append(title);
