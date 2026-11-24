@@ -193,7 +193,6 @@ function saveWeek({ ask = true } = {}) {
     $('plan-status').textContent = 'Could not save. Device storage is full or unavailable.';
     return;
   }
-  const count = notes.filter((entry) => entry.category === SCHEDULE).length;
   // Keep the open week (and its Undo history) instead of reopening it from the saved notes.
   Object.assign(plan, { days, sources, schedules: schedulesForWeek(plan.keys), savedDates: new Set(plan.keys),
     version: weekNote?.id ?? plan.version, goalVersion: goalNote?.id ?? goalVersion?.entry.id ?? null,
@@ -201,7 +200,7 @@ function saveWeek({ ask = true } = {}) {
   plan.dirtyDays.clear();
   plan.scheduleDirty.clear();
   if (!activeDrag) renderPlanner();
-  $('plan-status').textContent = count ? `Saved ${count} ${count === 1 ? 'day' : 'days'} to Dash.` : 'Saved.';
+  $('plan-status').textContent = '';
   sync();
   return true;
 }
@@ -211,7 +210,6 @@ let autosaveTimer = null;
 
 function queueAutosave() {
   clearTimeout(autosaveTimer);
-  $('plan-status').textContent = 'Saving…';
   autosaveTimer = setTimeout(autosave, AUTOSAVE_MS);
 }
 

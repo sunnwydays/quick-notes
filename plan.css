@@ -54,6 +54,7 @@ button:disabled { opacity: .55; cursor: default; }
 
 .muted { color: var(--muted); font-size: .875rem; }
 .week-overview { display: flex; align-items: center; gap: .2rem .75rem; flex-wrap: wrap; margin-bottom: .35rem; }
+#plan-status:empty { display: none; }
 #goals { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
 .goal-chip {
   font-size: .875rem;
