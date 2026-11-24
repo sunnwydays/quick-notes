@@ -416,7 +416,7 @@ function moveBlock(source, target, changes = {}, { copy = false } = {}) {
     return '';
   }
   const day = plan.days[target.date];
-  const blocks = source.date === target.date && !copy ? remaining : [...day.blocks];
+  let blocks = source.date === target.date && !copy ? remaining : [...day.blocks];
   // A block that is placed or (un)pinned starts fresh: its old actual times no longer apply.
   const moved = !target.shelf && (target.at != null || target.pin != null);
   let block;
@@ -451,6 +451,11 @@ function moveBlock(source, target, changes = {}, { copy = false } = {}) {
   const probe = placeAt != null ? { ...block, pinned: blockKey(placeAt) } : block;
   const keepsActual = !copy && source.date === target.date && block.actualStart != null;
   if (!keepsActual && pinCollision(probe, blocks)) return 'That time overlaps another pinned block.';
+  if (fit) {
+    // Buffers the drop ate into shrink to what's left of them, or go away.
+    blocks = blocks.filter((item) => !fit.removed.includes(item.id))
+      .map((item) => item.id in fit.resized ? { ...item, duration: fit.resized[item.id] } : item);
+  }
   const index = blocks.findIndex((item) => item.id === target.before);
   blocks.splice(index < 0 ? blocks.length : index, 0, block);
   if (origin && source.date !== target.date && !copy) removeFromDay(source.date, old.id);
@@ -2185,10 +2190,11 @@ function movePreview(target) {
   const drag = activeDrag;
   const { preview, tile, position, source } = drag;
   if (!preview) return;
-  for (const { el, minute, start, until } of drag.shifted ?? []) {
+  for (const { el, minute, length, start, until } of drag.shifted ?? []) {
     el.style.setProperty('--minute', minute);
+    el.style.setProperty('--duration', length);
     setTileTime(el, start, until);
-    el.classList.remove('drag-shifted');
+    el.classList.remove('drag-shifted', 'drag-hidden');
   }
   drag.shifted = [];
   drag.landing?.remove();
@@ -2220,13 +2226,23 @@ function movePreview(target) {
     : fit.duration < fit.original ? `${fit.duration} of ${fit.original} min · ${source.block.text}` : source.block.text;
   timeline.append(landing);
   drag.landing = landing;
+  const tileFor = (id) => timeline.querySelector(`.tile.timed[data-id="${CSS.escape(id)}"]:not(.ghost)`);
+  const remember = (el) => drag.shifted.push({ el, minute: el.style.getPropertyValue('--minute'),
+    length: el.style.getPropertyValue('--duration'), start: Number(el.dataset.start), until: Number(el.dataset.until) });
   for (const item of fit?.timed ?? []) {
-    const el = timeline.querySelector(`.tile.timed[data-id="${CSS.escape(item.id)}"]:not(.ghost)`);
-    if (!el || Number(el.dataset.start) === item.start) continue;
-    drag.shifted.push({ el, minute: el.style.getPropertyValue('--minute'), start: Number(el.dataset.start), until: Number(el.dataset.until) });
+    const el = tileFor(item.id);
+    if (!el || (Number(el.dataset.start) === item.start && Number(el.dataset.until) === item.until)) continue;
+    remember(el);
     el.style.setProperty('--minute', item.start - from);
+    el.style.setProperty('--duration', item.until - item.start);
     setTileTime(el, item.start, item.until);
     el.classList.add('drag-shifted');
+  }
+  for (const id of fit?.removed ?? []) {
+    const el = tileFor(id);
+    if (!el) continue;
+    remember(el);
+    el.classList.add('drag-hidden');
   }
 }
 

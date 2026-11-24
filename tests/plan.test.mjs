@@ -401,3 +401,30 @@ test('automatic kind spots exercise and travel from the name, and ignores retire
   assert.equal(kind('Welding', { kind: 'event' }), '');
   assert.equal(kind('Go + settle', { kind: 'prep' }), 'travel');
 });
+
+test('a drop eats into the buffer after it instead of pushing later blocks', () => {
+  const stack = [
+    { ...block('345', 60, { kind: 'study' }), start: 1165, until: 1225 },
+    { ...block('buffer', 90, { kind: 'buffer' }), start: 1230, until: 1320 },
+    { ...block('shower', 60, { kind: 'routine' }), start: 1320, until: 1380 },
+  ];
+  const fit = fitTimelineDrop(stack, block('302', 45, { kind: 'study' }), 1235);
+  assert.equal(fit.duration, 45);
+  assert.deepEqual(fit.resized, { buffer: 40 });
+  assert.deepEqual(fit.timed.find((item) => item.id === 'shower'), stack[2]);
+  const gone = fitTimelineDrop([stack[0], { ...stack[1], until: 1290 }, { ...stack[2], start: 1290, until: 1350 }],
+    block('302', 45, { kind: 'study' }), 1235);
+  assert.deepEqual(gone.removed, ['buffer']);
+  assert.equal(gone.timed.find((item) => item.id === 'shower').start, 1290);
+});
+
+test('a drop never pushes the last block past where the day ends', () => {
+  const stack = [
+    { ...block('345', 60, { kind: 'study' }), start: 1165, until: 1225 },
+    { ...block('shower', 60, { kind: 'routine' }), start: 1340, until: 1400 },
+  ];
+  const short = fitTimelineDrop(stack, block('302', 120, { kind: 'study' }), 1235);
+  assert.equal(short.duration, 105);
+  assert.deepEqual(short.timed.find((item) => item.id === 'shower'), stack[1]);
+  assert.equal(fitTimelineDrop(stack, block('302', 180, { kind: 'study' }), 1235), null);
+});

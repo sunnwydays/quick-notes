@@ -375,6 +375,8 @@ function snapTimelineDrop(stack, block, pointer, time, earliest) {
 }
 
 // An intentional timeline drop can move flexible work, but pins and recorded time hold.
+// Buffer and free time absorb the push (shrinking, or going away under 15 minutes), and the
+// day never ends later than it already does (or 11 PM): the dropped block shortens to fit instead.
 function fitTimelineDrop(stack, block, start, skipBreak = false) {
   const original = block.originalDuration ?? blockDuration(block);
   const held = stack.filter(item => item.pinned || item.actualStart != null);
@@ -388,34 +390,52 @@ function fitTimelineDrop(stack, block, start, skipBreak = false) {
     // At 35 minutes the outgoing break changes, so check both sides of the boundary.
     while (duration > 0 && duration + gapBetween(candidate, next, duration) > room) duration--;
   }
-  if (duration < minimumSession(original) || start + duration > PLAN_END) return null;
+  if (start + duration > PLAN_END) duration = PLAN_END - start;
   const preceding = stack.findLast(item => item.until <= start);
   if (preceding && preceding.until + gapBetween(preceding, block) > start) return null;
+  const bedtime = Math.min(PLAN_END, Math.max(DEFAULT_TIMELINE_END, ...stack.map(item => item.until)));
 
-  let previous = { ...candidate, start, until: start + duration };
-  const timed = [];
-  for (const [index, item] of stack.entries()) {
-    const cursor = previous.until + gapBetween(previous, item);
-    if (item.start >= cursor) {
-      timed.push(...stack.slice(index));
-      break;
+  const cascade = (length) => {
+    let previous = { ...candidate, start, until: start + length };
+    const timed = [];
+    const resized = {};
+    const removed = [];
+    for (const [index, item] of stack.entries()) {
+      const cursor = previous.until + gapBetween(previous, item);
+      if (item.start >= cursor) {
+        timed.push(...stack.slice(index));
+        break;
+      }
+      if (held.includes(item) || item.until <= start) {
+        timed.push(item);
+        continue;
+      }
+      if (['buffer', 'free'].includes(blockKind(item))) {
+        if (item.until - cursor >= 15) {
+          previous = { ...item, start: cursor, until: item.until };
+          resized[item.id] = item.until - cursor;
+          timed.push(previous);
+        } else removed.push(item.id);
+        continue;
+      }
+      const span = item.until - item.start;
+      let from = cursor;
+      for (const anchor of held) {
+        if (from >= anchor.until + gapBetween(anchor, item)) continue;
+        if (from + span + gapBetween(item, anchor) <= anchor.start) break;
+        from = anchor.until + gapBetween(anchor, item);
+      }
+      if (from + span > bedtime) return null;
+      previous = { ...item, start: from, until: from + span };
+      timed.push(previous);
     }
-    if (held.includes(item) || item.until <= start) {
-      timed.push(item);
-      continue;
-    }
-    const length = item.until - item.start;
-    let from = cursor;
-    for (const anchor of held) {
-      if (from >= anchor.until + gapBetween(anchor, item)) continue;
-      if (from + length + gapBetween(item, anchor) <= anchor.start) break;
-      from = anchor.until + gapBetween(anchor, item);
-    }
-    if (from + length > PLAN_END) return null;
-    previous = { ...item, start: from, until: from + length };
-    timed.push(previous);
+    return { duration: length, original, timed, resized, removed };
+  };
+  for (let length = duration; length >= minimumSession(original); length--) {
+    const fit = cascade(length);
+    if (fit) return fit;
   }
-  return { duration, original, timed };
+  return null;
 }
 
 // Return the closest full-length opening in a day without moving any other work.
