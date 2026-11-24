@@ -1937,7 +1937,7 @@ function offerDropChoices(source, target, copy) {
     options.push({ target: { date, at: blockKey(start), smart: true }, duration,
       label: `${dayLabel(date, false)} · ${clock12(start)}–${clock12(start + duration)}` });
   }
-  dropChoices = { week: plan, source, copy, options };
+  dropChoices = { week: plan, source, copy, options, offeredAt: performance.now() };
   renderDropChoices();
 }
 
@@ -1981,6 +1981,8 @@ function renderDropChoices() {
       const timeline = $('week').querySelector(`[data-day="${target.date}"] .timeline`);
       const start = planMinutes(target.at);
       const marker = plannerButton('', choose, 'tile fit-opening');
+      // Keep rebuilt markers in phase when switching days or autosaving.
+      marker.style.animationDelay = `${dropChoices.offeredAt - performance.now()}ms`;
       marker.dataset.opening = start;
       if (target.skipBreak) marker.dataset.skipBreak = 'true';
       marker.append(element('span', 'tile-title', target.skipBreak ? 'Skip break' : `${duration} min available`));
