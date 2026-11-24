@@ -75,7 +75,7 @@ function openPlannerWeek() {
     const schedule = schedules.get(date);
     const stored = saved?.value.days?.[date];
     const day = Array.isArray(stored?.blocks)
-      ? { ...stored, blocks: stored.blocks.filter((block) => !tickedOff(block)).map(foldTail) } : stored;
+      ? { ...stored, blocks: stored.blocks.filter((block) => !tickedOff(block)).map(foldTail).map(dropStaleFixed) } : stored;
     days[date] = Array.isArray(day?.blocks) ? day : dayFromSchedule(schedule);
     // Older imports treated every written time range as a pin.
     if (day?.imported && !day.pinLayout && Array.isArray(day.blocks) && day.blocks.some((block) => block.pinned)) {
@@ -426,7 +426,7 @@ function moveBlock(source, target, changes = {}, { copy = false } = {}) {
   else {
     const { actualStart, actualUntil, restackStart, restackUntil, ...fresh } = changed;
     const pinned = target.pin ?? planMinutes(changed.pinned) != null;
-    block = { ...fresh, shelf: false, pinned: pinned ? target.at ?? changed.pinned : null };
+    block = dropStaleFixed({ ...fresh, shelf: false, pinned: pinned ? target.at ?? changed.pinned : null });
     // Unpinning without a new time leaves the block where it was.
     if (sameDay && target.at == null) stay = restackStart ?? planMinutes(changed.pinned);
   }

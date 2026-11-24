@@ -36,6 +36,11 @@ function foldTail(block) {
   return block.duration != null ? { ...rest, duration: length } : { ...rest, size: length };
 }
 
+// The fixed tier only holds a block because of its pin, so an unpinned block can't stay fixed.
+function dropStaleFixed(block) {
+  return block.tier === 'fixed' && planMinutes(block.pinned) == null ? { ...block, tier: 'medium' } : block;
+}
+
 const BREAK_EXEMPT_KINDS = ['routine', 'meal', 'buffer'];
 
 function gapBetween(block, next, duration = block.start != null && block.until != null ? block.until - block.start : blockDuration(block)) {
@@ -191,7 +196,7 @@ function toggleBlockPin(day, id, pinned) {
   // Keep the displayed times until a scheduling edit runs the stack again.
   return {
     ...day,
-    blocks: day.blocks.map((block) => block.id === id ? { ...block, pinned } : block),
+    blocks: day.blocks.map((block) => block.id === id ? dropStaleFixed({ ...block, pinned }) : block),
     pinLayout: day.pinLayout ?? {
       blocks: current.blocks.map(({ id, start, until }) => ({ id, start, until })),
       bumped: current.bumped.map((block) => block.id),
@@ -712,6 +717,6 @@ function parseQuickAdd(input) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { snapTimelineDrop, timelineDropPlace, timelineDropStart, arrangeTimelineDrop, resizeWindow, fitResize, resizeDayBlock, fitTimelineDrop, fullOpening, foldTail, layoutDay, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, toggleBlockPin, suggestGhosts,
+  module.exports = { snapTimelineDrop, timelineDropPlace, timelineDropStart, arrangeTimelineDrop, resizeWindow, fitResize, resizeDayBlock, fitTimelineDrop, fullOpening, foldTail, dropStaleFixed, layoutDay, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, toggleBlockPin, suggestGhosts,
     insertPopup, restackBeforeScreensOff, parseQuickAdd, fitTemplateAnchors };
 }

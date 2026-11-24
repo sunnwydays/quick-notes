@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { snapTimelineDrop, timelineDropPlace, arrangeTimelineDrop, resizeWindow, fitResize, resizeDayBlock, fitTimelineDrop, fullOpening, foldTail, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, insertPopup, layoutDay, restackBeforeScreensOff, suggestGhosts, toggleBlockPin, parseQuickAdd, fitTemplateAnchors } from '../plan-engine.js';
+import { snapTimelineDrop, timelineDropPlace, arrangeTimelineDrop, resizeWindow, fitResize, resizeDayBlock, fitTimelineDrop, fullOpening, foldTail, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, insertPopup, layoutDay, restackBeforeScreensOff, suggestGhosts, toggleBlockPin, dropStaleFixed, parseQuickAdd, fitTemplateAnchors } from '../plan-engine.js';
 
 const block = (id, size, fields = {}) => ({ id, size, tier: 'medium', ...fields });
 const times = ({ blocks }) => blocks.map(({ id, start, until }) => [id, start, until]);
@@ -71,6 +71,14 @@ test('pinning a block in an imported Schedule preserves the times of nonoverlapp
   assert.deepEqual(times(layout), times(layoutDay(day)));
   assert.deepEqual(layout.blocks.map((item) => item.pinned ?? null), [null, null, '22:00']);
   assert.deepEqual(layout.bumped, []);
+});
+
+test('unpinning a fixed template block lets it move like any other block', () => {
+  const day = { blocks: [block('wash', 24, { pinned: '07:00', tier: 'fixed', templateAnchor: true })] };
+  const unpinned = toggleBlockPin(day, 'wash', null);
+  assert.equal(unpinned.blocks[0].tier, 'medium');
+  assert.equal(dropStaleFixed({ id: 'old', tier: 'fixed', pinned: null }).tier, 'medium');
+  assert.equal(dropStaleFixed({ id: 'kept', tier: 'fixed', pinned: '07:00' }).tier, 'fixed');
 });
 
 test('pin toggles preserve the displayed stack until an intentional reschedule', () => {
