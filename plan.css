@@ -201,8 +201,13 @@ button:disabled { opacity: .55; cursor: default; }
   padding-left: .65rem;
   display: flex; flex-direction: column;
 }
-.tile.ghost:hover { opacity: .6; }
-.tile.ghost { cursor: pointer; opacity: .35; }
+/* Suggestions: a dashed outline with a plus, clearly different from greyed-out late blocks. */
+.tile.ghost {
+  cursor: pointer; color: #245776; border: 1.5px dashed #5b8aa6;
+  background: color-mix(in srgb, var(--tile-colour, #edf4fa) 40%, white);
+}
+.tile.ghost:hover { background: var(--tile-colour, #edf4fa); }
+.tile.ghost .tile-title::before { content: '+ '; font-weight: bold; }
 .split-prompt { display: block; margin-top: .25rem; font-size: .78rem; color: #70410f; }
 .review-row { padding: .65rem 0; border-bottom: 1px solid var(--line); }
 .review-row .block { display: flex; justify-content: space-between; align-items: center; gap: .75rem; }
