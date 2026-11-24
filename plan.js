@@ -611,6 +611,8 @@ function openBlockEditor(source, target = blockTarget(source)) {
   $('block-delete').hidden = Boolean(source.fresh);
   $('block-done').hidden = !source.copy && !liveTodo(block.todoId);
   quickDelete = !$('block-delete').hidden;
+  // Only a timed block on today or an earlier day can have happened, so only it can be skipped or run over.
+  $('block-mark-row').hidden = !(existing && !source.copy && timed && date <= dayKey(new Date()));
   // Existing planned or parked blocks can be copied onto another day of this week.
   $('block-copy-row').hidden = Boolean(source.fresh || source.copy);
   fillOptions($('block-copy'), [['', 'Another day…'],
@@ -1970,6 +1972,17 @@ function renderMealConnectors(week, columns) {
   const overlay = svg('svg');
   const defs = svg('defs');
   overlay.append(defs);
+  const makeGradient = (id) => {
+    const gradient = svg('linearGradient');
+    gradient.id = id;
+    gradient.setAttribute('gradientUnits', 'userSpaceOnUse');
+    const start = svg('stop');
+    const end = svg('stop');
+    end.setAttribute('offset', '1');
+    gradient.append(start, end);
+    defs.append(gradient);
+    return gradient;
+  };
   for (const meal of ['lunch', 'dinner']) {
     const tiles = columns.map((day) => day.querySelectorAll(`[data-meal="${meal}"]`));
     for (let day = 1; day < tiles.length; day++) {
@@ -1978,18 +1991,16 @@ function renderMealConnectors(week, columns) {
       for (let i = 0; i < Math.min(left.length, right.length); i++) {
         left[i].classList.add('meal-joins-right');
         right[i].classList.add('meal-joins-left');
-        const gradient = svg('linearGradient');
-        gradient.id = `meal-bridge-${mealConnectorPairs.length}`;
-        gradient.setAttribute('gradientUnits', 'userSpaceOnUse');
-        const startColour = svg('stop');
-        const endColour = svg('stop');
-        endColour.setAttribute('offset', '1');
-        gradient.append(startColour, endColour);
-        defs.append(gradient);
+        const id = `meal-bridge-${mealConnectorPairs.length}`;
+        const fill = makeGradient(id);
+        const stroke = makeGradient(`${id}-outline`);
         const path = svg('path');
-        path.setAttribute('fill', `url(#${gradient.id})`);
-        overlay.append(path);
-        mealConnectorPairs.push({ left: left[i], right: right[i], path, gradient, startColour, endColour });
+        path.setAttribute('fill', `url(#${fill.id})`);
+        const outline = svg('path');
+        outline.setAttribute('fill', 'none');
+        outline.setAttribute('stroke', `url(#${stroke.id})`);
+        overlay.append(path, outline);
+        mealConnectorPairs.push({ left: left[i], right: right[i], path, outline, fill, stroke });
       }
     }
   }
@@ -2003,21 +2014,26 @@ function renderMealConnectors(week, columns) {
   mealConnectorObserver = new ResizeObserver(() => {
     const bounds = overlay.getBoundingClientRect();
     if (!bounds.width) return;
-    for (const { left, right, path, gradient } of mealConnectorPairs) {
+    for (const { left, right, path, outline, fill, stroke } of mealConnectorPairs) {
       const start = left.getBoundingClientRect();
       const end = right.getBoundingClientRect();
       // Overlap by a pixel so the fill stays continuous at fractional tile edges.
       const x1 = start.right - bounds.left - 1;
       const x2 = end.left - bounds.left + 1;
-      const bend = (x1 + x2) / 2;
       const top1 = start.top - bounds.top;
       const top2 = end.top - bounds.top;
       const bottom1 = start.bottom - bounds.top;
       const bottom2 = end.bottom - bounds.top;
-      gradient.setAttribute('x1', x1 + 1);
-      gradient.setAttribute('x2', x2 - 1);
-      path.setAttribute('d', `M ${x1} ${top1} C ${bend} ${top1} ${bend} ${top2} ${x2} ${top2}
-        L ${x2} ${bottom2} C ${bend} ${bottom2} ${bend} ${bottom1} ${x1} ${bottom1} Z`);
+      for (const gradient of [fill, stroke]) {
+        gradient.setAttribute('x1', x1 + 1);
+        gradient.setAttribute('x2', x2 - 1);
+      }
+      const taper = ((start.height + end.height) / 2) * .1;
+      path.setAttribute('d', `M ${x1} ${top1} ${mealBridgeCurve(x1, top1, x2, top2, taper)}
+        L ${x2} ${bottom2} ${mealBridgeCurve(x2, bottom2, x1, bottom1, -taper)} Z`);
+      // Center the stroke on the tile's one-pixel border and leave the joins open.
+      outline.setAttribute('d', `M ${x1} ${top1 + .5} ${mealBridgeCurve(x1, top1 + .5, x2, top2 + .5, taper)}
+        M ${x2} ${bottom2 - .5} ${mealBridgeCurve(x2, bottom2 - .5, x1, bottom1 - .5, -taper)}`);
     }
     updateMealConnectorColours();
   });
@@ -2028,10 +2044,24 @@ function renderMealConnectors(week, columns) {
   }
 }
 
+function mealBridgeCurve(x1, y1, x2, y2, taper) {
+  // Move the midpoint and its two handles together to keep the taper smooth.
+  const midX = (x1 + x2) / 2;
+  const midY = (y1 + y2) / 2 + taper;
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  return `C ${x1 + dx / 4} ${y1} ${midX - dx / 8} ${midY - dy / 4} ${midX} ${midY}
+    C ${midX + dx / 8} ${midY + dy / 4} ${x2 - dx / 4} ${y2} ${x2} ${y2}`;
+}
+
 function updateMealConnectorColours() {
-  for (const { left, right, startColour, endColour } of mealConnectorPairs) {
-    startColour.setAttribute('stop-color', getComputedStyle(left).backgroundColor);
-    endColour.setAttribute('stop-color', getComputedStyle(right).backgroundColor);
+  for (const { left, right, fill, stroke } of mealConnectorPairs) {
+    const start = getComputedStyle(left);
+    const end = getComputedStyle(right);
+    fill.firstElementChild.setAttribute('stop-color', start.backgroundColor);
+    fill.lastElementChild.setAttribute('stop-color', end.backgroundColor);
+    stroke.firstElementChild.setAttribute('stop-color', start.borderTopColor);
+    stroke.lastElementChild.setAttribute('stop-color', end.borderTopColor);
   }
 }
 
@@ -2854,6 +2884,21 @@ function startPlanner() {
     }
   });
   $('block-editor').addEventListener('pointerdown', () => { quickDelete = false; });
+  $('block-skip').addEventListener('click', () => {
+    const { block, target: { date } } = editedBlock;
+    const timed = layoutDay(plan.days[date]).blocks.find((item) => item.id === block.id);
+    if (!timed) return;
+    const mark = makeBlockMark(date, { start: timed.start, lines: [timed.text] }, { status: 'skipped' });
+    plan.pendingMarks = plan.pendingMarks.filter((item) => item.day !== date || item.blockStart !== mark.blockStart);
+    plan.pendingMarks.push(mark);
+    $('block-editor').close();
+    markEdited();
+  });
+  $('block-over').addEventListener('click', () => {
+    const { block, target: { date } } = editedBlock;
+    $('block-editor').close();
+    openRestack(date, block.id);
+  });
   $('block-done').addEventListener('click', () => {
     const { copy, block, target: { date, shelf } = {} } = editedBlock;
     removeNote(copy ? editedBlock.entry.id : block.todoId, 'done');
