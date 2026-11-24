@@ -1716,7 +1716,7 @@ function toggleDayMenu(menu) {
 }
 
 document.addEventListener('click', (event) => {
-  if (!event.target.closest('.day-head h3, .day-menu')) closeDayMenus();
+  if (!event.target.closest('.day-head h3, .day-menu, .day-tab[aria-pressed="true"]')) closeDayMenus();
 });
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') closeDayMenus();
@@ -1850,7 +1850,10 @@ function renderPlanner() {
   if (!plan.keys.includes(selectedDay)) selectedDay = plan.keys.includes(today) ? today : plan.keys[0];
   $('day-tabs').replaceChildren(...plan.keys.map((key) => {
     const date = keyDate(key);
-    const tab = plannerButton('', () => selectDay(key), 'day-tab');
+    // Tapping the day that's already open shows its menu (template, wake time), since the phone hides the day header.
+    const tab = plannerButton('', () => key === selectedDay
+      ? toggleDayMenu($('week').querySelector(`.day[data-day="${key}"] .day-menu`)) : selectDay(key), 'day-tab');
+    tab.title = key === selectedDay ? 'Day options' : '';
     tab.dataset.tabDay = key;
     tab.append(element('span', '', date.toLocaleDateString(undefined, { weekday: 'short' })),
       element('span', 'day-tab-date', String(date.getDate())), loadMeter(loads[plan.keys.indexOf(key)], `${dayLabel(key)} load`));

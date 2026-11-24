@@ -440,6 +440,10 @@ label.choice:has(input:checked) { border-color: #5b8aa6; background: #eef6fb; }
   .day.selected { border-inline-end: 1px solid var(--line); display: block; grid-row: 1; overflow-y: auto; overscroll-behavior: contain; }
   .day.selected { touch-action: pan-y; }
   .day-head h3 { font-size: 1.05rem; }
+  /* The tab already names the day and shows its load. The header only shows for events, warnings or an open menu. */
+  .day.selected .day-title:not(:has(.day-menu:not([hidden]))), .day.selected .head-load { display: none; }
+  .day.selected .day-head:not(:has(.warning, .day-event, .day-actions, .day-menu:not([hidden]))) { display: none; }
+  .day-tab[aria-pressed="true"] > span:first-child::after { content: ' ▾'; font-size: .6rem; }
   .day-menu { max-width: calc(100% + .4rem); }
 }
 
