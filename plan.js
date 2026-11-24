@@ -747,8 +747,13 @@ function linkTodo(text) {
   return { entry, added: true };
 }
 
-function templateAnchor([pinned, duration, text, kind = 'routine', tail = 0]) {
-  return planBlock(newId(), text, { pinned, duration: duration + tail, kind, tier: 'fixed', templateAnchor: true });
+// Anchors are [time, length, title, kind, tail, pinned]. Only fixed events pin unless the template says so;
+// the rest hold their time like a restacked block, so other blocks can still push them.
+function templateAnchor([at, duration, text, kind = 'routine', tail = 0, pin = kind === 'event']) {
+  const fields = { duration: duration + tail, kind, templateAnchor: true };
+  if (pin) return planBlock(newId(), text, { ...fields, pinned: at, tier: 'fixed' });
+  const start = planMinutes(at);
+  return planBlock(newId(), text, { ...fields, restackStart: start, restackUntil: start + duration + tail });
 }
 
 function recoverySuggested(key) {
@@ -942,7 +947,7 @@ function renderTemplateDay() {
     if (hour + 30 < until) parts.push(halfHourLine(hour + 30 - from));
   }
   for (const block of tplBlocks) {
-    const tile = renderTile(planBlock(block.id, block.text || 'Untitled', { kind: block.kind, tier: 'fixed' }));
+    const tile = renderTile(planBlock(block.id, block.text || 'Untitled', { kind: block.kind, tier: block.pin ? 'fixed' : 'medium' }));
     timeTile(tile, block.start, block.start + block.duration, from);
     tile.classList.toggle('selected', block.id === tplSelected);
     parts.push(tile);
@@ -961,6 +966,7 @@ function showTemplateBlock() {
   templateField('mins').value = block.duration;
   const kinds = ANCHOR_KINDS.includes(block.kind) ? ANCHOR_KINDS : [...ANCHOR_KINDS, block.kind];
   fillOptions(templateField('kind'), kinds.map((kind) => [kind, kind]), block.kind);
+  templateField('pin').checked = Boolean(block.pin);
 }
 
 function selectTemplateBlock(id, focus = false) {
@@ -971,7 +977,7 @@ function selectTemplateBlock(id, focus = false) {
 }
 
 function addTemplateBlock(start, duration = 30) {
-  const block = { id: newId(), start: Math.max(0, Math.min(start, DAY_END - duration)), duration, text: '', kind: 'routine' };
+  const block = { id: newId(), start: Math.max(0, Math.min(start, DAY_END - duration)), duration, text: '', kind: 'routine', pin: false };
   tplBlocks.push(block);
   selectTemplateBlock(block.id, true);
 }
@@ -982,7 +988,11 @@ function editTemplateBlock(event) {
   if (!block || !field) return;
   const value = event.target.value;
   if (field === 'text') block.text = value;
-  if (field === 'kind') block.kind = value;
+  if (field === 'kind') {
+    block.kind = value;
+    if (value === 'event') templateField('pin').checked = block.pin = true;
+  }
+  if (field === 'pin') block.pin = event.target.checked;
   if (field === 'time' && planMinutes(value) != null) block.start = planMinutes(value);
   if (field === 'mins' && Number.isInteger(Number(value)) && Number(value) >= 5) block.duration = Number(value);
   renderTemplateDay();
@@ -1087,7 +1097,8 @@ function openTemplateDef(name) {
   fields.wake.value = template.wake || '07:00';
   fields.event.checked = Boolean(template.event);
   tplBlocks = (template.anchors || []).filter(([pinned]) => planMinutes(pinned) != null)
-    .map(([pinned, duration, text, kind = 'routine', tail = 0]) => ({ id: newId(), start: planMinutes(pinned), duration: duration + tail, text, kind }));
+    .map(([at, duration, text, kind = 'routine', tail = 0, pin = kind === 'event']) =>
+      ({ id: newId(), start: planMinutes(at), duration: duration + tail, text, kind, pin }));
   $('template-def-delete').hidden = name == null;
   $('template-def-error').hidden = true;
   $('template-def').showModal();
@@ -1136,7 +1147,7 @@ function saveTemplateDef(event) {
     const before = blocks[i - 1];
     if (before && block.start < before.start + before.duration) return fail(block, `${block.text} overlaps ${before.text}.`);
   }
-  const anchors = blocks.map((block) => [blockKey(block.start), block.duration, block.text.trim(), block.kind]);
+  const anchors = blocks.map((block) => [blockKey(block.start), block.duration, block.text.trim(), block.kind, 0, Boolean(block.pin)]);
   const { deleted, ...base } = (editingTemplate == null ? null : getTemplate(editingTemplate)) ?? {};
   const value = { ...base, name, hint: fields.hint.value.trim() || undefined, wake: fields.wake.value,
     event: fields.event.checked || undefined, anchors };
@@ -1180,8 +1191,8 @@ function replaceTemplate(day, name, template, event) {
   if (event) {
     const travel = template.workBeforeEvent ? 'Travel to game' : 'Go + settle';
     const eventAnchors = [
-      templateAnchor([blockKey(eventAt - 30), 30, travel, 'travel']),
-      templateAnchor([event.start, event.duration, event.text, 'event']),
+      templateAnchor([blockKey(eventAt - 30), 30, travel, 'travel', 0, true]),
+      templateAnchor([event.start, event.duration, event.text, 'event', 0, true]),
     ];
     anchors = [...anchors.filter((anchor) => !pinCollision(anchor, eventAnchors)), ...eventAnchors];
   }
@@ -1189,7 +1200,7 @@ function replaceTemplate(day, name, template, event) {
     if (pinCollision(anchor, [...kept, ...anchors.filter((block) => block !== anchor)])) {
       return { error: `${anchor.text} overlaps a pinned block. Move the pin or choose another event time.` };
     }
-    positions.set(anchor.id, planMinutes(anchor.pinned));
+    positions.set(anchor.id, planMinutes(anchor.pinned) ?? anchor.restackStart);
   }
   const blocks = [...kept, ...anchors].sort((a, b) => (positions.get(a.id) ?? Infinity) - (positions.get(b.id) ?? Infinity));
   return { day: editDay({
