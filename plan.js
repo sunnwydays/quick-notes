@@ -1942,7 +1942,7 @@ function renderDay(key,{ blocks, bumped }, load, from, until, ghosts) {
     Object.assign(tile.dataset, { start: block.start, until: block.until });
     if (blockKind(block) === 'meal') {
       const meal = /\b(lunch|dinner)\b/i.exec(block.text);
-      if (meal) tile.dataset.meal = meal[0].toLowerCase();
+      tile.dataset.meal = meal?.[0].toLowerCase() ?? 'other';
     }
     tile.classList.toggle('late', afterDeadline(key, block));
     const time = timeTile(tile, block.start, block.until, from);
@@ -1967,21 +1967,15 @@ function renderDay(key,{ blocks, bumped }, load, from, until, ghosts) {
 function renderMealConnectors(week, columns) {
   mealConnectorObserver?.disconnect();
   const runs = [];
-  const runForTile = new Map();
-  for (const meal of ['lunch', 'dinner']) {
-    const days = columns.map((day) => day.querySelectorAll(`[data-meal="${meal}"]`));
-    for (let day = 1; day < days.length; day++) {
-      const left = days[day - 1];
-      const right = days[day];
-      for (let i = 0; i < Math.min(left.length, right.length); i++) {
-        let run = runForTile.get(left[i]);
-        if (!run) {
-          run = [left[i]];
-          runs.push(run);
-        }
-        run.push(right[i]);
-        runForTile.set(right[i], run);
-      }
+  for (const meal of ['lunch', 'dinner', 'other']) {
+    let previous = [];
+    for (const column of columns) {
+      previous = Array.from(column.querySelectorAll(`[data-meal="${meal}"]`), (tile, i) => {
+        const run = meal === 'other' ? [] : previous[i] ?? [];
+        if (!run.length) runs.push(run);
+        run.push(tile);
+        return run;
+      });
     }
   }
   if (!runs.length) {
@@ -1999,7 +1993,7 @@ function renderMealConnectors(week, columns) {
     gradient.id = `meal-line-${i}`;
     gradient.setAttribute('gradientUnits', 'userSpaceOnUse');
     for (const tile of tiles) {
-      tile.classList.add('meal-linked');
+      tile.classList.toggle('meal-linked', tiles.length > 1);
       const stops = [svg('stop'), svg('stop')];
       mealLineStops.set(tile, stops);
       gradient.append(...stops);
