@@ -76,6 +76,16 @@
         <label id="block-length">Length <input name="size" type="number" min="5" max="720" required data-scrub></label>
         <label>Goal <select name="goal"></select></label>
       </div>
+      <div id="block-when" class="field-row">
+        <label>Day <select id="block-day" name="day"></select></label>
+        <label id="block-start">Starts <input name="time" type="time"></label>
+      </div>
+      <div id="block-quick" class="quick-row" aria-label="Reschedule">
+        <button type="button" class="quiet" data-quick="later15">+15m</button>
+        <button type="button" class="quiet" data-quick="later">Later today</button>
+        <button type="button" class="quiet" data-quick="tomorrow">Tomorrow</button>
+        <button type="button" class="quiet" data-quick="tray">To do</button>
+      </div>
       <details id="block-more">
         <summary>More</summary>
         <div class="more-fields">
@@ -91,12 +101,10 @@
           </div>
           <p id="kind-help" class="muted" hidden></p>
           <label id="block-copy-row">Copy to <select id="block-copy"></select></label>
-          <div id="pin-fields" class="pin-fields">
-            <label>Time <input name="time" type="time"></label>
-          </div>
         </div>
       </details>
       <p id="block-error" class="warning" role="alert" hidden></p>
+      <button id="block-openings" type="button" hidden>See other openings</button>
       <div class="actions">
         <button type="submit" class="primary">Apply</button>
         <button id="block-cancel" type="button">Cancel</button>

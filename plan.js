@@ -548,7 +548,6 @@ const exemptKindNames = BREAK_EXEMPT_KINDS.map(kind => BLOCK_KINDS[kind]);
 $('kind-help').textContent = `${new Intl.ListFormat('en').format(exemptKindNames)} skip breaks on both sides. Automatic uses the item name to infer its kind.`;
 
 function openBlockEditor(source, target = blockTarget(source)) {
-  editedBlock = { ...source, target };
   const block = source.block;
   const { date, shelf } = target;
   const timed = Boolean(date && !shelf);
@@ -562,26 +561,25 @@ function openBlockEditor(source, target = blockTarget(source)) {
   fillOptions(fields.goal, [['', 'No goal'], ...goals], block.goal || '');
   const start = target.at ?? block.pinned ??
     (source.date ? blockKey(layoutDay(plan.days[source.date]).blocks.find((b) => b.id === block.id)?.start ?? PLAN_START) : '07:00');
+  editedBlock = { ...source, target, timed, start: timed ? start : null };
   fields.pin.checked = Boolean(block.pinned);
-  fields.time.value = start;
+  fields.time.value = timed ? start : '';
   const end = blockKey(planMinutes(start) + blockDuration(block));
   $('block-where').textContent = !date ? 'This week tray' : `${dayLabel(date)} · ${timed ? `${clock12(start)}–${clock12(end)}` : 'To do'}`;
-  $('pin-fields').hidden = !timed;
-  $('block-pin').hidden = !timed;
+  // Existing items can move to another day or time from here; a new one only shows the time it was drawn at.
+  const existing = !source.fresh;
+  fillOptions(fields.day, [['', 'To do (no day)'], ...plan.keys.map((key) => [key, dayLabel(key)])], date || '');
+  fields.day.parentElement.hidden = !existing;
+  $('block-when').hidden = !existing && !timed;
+  $('block-when').classList.toggle('field-row', existing);
+  const dayIndex = plan.keys.indexOf(source.date);
+  $('block-quick').hidden = !(existing && source.date);
+  for (const button of $('block-quick').querySelectorAll('[data-quick]')) {
+    const kind = button.dataset.quick;
+    button.hidden = kind === 'tomorrow' ? dayIndex < 0 || dayIndex === plan.keys.length - 1 : kind.startsWith('later') && !timed;
+  }
   $('block-more').open = false;
   showKindHelp(false);
-  // A drag already chose the time and length, so they sit at the top of More there.
-  const dragged = Boolean(source.fresh && target.at);
-  const more = $('block-more').querySelector('.more-fields');
-  if (dragged) {
-    more.prepend($('pin-fields'));
-    $('pin-fields').prepend($('block-length'));
-  }
-  else {
-    $('block-main-row').prepend($('block-length'));
-    more.append($('pin-fields'));
-  }
-  $('block-main-row').classList.toggle('field-row', !dragged);
   $('block-editor-title').textContent = source.fresh ? 'Add item' : 'Edit item';
   $('block-delete').hidden = Boolean(source.fresh);
   $('block-done').hidden = !source.copy && !liveTodo(block.todoId);
@@ -590,7 +588,7 @@ function openBlockEditor(source, target = blockTarget(source)) {
   $('block-copy-row').hidden = Boolean(source.fresh || source.copy);
   fillOptions($('block-copy'), [['', 'Another day…'],
     ...Object.keys(plan.days).filter((key) => key !== date).map((key) => [key, dayLabel(key)])], '');
-  $('block-error').hidden = true;
+  showEditorError('');
   updateEditorFields();
   $('block-editor').showModal();
 }
@@ -667,10 +665,73 @@ function initScrub(input) {
 
 function updateEditorFields() {
   const fields = $('block-form').elements;
-  fields.pin.disabled = $('pin-fields').hidden;
-  // A dragged item's time can be adjusted without pinning it.
-  fields.time.disabled = fields.pin.disabled || !fields.pin.checked && editedBlock.target.at == null;
-  fields.time.required = !fields.time.disabled;
+  const { fresh, timed, target } = editedBlock;
+  const day = fresh ? target.date : fields.day.value;
+  // The time only means something on a day; a fresh item on a shelf or the tray has none to show.
+  const showTime = Boolean(day) && (!fresh || timed);
+  $('block-start').hidden = !showTime;
+  fields.time.disabled = !showTime;
+  // A timed block must keep a time; an untimed one that gets a time leaves the shelf for the timeline.
+  fields.time.required = showTime && timed;
+  $('block-pin').hidden = !(timed && day);
+  fields.pin.disabled = $('block-pin').hidden;
+}
+
+// The timeline's own start for a day, so a typed time clamps like a dropped one.
+function timelineFrom(date) {
+  return Number(document.querySelector(`[data-day="${date}"] .timeline`)?.dataset.from) || 0;
+}
+
+// What a timeline drop at `minute` looks like, the same arrangement a drag would make.
+// A pinned block goes exactly there; otherwise the smart fitting adds breaks and pushes blocks.
+function timelineMoveTarget(source, date, minute, pin = false) {
+  const stack = dropStack(source, date, false);
+  if (pin) return { date, shelf: false, at: blockKey(minute), pin: true, before: stack.find((b) => b.start >= minute)?.id };
+  const earliest = timelineFrom(date);
+  const place = { at: minute };
+  const fit = arrangeTimelineDrop(stack, source.block, place, earliest, false);
+  const start = Math.max(earliest, Math.min(PLAN_END - 5, fit?.start ?? timelineDropStart(stack, source.block, place, earliest)));
+  return { date, at: blockKey(start), place, earliest, pin: false, before: stack.find((b) => b.start >= start)?.id, smart: true, skipBreak: false };
+}
+
+// The next full-length opening on the block's day after both now and its current start.
+function laterOpening(source) {
+  const { date, block } = source;
+  const day = plan.days[date];
+  const now = new Date();
+  const current = planMinutes(source.start);
+  const dayStart = Math.max((planMinutes(day.wake) ?? PLAN_START) + (day.startOffset ?? 0), day.workStart ?? 0);
+  const nowMinute = date === dayKey(now) ? now.getHours() * 60 + now.getMinutes() : 0;
+  const earliest = Math.ceil(Math.max(dayStart, nowMinute, current + 1) / 5) * 5;
+  return fullOpening(dropStack(source, date, false), block, earliest, day.workEnd ?? DEFAULT_TIMELINE_END, earliest, current);
+}
+
+// Where "See other openings" goes after a refused move: the drag's own choices panel.
+let refusedMove = null;
+
+function showEditorError(message, refused = null) {
+  refusedMove = refused;
+  $('block-error').textContent = message;
+  $('block-error').hidden = !message;
+  $('block-openings').hidden = !refused;
+}
+
+function quickReschedule(kind) {
+  const source = editedBlock;
+  const { date, block } = source;
+  const pin = planMinutes(block.pinned) != null;
+  let target;
+  if (kind === 'tray') target = {};
+  else if (kind === 'tomorrow') target = { date: plan.keys[plan.keys.indexOf(date) + 1], shelf: true };
+  else {
+    const minute = kind === 'later15' ? planMinutes(source.start) + 15 : laterOpening(source);
+    if (minute == null) { showEditorError('No later opening today.'); return; }
+    target = timelineMoveTarget(source, date, minute, pin);
+  }
+  const error = moveBlock(source, target);
+  if (error) { showEditorError(error, target.smart ? { source, target } : null); return; }
+  $('block-editor').close();
+  if (target.date) selectDay(target.date);
 }
 
 function applyBlockEditor(event) {
@@ -678,12 +739,17 @@ function applyBlockEditor(event) {
   const fields = event.target.elements;
   const text = fields.text.value.trim();
   if (!text) return;
-  const { date = null, shelf = false } = editedBlock.target;
+  const { fresh } = editedBlock;
+  const { date: from = null, shelf = false } = editedBlock.target;
   const original = editedBlock.block;
-  const pinned = !fields.pin.disabled && fields.pin.checked ? fields.time.value : null;
+  const date = fresh ? from : fields.day.value || null;
+  const time = date && !fields.time.disabled ? fields.time.value || null : null;
+  const onTimeline = Boolean(date && time);
+  const pinned = onTimeline && !fields.pin.disabled && fields.pin.checked ? time : null;
   const pinChanged = pinned !== (original.pinned ?? null);
-  // A dragged item keeps the time it was drawn at (or the one typed over it), pinned or not.
-  const time = pinned ?? (editedBlock.target.at == null ? null : fields.time.value);
+  const dayChanged = !fresh && date !== from;
+  const timeChanged = onTimeline && (fresh || dayChanged || time !== editedBlock.start);
+  const relocated = dayChanged || timeChanged && !fresh;
   const day = plan.days[date];
   const size = Number(fields.size.value);
   const resized = size !== (original.duration ?? original.size);
@@ -694,7 +760,8 @@ function applyBlockEditor(event) {
     ...resized ? { size, duration: undefined, originalDuration: undefined, skipBreak: undefined } : {},
   };
   const unchanged = (key) => (changes[key] ?? null) === (original[key] ?? null);
-  if (!editedBlock.fresh && Object.keys(changes).every(unchanged)) {
+  const textOnly = Object.keys(changes).every(unchanged);
+  if (!fresh && textOnly && !relocated) {
     if (!pinChanged) {
       $('block-editor').close();
       return;
@@ -711,26 +778,28 @@ function applyBlockEditor(event) {
   const oldIndex = day?.blocks.findIndex((block) => block.id === original.id) ?? -1;
   let before = oldIndex < 0 ? undefined : day.blocks[oldIndex + 1]?.id;
   const minute = planMinutes(time);
-  if (date && !shelf && minute != null && (pinChanged || oldIndex < 0)) {
+  if (onTimeline && (pinChanged || timeChanged || oldIndex < 0)) {
     before = layoutDay(day).blocks.find((b) => b.id !== original.id && b.start >= minute)?.id;
-  } else if (date && !shelf && (oldIndex < 0 || original.shelf)) {
-    const stack = layoutDay(day).blocks;
-    const cutoff = Math.max(day.workEnd ?? 17 * 60, day.workStart ?? 0);
-    before = stack.find((b) => b.pinned && b.start >= cutoff)?.id;
   }
-  const target = { date, shelf, before };
-  if (date && (date !== editedBlock.date || pinChanged)) Object.assign(target, { at: time ?? undefined, pin: pinned != null });
-  const todo = editedBlock.fresh && !original.todoId && !NOT_TASKS.has(changes.kind) ? linkTodo(text) : null;
+  let target = { date, shelf: Boolean(date) && !onTimeline, before };
+  const merged = { ...editedBlock, block: { ...original, ...changes } };
+  if (onTimeline && (pinChanged || timeChanged)) {
+    // An existing block moved to a new time goes through the same fitting as a drag; pins land exactly.
+    if (relocated && !pinned) target = timelineMoveTarget(merged, date, minute);
+    else Object.assign(target, { at: time, pin: pinned != null });
+  }
+  const todo = fresh && !original.todoId && !NOT_TASKS.has(changes.kind) ? linkTodo(text) : null;
   if (todo) changes.todoId = todo.entry.id;
-  const error = moveBlock(editedBlock, target, changes);
+  const error = moveBlock(merged, target, changes);
   if (error) {
     if (todo?.added) data.entries.splice(data.entries.indexOf(todo.entry), 1);
-    $('block-error').textContent = error;
-    $('block-error').hidden = false;
+    // The drag's other openings only make sense when nothing besides the place changed.
+    showEditorError(error, target.smart && !fresh && textOnly ? { source: editedBlock, target } : null);
   } else {
     if (todo?.added) persist();
-    if (!editedBlock.fresh && text !== original.text) renameTodo(original.todoId, text);
+    if (!fresh && text !== original.text) renameTodo(original.todoId, text);
     $('block-editor').close();
+    if (dayChanged && date) selectDay(date);
   }
 }
 
@@ -2580,6 +2649,15 @@ function startPlanner() {
   for (const input of document.querySelectorAll('input[data-scrub]')) initScrub(input);
   $('block-form').addEventListener('change', updateEditorFields);
   $('block-cancel').addEventListener('click', () => $('block-editor').close());
+  for (const button of $('block-quick').querySelectorAll('[data-quick]')) {
+    button.addEventListener('click', () => quickReschedule(button.dataset.quick));
+  }
+  $('block-openings').addEventListener('click', () => {
+    if (!refusedMove) return;
+    const { source, target } = refusedMove;
+    $('block-editor').close();
+    offerDropChoices(source, target, false);
+  });
   $('block-delete').addEventListener('click', () => { deleteBlock(editedBlock); $('block-editor').close(); });
   $('block-copy').addEventListener('change', (event) => {
     const date = event.target.value;

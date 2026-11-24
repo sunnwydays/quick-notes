@@ -339,8 +339,9 @@ dialog .scrub input {
 .kind-heading { display: flex; align-items: center; gap: .25rem; }
 #kind-info { padding: 0; width: 1.5rem; height: 1.5rem; border: 0; background: transparent; color: var(--muted); }
 #block-kind { width: 100%; }
-.pin-fields { display: flex; gap: .45rem; align-items: end; }
-.pin-fields > label { flex: 1; min-width: 0; }
+.quick-row { display: flex; flex-wrap: wrap; gap: .25rem; margin: -.1rem 0; }
+.quick-row .quiet { padding: .2rem .5rem; font-size: .85rem; }
+#block-when select, #block-when input { width: 100%; box-sizing: border-box; }
 /* Same box as the Done and Delete buttons beside it. */
 .pin-toggle { user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; display: inline-flex; align-items: center; justify-content: center; border: 1px solid transparent; border-bottom-width: 3px; border-radius: 10px; cursor: pointer; }
 @media (hover: hover) { .pin-toggle:hover { background: #d8ebf5; } }
