@@ -247,8 +247,13 @@ button:disabled { opacity: .55; cursor: default; }
   background: #233d5221; border-radius: 99px; overflow: hidden;
 }
 .meter-fill { display: block; height: 100%; border-radius: inherit; background: #568b70; transition: width 150ms; }
-.day-footer.amber .meter-fill { background: #b98226; }
-.day-footer.coral .meter-fill, .over-budget .meter-fill { background: #c96d58; }
+.meter.amber .meter-fill { background: #b98226; }
+.meter.coral .meter-fill, .over-budget .meter-fill { background: #c96d58; }
+/* Load sits in the day header so it's visible without scrolling to the bottom. */
+.head-load { display: flex; align-items: center; gap: .4rem; margin-top: .15rem; }
+.head-load .day-info { margin: 0; white-space: nowrap; }
+.head-load .meter { flex: 1; margin: 0; height: 5px; }
+.day-footer:empty { padding: 0; border: 0; }
 .bumped { font-size: .7rem; color: var(--muted); }
 .over-badge { margin-left: .25rem; font-weight: bold; color: #654325; }
 .timeline { user-select: none; cursor: default; }
@@ -409,6 +414,8 @@ label.choice:has(input:checked) { border-color: #5b8aa6; background: #eef6fb; }
     flex: 1; border: 0; border-radius: 9px; display: grid; justify-items: center; padding: .2rem 0; line-height: 1.1; font-size: .85rem;
   }
   .day-tab-date { font-size: .75rem; color: var(--muted); }
+  .day-tab .meter { width: 60%; height: 3px; min-width: 0; margin-top: .15rem; }
+  .day-tab[aria-pressed="true"] .meter { background: #ffffff55; }
   .day-tab.today .day-tab-date { color: var(--now, #6a4fd8); font-weight: bold; }
   .day-tab[aria-pressed="true"] { background: #222; color: #fff; border-color: #222; }
   .day-tab[aria-pressed="true"] .day-tab-date { color: #fff; }

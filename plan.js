@@ -1516,6 +1516,15 @@ function meter(value, label) {
   return bar;
 }
 
+// A day's load bar, amber from 75% and coral from 90%.
+function loadMeter(load, label) {
+  const bar = meter(load.ratio, label);
+  bar.classList.toggle('amber', load.ratio >= .75);
+  bar.classList.toggle('coral', load.ratio >= .9);
+  bar.title = `Load ${Math.round(load.ratio * 100)}% · ${hoursText(load.placed)}`;
+  return bar;
+}
+
 function openGoalEditor(entry) {
   editingGoal = entry.id;
   $('goal-title').textContent = bare(entry.text);
@@ -1745,7 +1754,10 @@ function renderDay(key,{ blocks, bumped }, load, from, until, ghosts) {
   );
   const title = element('div', 'day-title');
   title.append(heading, menu);
-  head.append(title);
+  const loadRow = element('div', 'head-load');
+  loadRow.append(element('span', 'day-info', `${Math.round(load.ratio * 100)}% · ${hoursText(load.placed)}`),
+    loadMeter(load, `${dayLabel(key)} load`));
+  head.append(title, loadRow);
   if (changedInDash(key)) head.append(element('span', 'warning', 'Changed on phone'));
   const events = blocks.filter((block) => block.pinned && (block.kind === 'event' || block.tier === 'fixed' && !block.templateAnchor));
   for (const event of events) {
@@ -1805,9 +1817,6 @@ function renderDay(key,{ blocks, bumped }, load, from, until, ghosts) {
     timeline.append(tile);
   }
   const footer = element('footer', 'day-footer');
-  footer.classList.toggle('amber', load.ratio >= .75);
-  footer.classList.toggle('coral', load.ratio >= .9);
-  footer.append(element('p', 'day-info', `Load ${Math.round(load.ratio * 100)}% · ${hoursText(load.placed)}`), meter(load.ratio, `${dayLabel(key)} load`));
   for (const warning of dayWarnings(key, day, blocks)) footer.append(element('span', 'warning', warning));
   column.append(head, shelf, timeline, footer);
   return column;
@@ -1842,7 +1851,7 @@ function renderPlanner() {
     const tab = plannerButton('', () => selectDay(key), 'day-tab');
     tab.dataset.tabDay = key;
     tab.append(element('span', '', date.toLocaleDateString(undefined, { weekday: 'short' })),
-      element('span', 'day-tab-date', String(date.getDate())));
+      element('span', 'day-tab-date', String(date.getDate())), loadMeter(loads[plan.keys.indexOf(key)], `${dayLabel(key)} load`));
     tab.setAttribute('aria-pressed', String(key === selectedDay));
     tab.classList.toggle('today', key === today);
     return tab;
