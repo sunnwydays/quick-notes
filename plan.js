@@ -1972,17 +1972,6 @@ function renderMealConnectors(week, columns) {
   const overlay = svg('svg');
   const defs = svg('defs');
   overlay.append(defs);
-  const makeGradient = (id) => {
-    const gradient = svg('linearGradient');
-    gradient.id = id;
-    gradient.setAttribute('gradientUnits', 'userSpaceOnUse');
-    const start = svg('stop');
-    const end = svg('stop');
-    end.setAttribute('offset', '1');
-    gradient.append(start, end);
-    defs.append(gradient);
-    return gradient;
-  };
   for (const meal of ['lunch', 'dinner']) {
     const tiles = columns.map((day) => day.querySelectorAll(`[data-meal="${meal}"]`));
     for (let day = 1; day < tiles.length; day++) {
@@ -1991,16 +1980,18 @@ function renderMealConnectors(week, columns) {
       for (let i = 0; i < Math.min(left.length, right.length); i++) {
         left[i].classList.add('meal-joins-right');
         right[i].classList.add('meal-joins-left');
-        const id = `meal-bridge-${mealConnectorPairs.length}`;
-        const fill = makeGradient(id);
-        const stroke = makeGradient(`${id}-outline`);
+        const gradient = svg('linearGradient');
+        gradient.id = `meal-line-${mealConnectorPairs.length}`;
+        gradient.setAttribute('gradientUnits', 'userSpaceOnUse');
+        const startColour = svg('stop');
+        const endColour = svg('stop');
+        endColour.setAttribute('offset', '1');
+        gradient.append(startColour, endColour);
+        defs.append(gradient);
         const path = svg('path');
-        path.setAttribute('fill', `url(#${fill.id})`);
-        const outline = svg('path');
-        outline.setAttribute('fill', 'none');
-        outline.setAttribute('stroke', `url(#${stroke.id})`);
-        overlay.append(path, outline);
-        mealConnectorPairs.push({ left: left[i], right: right[i], path, outline, fill, stroke });
+        path.setAttribute('stroke', `url(#${gradient.id})`);
+        overlay.append(path);
+        mealConnectorPairs.push({ left: left[i], right: right[i], path, gradient });
       }
     }
   }
@@ -2014,26 +2005,24 @@ function renderMealConnectors(week, columns) {
   mealConnectorObserver = new ResizeObserver(() => {
     const bounds = overlay.getBoundingClientRect();
     if (!bounds.width) return;
-    for (const { left, right, path, outline, fill, stroke } of mealConnectorPairs) {
+    for (const { left, right, path, gradient } of mealConnectorPairs) {
       const start = left.getBoundingClientRect();
       const end = right.getBoundingClientRect();
-      // Overlap by a pixel so the fill stays continuous at fractional tile edges.
-      const x1 = start.right - bounds.left - 1;
-      const x2 = end.left - bounds.left + 1;
-      const top1 = start.top - bounds.top;
-      const top2 = end.top - bounds.top;
-      const bottom1 = start.bottom - bounds.top;
-      const bottom2 = end.bottom - bounds.top;
-      for (const gradient of [fill, stroke]) {
-        gradient.setAttribute('x1', x1 + 1);
-        gradient.setAttribute('x2', x2 - 1);
-      }
-      const taper = ((start.height + end.height) / 2) * .1;
-      path.setAttribute('d', `M ${x1} ${top1} ${mealBridgeCurve(x1, top1, x2, top2, taper)}
-        L ${x2} ${bottom2} ${mealBridgeCurve(x2, bottom2, x1, bottom1, -taper)} Z`);
-      // Center the stroke on the tile's one-pixel border and leave the joins open.
-      outline.setAttribute('d', `M ${x1} ${top1 + .5} ${mealBridgeCurve(x1, top1 + .5, x2, top2 + .5, taper)}
-        M ${x2} ${bottom2 - .5} ${mealBridgeCurve(x2, bottom2 - .5, x1, bottom1 - .5, -taper)}`);
+      const leftStyle = getComputedStyle(left);
+      const rightStyle = getComputedStyle(right);
+      const x1 = start.right - bounds.left - parseFloat(leftStyle.borderTopRightRadius);
+      const x2 = end.left - bounds.left + parseFloat(rightStyle.borderTopLeftRadius);
+      const y1 = start.top - bounds.top - .5;
+      const y2 = end.top - bounds.top - .5;
+      const bend = (x1 + x2) / 2;
+      // Paths in the middle of a run meet at the shared tile's center.
+      const from = start.left - bounds.left + (left.classList.contains('meal-joins-left')
+        ? start.width / 2 : parseFloat(leftStyle.borderTopLeftRadius));
+      const to = end.right - bounds.left - (right.classList.contains('meal-joins-right')
+        ? end.width / 2 : parseFloat(rightStyle.borderTopRightRadius));
+      gradient.setAttribute('x1', x1);
+      gradient.setAttribute('x2', x2);
+      path.setAttribute('d', `M ${from} ${y1} H ${x1} C ${bend} ${y1} ${bend} ${y2} ${x2} ${y2} H ${to}`);
     }
     updateMealConnectorColours();
   });
@@ -2044,26 +2033,10 @@ function renderMealConnectors(week, columns) {
   }
 }
 
-function mealBridgeCurve(x1, y1, x2, y2, taper) {
-  // Taper near each tile, then follow a straight segment between the short curves.
-  const edgeFraction = .18;
-  const edgeX = (x2 - x1) * edgeFraction;
-  const edgeY = (y2 - y1) * edgeFraction;
-  const startY = y1 + edgeY + taper;
-  const endY = y2 - edgeY + taper;
-  return `C ${x1 + edgeX / 3} ${y1} ${x1 + edgeX * 2 / 3} ${startY - edgeY / 3} ${x1 + edgeX} ${startY}
-    L ${x2 - edgeX} ${endY}
-    C ${x2 - edgeX * 2 / 3} ${endY + edgeY / 3} ${x2 - edgeX / 3} ${y2} ${x2} ${y2}`;
-}
-
 function updateMealConnectorColours() {
-  for (const { left, right, fill, stroke } of mealConnectorPairs) {
-    const start = getComputedStyle(left);
-    const end = getComputedStyle(right);
-    fill.firstElementChild.setAttribute('stop-color', start.backgroundColor);
-    fill.lastElementChild.setAttribute('stop-color', end.backgroundColor);
-    stroke.firstElementChild.setAttribute('stop-color', start.borderTopColor);
-    stroke.lastElementChild.setAttribute('stop-color', end.borderTopColor);
+  for (const { left, right, gradient } of mealConnectorPairs) {
+    gradient.firstElementChild.setAttribute('stop-color', getComputedStyle(left).backgroundColor);
+    gradient.lastElementChild.setAttribute('stop-color', getComputedStyle(right).backgroundColor);
   }
 }
 
