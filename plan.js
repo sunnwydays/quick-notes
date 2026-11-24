@@ -580,6 +580,7 @@ function openBlockEditor(source, target = blockTarget(source)) {
   }
   $('block-more').open = false;
   showKindHelp(false);
+  updateQuickHint();
   $('block-editor-title').textContent = source.fresh ? 'Add item' : 'Edit item';
   $('block-delete').hidden = Boolean(source.fresh);
   $('block-done').hidden = !source.copy && !liveTodo(block.todoId);
@@ -663,6 +664,20 @@ function initScrub(input) {
   shift();
 }
 
+// A small preview of the time and length a new item's title will use.
+function updateQuickHint() {
+  const hint = $('block-hint');
+  const typed = editedBlock?.fresh ? parseQuickAdd($('block-form').elements.text.value.trim()) : {};
+  const parts = [];
+  if (typed.start != null && editedBlock.target.date) parts.push(clock12(typed.start));
+  if (typed.duration != null) {
+    const [hours, minutes] = [Math.floor(typed.duration / 60), typed.duration % 60];
+    parts.push([hours && `${hours}h`, minutes && `${minutes}m`].filter(Boolean).join(' '));
+  }
+  hint.hidden = !parts.length;
+  hint.textContent = parts.length ? `→ ${parts.join(' · ')}` : '';
+}
+
 function updateEditorFields() {
   const fields = $('block-form').elements;
   const { fresh, timed, target } = editedBlock;
@@ -737,13 +752,17 @@ function quickReschedule(kind) {
 function applyBlockEditor(event) {
   event.preventDefault();
   const fields = event.target.elements;
-  const text = fields.text.value.trim();
-  if (!text) return;
+  const entered = fields.text.value.trim();
+  if (!entered) return;
   const { fresh } = editedBlock;
   const { date: from = null, shelf = false } = editedBlock.target;
   const original = editedBlock.block;
   const date = fresh ? from : fields.day.value || null;
-  const time = date && !fields.time.disabled ? fields.time.value || null : null;
+  // A new item's title may carry a time and length ("gym 5pm 1h"); a typed time beats the field.
+  const typed = fresh ? parseQuickAdd(entered) : {};
+  const text = typed.text ?? entered;
+  const typedStart = date && typed.start != null ? blockKey(typed.start) : null;
+  const time = typedStart ?? (date && !fields.time.disabled ? fields.time.value || null : null);
   const onTimeline = Boolean(date && time);
   const pinned = onTimeline && !fields.pin.disabled && fields.pin.checked ? time : null;
   const pinChanged = pinned !== (original.pinned ?? null);
@@ -751,7 +770,7 @@ function applyBlockEditor(event) {
   const timeChanged = onTimeline && (fresh || dayChanged || time !== editedBlock.start);
   const relocated = dayChanged || timeChanged && !fresh;
   const day = plan.days[date];
-  const size = Number(fields.size.value);
+  const size = typed.duration ?? Number(fields.size.value);
   const resized = size !== (original.duration ?? original.size);
   // Done and deadline are no longer edited here, so existing values carry over untouched.
   const changes = {
@@ -785,7 +804,7 @@ function applyBlockEditor(event) {
   const merged = { ...editedBlock, block: { ...original, ...changes } };
   if (onTimeline && (pinChanged || timeChanged)) {
     // An existing block moved to a new time goes through the same fitting as a drag; pins land exactly.
-    if (relocated && !pinned) target = timelineMoveTarget(merged, date, minute);
+    if ((relocated || typedStart) && !pinned) target = timelineMoveTarget(merged, date, minute);
     else Object.assign(target, { at: time, pin: pinned != null });
   }
   const todo = fresh && !original.todoId && !NOT_TASKS.has(changes.kind) ? linkTodo(text) : null;
@@ -2648,6 +2667,7 @@ function startPlanner() {
   $('block-form').addEventListener('submit', applyBlockEditor);
   for (const input of document.querySelectorAll('input[data-scrub]')) initScrub(input);
   $('block-form').addEventListener('change', updateEditorFields);
+  $('block-form').elements.text.addEventListener('input', updateQuickHint);
   $('block-cancel').addEventListener('click', () => $('block-editor').close());
   for (const button of $('block-quick').querySelectorAll('[data-quick]')) {
     button.addEventListener('click', () => quickReschedule(button.dataset.quick));

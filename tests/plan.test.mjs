@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { snapTimelineDrop, timelineDropPlace, arrangeTimelineDrop, resizeWindow, fitResize, resizeDayBlock, fitTimelineDrop, fullOpening, foldTail, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, insertPopup, layoutDay, restackBeforeScreensOff, suggestGhosts, toggleBlockPin } from '../plan-engine.js';
+import { snapTimelineDrop, timelineDropPlace, arrangeTimelineDrop, resizeWindow, fitResize, resizeDayBlock, fitTimelineDrop, fullOpening, foldTail, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, insertPopup, layoutDay, restackBeforeScreensOff, suggestGhosts, toggleBlockPin, parseQuickAdd } from '../plan-engine.js';
 
 const block = (id, size, fields = {}) => ({ id, size, tier: 'medium', ...fields });
 const times = ({ blocks }) => blocks.map(({ id, start, until }) => [id, start, until]);
@@ -344,4 +344,24 @@ test('dropping on a block inserts before its upper half or after its lower half'
       assert.deepEqual(times({ blocks: before.timed }), [['Upload travel photos', 810, 855], ['Workout', 965, 1025]]);
     }
   }
+});
+
+test('quick-add pulls a time and length out of the title', () => {
+  assert.deepEqual(parseQuickAdd('gym 5pm 1h'), { text: 'gym', start: 17 * 60, duration: 60 });
+  assert.deepEqual(parseQuickAdd('call mom 30m'), { text: 'call mom', duration: 30 });
+  assert.deepEqual(parseQuickAdd('study 454 9-11'), { text: 'study 454', start: 9 * 60, duration: 120 });
+  assert.deepEqual(parseQuickAdd('lab 2:30pm 90m'), { text: 'lab', start: 14 * 60 + 30, duration: 90 });
+  assert.deepEqual(parseQuickAdd('run at 5 for 1.5h'), { text: 'run', start: 17 * 60, duration: 90 });
+  assert.deepEqual(parseQuickAdd('meeting 17:00 45 min'), { text: 'meeting', start: 17 * 60, duration: 45 });
+  assert.deepEqual(parseQuickAdd('read 1h30m'), { text: 'read', duration: 90 });
+  assert.deepEqual(parseQuickAdd('class 11-1pm'), { text: 'class', start: 11 * 60, duration: 120 });
+  assert.deepEqual(parseQuickAdd('dinner 6-7'), { text: 'dinner', start: 18 * 60, duration: 60 });
+});
+
+test('quick-add leaves numbers that are not times alone', () => {
+  assert.deepEqual(parseQuickAdd('study 454'), { text: 'study 454' });
+  assert.deepEqual(parseQuickAdd('ECE 454 lab 3'), { text: 'ECE 454 lab 3' });
+  assert.deepEqual(parseQuickAdd('call 911'), { text: 'call 911' });
+  assert.deepEqual(parseQuickAdd('5pm'), { text: '5pm' });
+  assert.deepEqual(parseQuickAdd(''), { text: '' });
 });

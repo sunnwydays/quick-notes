@@ -350,7 +350,7 @@ dialog .scrub input {
 .pin-toggle span { display: grid; place-items: center; width: 22px; height: 22px; font-size: 1.1rem; line-height: 1; filter: grayscale(1); opacity: .45; }
 .pin-toggle:has(input:checked) span { filter: none; opacity: 1; }
 .pin-toggle:has(input:focus-visible) { outline: 2px solid currentColor; }
-#block-where { margin: -.25rem 0 0; }
+#block-where, #block-hint { margin: -.25rem 0 0; }
 #block-more summary { cursor: pointer; font-size: .9rem; font-weight: bold; color: var(--muted); }
 .more-fields { display: grid; gap: .55rem; margin-top: .45rem; padding-top: .55rem; border-top: 1px solid #dbe6ec; }
 form label.check { display: flex; align-items: center; gap: .35rem; }

@@ -602,7 +602,75 @@ function insertPopup(day, popup, minute) {
   return { day: keepDayTimes(edited, [...edited.blocks, ...displaced], result.blocks, allBumped), bumped: allBumped };
 }
 
+// Typed quick-add: pull a start time and/or a length out of an item title.
+// Returns { text, start?, duration? }: start in minutes after midnight, duration in minutes,
+// and text with those tokens removed. A bare number only counts as a time when it looks like
+// one ("9-11", "5pm", "17:00", "at 5"), so "study 454" keeps its 454.
+function bareHour(hour) {
+  // Without am/pm: 7-11 is morning, 12 is noon, 1-6 is afternoon.
+  return hour >= 1 && hour <= 6 ? hour + 12 : hour;
+}
+
+function clockMinutes(hour, minute, ap) {
+  if (hour > 23 || (ap && (hour < 1 || hour > 12))) return null;
+  const h = ap ? (hour % 12) + (ap === 'p' ? 12 : 0) : hour;
+  return h * 60 + Number(minute || 0);
+}
+
+function parseQuickAdd(input) {
+  let text = String(input ?? '');
+  let start;
+  let duration;
+  const cut = (match) => { text = `${text.slice(0, match.index)} ${text.slice(match.index + match[0].length)}`; };
+  const edge = String.raw`(?<![\w:.\-])`;
+  const long = /(?<![\w.])(\d+(?:\.\d+)?)\s*(?:h|hrs?|hours?)(?![a-z])(?:\s*(\d+)\s*(?:m|mins?|minutes?)\b)?|(?<![\w.])(\d+)\s*(?:m|mins?|minutes?)\b/i.exec(text);
+  if (long) {
+    const total = long[3] != null ? Number(long[3]) : Math.round(Number(long[1]) * 60 + Number(long[2] || 0));
+    if (total >= 5 && total <= 720) { duration = total; cut(long); }
+  }
+  const range = new RegExp(String.raw`${edge}(\d{1,2})(?::([0-5]\d))?\s*([ap]\.?m?\.?)?\s*[-–—]\s*(\d{1,2})(?::([0-5]\d))?\s*([ap]\.?m?\.?)?(?![\w:])`, 'i').exec(text);
+  const marker = (value) => value?.[0].toLowerCase();
+  if (range) {
+    const [, h1, m1, a1, h2, m2, a2] = range;
+    const endAp = marker(a2);
+    const startAp = marker(a1) ?? endAp;
+    let from = clockMinutes(Number(h1), m1, startAp);
+    let to = clockMinutes(Number(h2), m2, endAp);
+    if (from != null && to != null && !marker(a1) && !endAp) {
+      from = clockMinutes(bareHour(Number(h1)), m1);
+      to = clockMinutes(Number(h2), m2);
+      while (to != null && to <= from) to += 12 * 60;
+    } else if (from != null && to != null && !marker(a1) && to <= from) {
+      from -= 12 * 60;
+      if (from < 0) from += 24 * 60;
+    }
+    if (from != null && to != null && to > from && to <= 24 * 60) {
+      start = from;
+      duration ??= to - from;
+      cut(range);
+    }
+  }
+  if (start == null) {
+    const at = new RegExp(String.raw`\bat\s+(\d{1,2})(?::([0-5]\d))?\s*(?:([ap])\.?m\b\.?)?(?![\w:])`, 'i').exec(text);
+    const ampm = new RegExp(String.raw`${edge}(\d{1,2})(?::([0-5]\d))?\s*([ap])\.?m\b\.?`, 'i').exec(text);
+    const colon = new RegExp(String.raw`${edge}(\d{1,2}):([0-5]\d)(?![\w:])`).exec(text);
+    for (const [found, kind] of [[at, 'at'], [ampm, 'ampm'], [colon, 'colon']]) {
+      if (!found) continue;
+      const ap = found[3]?.toLowerCase();
+      const hour = Number(found[1]);
+      const value = ap || kind === 'ampm' ? clockMinutes(hour, found[2], ap) : clockMinutes(hour > 12 || found[1].startsWith('0') ? hour : bareHour(hour), found[2]);
+      if (value == null || value >= 24 * 60) continue;
+      start = value;
+      cut(found);
+      break;
+    }
+  }
+  const cleaned = text.replace(/\s+/g, ' ').trim().replace(/(?:^|\s)(?:for|at|from|@)$/i, '').trim();
+  if (!cleaned) return { text: String(input ?? '').trim() };
+  return { text: cleaned, ...start != null ? { start } : {}, ...duration != null ? { duration } : {} };
+}
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { snapTimelineDrop, timelineDropPlace, timelineDropStart, arrangeTimelineDrop, resizeWindow, fitResize, resizeDayBlock, fitTimelineDrop, fullOpening, foldTail, layoutDay, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, toggleBlockPin, suggestGhosts,
-    insertPopup, restackBeforeScreensOff };
+    insertPopup, restackBeforeScreensOff, parseQuickAdd };
 }
