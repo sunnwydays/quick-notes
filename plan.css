@@ -416,6 +416,7 @@ label.choice:has(input:checked) { border-color: #5b8aa6; background: #eef6fb; }
   .tile.timed { --tile-left: 2.6rem; }
   .gap, .now-line { inset-inline-start: 2.6rem; }
   .day.selected { border-inline-end: 1px solid var(--line); display: block; grid-row: 1; overflow-y: auto; overscroll-behavior: contain; }
+  .day.selected { touch-action: pan-y; }
   .day-head h3 { font-size: 1.05rem; }
   .day-menu { max-width: calc(100% + .4rem); }
 }

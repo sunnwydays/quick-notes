@@ -2266,6 +2266,40 @@ document.addEventListener('contextmenu', (event) => {
   if (activeDrag?.touch || tplDrag?.holdTimer) event.preventDefault();
 });
 
+// On a phone, a horizontal swipe on the selected day moves to the next or previous day.
+let daySwipe = null;
+let daySwipedAt = 0;
+
+function daySwipeDown(event) {
+  daySwipe = null;
+  if (event.pointerType !== 'touch' || !event.isPrimary || !matchMedia('(max-width: 700px)').matches) return;
+  if (!event.target.closest('.day.selected') || event.target.closest('.day-menu')) return;
+  daySwipe = { id: event.pointerId, x: event.clientX, y: event.clientY };
+}
+
+function daySwipeUp(event) {
+  const start = daySwipe;
+  daySwipe = null;
+  if (event.type !== 'pointerup' || start?.id !== event.pointerId || activeDrag?.armed || activeDrag?.moved) return;
+  const dx = event.clientX - start.x;
+  const dy = event.clientY - start.y;
+  if (Math.abs(dx) <= 60 || Math.abs(dx) <= 1.5 * Math.abs(dy)) return;
+  daySwipedAt = Date.now();
+  clearTimeout(tileClick);
+  const step = dx < 0 ? 1 : -1;
+  const index = plan.keys.indexOf(selectedDay) + step;
+  if (index >= 0 && index < plan.keys.length) {
+    selectDay(plan.keys[index]);
+    return;
+  }
+  const before = monday;
+  changePlannerWeek(addDays(monday, step * 7));
+  if (monday === before) return;
+  const key = dayKey(addDays(monday, step > 0 ? 0 : 6));
+  if (plan) selectDay(key);
+  else selectedDay = key;
+}
+
 function startDrag(event) {
   lastPointerType = event.pointerType;
   if (event.target.closest('.fit-opening')) return;
@@ -2614,7 +2648,12 @@ function startPlanner() {
   window.addEventListener('pointermove', moveDrag, { passive: false });
   window.addEventListener('pointerup', endDrag);
   window.addEventListener('pointercancel', endDrag);
+  tilesArea.addEventListener('pointerdown', daySwipeDown);
+  tilesArea.addEventListener('pointerup', daySwipeUp);
+  tilesArea.addEventListener('pointercancel', daySwipeUp);
   tilesArea.addEventListener('click', (event) => {
+    // The click that ends a swipe is not a tap on a tile or an empty part of the day.
+    if (Date.now() - daySwipedAt < 400) return;
     const timeline = event.target.closest('.timeline');
     // Phones scroll on a drag, so a tap on an empty part of a day adds an item there.
     if (lastPointerType === 'touch' && timeline && !event.target.closest('.tile')) {
