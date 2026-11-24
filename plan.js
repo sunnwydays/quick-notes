@@ -1881,6 +1881,23 @@ function selectDay(key) {
   selectedDay = key;
   renderPlanner();
   $('week').querySelector('.day.selected').scrollTop = 0;
+  scrollToNow();
+}
+
+// Scrolls today's timeline so an hour before now sits just under the day headers.
+// The phone scrolls the selected day; wider screens scroll the whole week.
+function scrollToNow() {
+  const timeline = $('week').querySelector('.day.today .timeline');
+  if (!timeline) return;
+  const narrow = matchMedia('(max-width: 700px)').matches;
+  if (narrow && !timeline.closest('.day.selected')) return;
+  const scroller = narrow ? timeline.closest('.day') : document.querySelector('.board-scroll');
+  const now = new Date();
+  const minute = Math.max(now.getHours() * 60 + now.getMinutes() - 60, Number(timeline.dataset.from));
+  const perMinute = parseFloat(getComputedStyle(timeline).getPropertyValue('--minute-height')) || 1.45;
+  const head = timeline.closest('.day').querySelector('.day-head').offsetHeight;
+  const y = timeline.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop;
+  scroller.scrollTop = Math.max(0, y + (minute - Number(timeline.dataset.from)) * perMinute - head);
 }
 
 function refreshView() {
@@ -2401,6 +2418,7 @@ function changePlannerWeek(next) {
   $('plan-status').textContent = '';
   refreshView();
   document.querySelector('.board-scroll').scrollTo(0, 0);
+  scrollToNow();
 }
 
 function showPlannerScreen(state) {
@@ -2572,6 +2590,7 @@ function startPlanner() {
   window.addEventListener('popstate', (event) => showPlannerScreen(event.state));
   showPlannerScreen(history.state);
   refreshView();
+  scrollToNow();
   const url = new URL(location.href);
   if (url.searchParams.get('review') === '1') {
     url.searchParams.delete('review');
