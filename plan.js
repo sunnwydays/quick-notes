@@ -620,6 +620,13 @@ function openBlockEditor(source, target = blockTarget(source)) {
   showEditorError('');
   updateEditorFields();
   $('block-editor').showModal();
+  resizeItemText(fields.text);
+}
+
+function resizeItemText(field) {
+  field.style.height = 'auto';
+  const borderHeight = field.offsetHeight - field.clientHeight;
+  field.style.height = `${field.scrollHeight + borderHeight}px`;
 }
 
 // Minute fields are scrub sliders: drag sideways (1 min per SCRUB_PX), click to type, or use the arrows (±5).
@@ -793,7 +800,7 @@ function savePinNow(event) {
 function applyBlockEditor(event) {
   event.preventDefault();
   const fields = event.target.elements;
-  const entered = fields.text.value.trim();
+  const entered = fields.text.value.replace(/\n+/g, ' ').trim();
   if (!entered) return;
   const { fresh } = editedBlock;
   const { date: from = null, shelf = false } = editedBlock.target;
@@ -2830,7 +2837,19 @@ function startPlanner() {
   for (const input of document.querySelectorAll('input[data-scrub]')) initScrub(input);
   $('block-form').addEventListener('change', updateEditorFields);
   $('block-form').elements.pin.addEventListener('change', savePinNow);
-  $('block-form').elements.text.addEventListener('input', updateQuickHint);
+  const itemText = $('block-form').elements.text;
+  itemText.addEventListener('input', () => {
+    resizeItemText(itemText);
+    updateQuickHint();
+  });
+  itemText.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter' || event.isComposing) return;
+    event.preventDefault();
+    itemText.form.requestSubmit();
+  });
+  window.addEventListener('resize', () => {
+    if ($('block-editor').open) resizeItemText(itemText);
+  });
   $('block-cancel').addEventListener('click', () => $('block-editor').close());
   for (const button of $('block-quick').querySelectorAll('[data-quick]')) {
     button.addEventListener('click', () => quickReschedule(button.dataset.quick));

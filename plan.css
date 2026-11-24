@@ -320,10 +320,11 @@ dialog::backdrop { background: #26465e42; }
 .editor-head h2 { flex: 1; margin: 0; }
 dialog form, #event-fields { display: grid; gap: .55rem; }
 form label { display: grid; gap: .2rem; font-size: .9rem; font-weight: bold; }
-dialog input:not([type="checkbox"]), dialog select, #login input {
+dialog input:not([type="checkbox"]), dialog select, #block-form textarea, #login input {
   min-width: 0; min-height: 2rem; border: 1px solid #a8c6d5; border-radius: 7px; padding: .2rem .4rem;
   background: white;
 }
+#block-form textarea { width: 100%; overflow-wrap: anywhere; resize: none; }
 .scrub {
   --shift: 0px;
   position: relative; display: flex; align-items: center; justify-content: center; gap: .2rem;
