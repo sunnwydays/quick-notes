@@ -81,8 +81,15 @@
         <div class="more-fields">
           <label>Next <input name="next" placeholder="First step for the next block"></label>
           <div class="field-row">
-            <label>Kind <select name="kind"></select></label>
+            <div>
+              <div class="kind-heading">
+                <label for="block-kind">Kind</label>
+                <button type="button" id="kind-info" aria-label="Which kinds skip breaks?" aria-expanded="false" aria-controls="kind-help">&#9432;</button>
+              </div>
+              <select id="block-kind" name="kind"></select>
+            </div>
           </div>
+          <p id="kind-help" class="muted" hidden></p>
           <label id="block-copy-row">Copy to <select id="block-copy"></select></label>
           <div id="pin-fields" class="pin-fields">
             <label>Time <input name="time" type="time"></label>

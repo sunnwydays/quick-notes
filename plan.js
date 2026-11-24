@@ -528,6 +528,15 @@ function blockTarget(source) {
 // Pressing Delete as the very first thing after opening an existing item deletes it (as does Delete outside a text field).
 let quickDelete = false;
 
+function showKindHelp(open) {
+  $('kind-help').hidden = !open;
+  $('kind-info').setAttribute('aria-expanded', String(open));
+}
+
+$('kind-info').onclick = () => showKindHelp($('kind-help').hidden);
+const exemptKindNames = BREAK_EXEMPT_KINDS.map(kind => BLOCK_KINDS[kind]);
+$('kind-help').textContent = `${new Intl.ListFormat('en').format(exemptKindNames)} skip breaks on both sides. Automatic uses the item name to infer its kind.`;
+
 function openBlockEditor(source, target = blockTarget(source)) {
   editedBlock = { ...source, target };
   const block = source.block;
@@ -550,6 +559,7 @@ function openBlockEditor(source, target = blockTarget(source)) {
   $('pin-fields').hidden = !timed;
   $('block-pin').hidden = !timed;
   $('block-more').open = false;
+  showKindHelp(false);
   // A drag already chose the time and length, so they sit at the top of More there.
   const dragged = Boolean(source.fresh && target.at);
   const more = $('block-more').querySelector('.more-fields');

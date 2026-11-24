@@ -36,9 +36,10 @@ function foldTail(block) {
   return block.duration != null ? { ...rest, duration: length } : { ...rest, size: length };
 }
 
+const BREAK_EXEMPT_KINDS = ['routine', 'meal', 'buffer'];
+
 function gapBetween(block, next, duration = block.start != null && block.until != null ? block.until - block.start : blockDuration(block)) {
-  const exempt = kind => kind === 'routine' || kind === 'meal' || kind === 'buffer';
-  if (block.skipBreak || exempt(blockKind(block)) || (next && exempt(blockKind(next)))) return 0;
+  if (block.skipBreak || BREAK_EXEMPT_KINDS.includes(blockKind(block)) || (next && BREAK_EXEMPT_KINDS.includes(blockKind(next)))) return 0;
   return duration < 35 ? 5 : 10;
 }
 
