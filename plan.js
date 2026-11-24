@@ -1423,19 +1423,9 @@ function reviewMarks(key) {
   return marks;
 }
 
-function refreshReviewStatus(layouts) {
+function refreshReviewStatus() {
   const now = new Date();
-  const today = dayKey(now);
-  const minute = now.getHours() * 60 + now.getMinutes();
-  $('day-review').hidden = minute < REVIEW_START;
-  let unmarked = 0;
-  for (const [i, key] of plan.keys.entries()) {
-    if (key > today) continue;
-    const marks = reviewMarks(key);
-    const blocks = layouts?.[i].blocks ?? layoutDay(plan.days[key]).blocks;
-    unmarked += blocks.filter((block) => (key < today || block.until <= minute) && !marks.has(blockKey(block.start))).length;
-  }
-  $('week-unmarked').textContent = `${unmarked} ${unmarked === 1 ? 'block' : 'blocks'} unmarked`;
+  $('day-review').hidden = now.getHours() * 60 + now.getMinutes() < REVIEW_START;
 }
 
 function refreshReviewRows() {
@@ -1920,7 +1910,7 @@ function renderPlanner() {
   const layouts = plan.keys.map((key) => layoutDay(plan.days[key]));
   const loads = layouts.map((layout, i) => dayLoad(plan.days[plan.keys[i]], layout.blocks));
   renderGoals(layouts, loads);
-  refreshReviewStatus(layouts);
+  refreshReviewStatus();
   refreshReviewRows();
   const all = layouts.flatMap((layout) => layout.blocks);
   const from = Math.floor(Math.min(PLAN_START, ...all.map((b) => b.start)) / 60) * 60;
