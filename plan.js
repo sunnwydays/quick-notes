@@ -1,4 +1,4 @@
-const PLAN_COLOURS = ['#5fc9a0', '#f5a35c', '#a58be8', '#f2c230', '#5aa9f0', '#ef7fb4'];
+const PLAN_COLOURS = ['#8adcbb', '#f5a35c', '#c2b1f2', '#f2c230', '#5aa9f0', '#ef7fb4'];
 // Old pastel picks saved before the palette got stronger, mapped to their replacements.
 const LEGACY_COLOURS = { '#c8efd9': PLAN_COLOURS[0], '#ffdcc8': PLAN_COLOURS[1], '#e5dcfa': PLAN_COLOURS[2], '#fff1ba': PLAN_COLOURS[3], '#d5ebff': PLAN_COLOURS[4], '#f9d9ea': PLAN_COLOURS[5] };
 const COLOUR_NAMES = ['Teal', 'Orange', 'Violet', 'Gold', 'Blue', 'Pink'];
