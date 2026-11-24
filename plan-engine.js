@@ -551,7 +551,7 @@ function dayLoad(day, blocks) {
     const from = Math.max(start, block.start);
     const until = Math.min(end, block.until);
     const work = workBlock(block);
-    if (!work && until > from) excluded.push([from, until]);
+    if (!work && blockKind(block) !== 'buffer' && until > from) excluded.push([from, until]);
     if (work && until > from) {
       placed += until - from;
     }

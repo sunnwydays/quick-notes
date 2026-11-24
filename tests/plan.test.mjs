@@ -133,6 +133,16 @@ test('load excludes fixed time, exercise, and mandatory gaps', () => {
   assert.deepEqual(dayLoad(day, blocks), { usable: 80, placed: 45, ratio: 45 / 80 });
 });
 
+test('buffers keep the same load as open time', () => {
+  const day = { wake: '20:00' };
+  const work = { ...block('work', 45), start: 1200, until: 1245 };
+  const buffers = [
+    { ...block('slack', 20, { kind: 'buffer' }), start: 1260, until: 1280 },
+    { ...block('legacy', 30, { text: 'Buffer', tier: 'fixed' }), start: 1290, until: 1320 },
+  ];
+  assert.deepEqual(dayLoad(day, [work, ...buffers]), { usable: 120, placed: 45, ratio: 45 / 120 });
+});
+
 test('ghosts reserve the shelf first and suggest each remaining Todo once without changing the plan', () => {
   const days = {
     '2026-11-23': { template: 'Recovery / social', blocks: [] },
