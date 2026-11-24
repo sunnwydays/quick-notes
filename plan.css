@@ -6,6 +6,7 @@
   --muted: #485c68;
   --line: #cadfe9;
   --radius: 16px;
+  --past-opacity: .55;
 }
 
 * { box-sizing: border-box; }
@@ -147,9 +148,10 @@ button:disabled { opacity: .55; cursor: default; }
 .meal-connectors {
   position: absolute; grid-area: 3 / 2 / 4 / -1; inset: 0;
   width: 100%; height: 100%; z-index: 1; pointer-events: none;
-  overflow: visible; fill: none; stroke: #5689bd; stroke-width: 5; stroke-linecap: round;
-  opacity: .9;
+  overflow: visible; fill: none; stroke-width: 4; stroke-linecap: round;
 }
+.meal-connectors stop { stop-color: #5689bd; stop-opacity: .9; }
+.meal-connectors stop.past { stop-opacity: var(--past-opacity); }
 .board:has(.drag-live) .meal-connectors { visibility: hidden; }
 .before-wake {
   position: absolute; inset: 0 0 auto; height: calc(var(--duration) * var(--minute-height));
@@ -182,7 +184,7 @@ button:disabled { opacity: .55; cursor: default; }
 .day.today .day-date { background: var(--now); color: #fff; border-radius: 999px; padding: 0 .4rem; }
 .tile.timed.current { box-shadow: 0 0 0 2px var(--now); }
 /* Finished blocks fade back so what's on now and next stands out. */
-.tile.timed.past { opacity: .55; filter: saturate(.5); }
+.tile.timed.past { opacity: var(--past-opacity); filter: saturate(.5); }
 .tile {
   position: relative; background: var(--tile-colour, #edf4fa); color: var(--ink);
   border: 1px solid #172e431c; border-bottom-width: 3px; border-radius: 9px;
@@ -253,11 +255,11 @@ button:disabled { opacity: .55; cursor: default; }
 .tile.late, .tile.late:hover { background-color: #dddfe1; border-color: #8b9298; text-decoration: line-through; }
 @media (width > 700px) {
   .tile.late { --meal-fill: #dddfe1; }
-  .tile.timed.past:is(.meal-joins-left, .meal-joins-right) {
+  .tile.timed.past.meal-linked {
     background-color: color-mix(in srgb, var(--meal-fill, var(--tile-colour)) 45%, white);
     opacity: 1; filter: none;
   }
-  .tile.timed.past:is(.meal-joins-left, .meal-joins-right) .timed-label { opacity: .55; }
+  .tile.timed.past.meal-linked .timed-label { opacity: var(--past-opacity); }
 }
 .day-footer { padding: .45rem; background: #f8fbfd; border-top: 1px solid var(--line); }
 .day-footer .warning { margin: .2rem .15rem 0 0; }

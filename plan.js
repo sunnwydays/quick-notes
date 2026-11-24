@@ -54,6 +54,7 @@ let dropChoices = null;
 let goalsOpen = false;
 let lastPointerType;
 let mealConnectorObserver;
+const mealLineStops = new WeakMap();
 
 function schedulesForWeek(keys) {
   const latest = new Map();
@@ -1965,56 +1966,86 @@ function renderDay(key,{ blocks, bumped }, load, from, until, ghosts) {
 
 function renderMealConnectors(week, columns) {
   mealConnectorObserver?.disconnect();
-  const pairs = [];
-  const svgNamespace = 'http://www.w3.org/2000/svg';
-  const overlay = document.createElementNS(svgNamespace, 'svg');
+  const runs = [];
+  const runForTile = new Map();
   for (const meal of ['lunch', 'dinner']) {
-    const tiles = columns.map((day) => day.querySelectorAll(`[data-meal="${meal}"]`));
-    for (let day = 1; day < tiles.length; day++) {
-      const left = tiles[day - 1];
-      const right = tiles[day];
+    const days = columns.map((day) => day.querySelectorAll(`[data-meal="${meal}"]`));
+    for (let day = 1; day < days.length; day++) {
+      const left = days[day - 1];
+      const right = days[day];
       for (let i = 0; i < Math.min(left.length, right.length); i++) {
-        left[i].classList.add('meal-joins-right');
-        right[i].classList.add('meal-joins-left');
-        const path = document.createElementNS(svgNamespace, 'path');
-        overlay.append(path);
-        pairs.push({ left: left[i], right: right[i], path });
+        let run = runForTile.get(left[i]);
+        if (!run) {
+          run = [left[i]];
+          runs.push(run);
+        }
+        run.push(right[i]);
+        runForTile.set(right[i], run);
       }
     }
   }
-  if (!pairs.length) {
+  if (!runs.length) {
     mealConnectorObserver = null;
     return;
   }
+  const svgNamespace = 'http://www.w3.org/2000/svg';
+  const svg = (tag) => document.createElementNS(svgNamespace, tag);
+  const overlay = svg('svg');
+  const defs = svg('defs');
+  overlay.append(defs);
+  // Each run uses one stroke so translucent seams between segments cannot overlap.
+  const lines = runs.map((tiles, i) => {
+    const gradient = svg('linearGradient');
+    gradient.id = `meal-line-${i}`;
+    gradient.setAttribute('gradientUnits', 'userSpaceOnUse');
+    for (const tile of tiles) {
+      tile.classList.add('meal-linked');
+      const stops = [svg('stop'), svg('stop')];
+      mealLineStops.set(tile, stops);
+      gradient.append(...stops);
+    }
+    defs.append(gradient);
+    const path = svg('path');
+    path.setAttribute('stroke', `url(#${gradient.id})`);
+    overlay.append(path);
+    return { tiles, path, gradient };
+  });
   overlay.classList.add('meal-connectors');
   overlay.setAttribute('aria-hidden', 'true');
   week.prepend(overlay);
   mealConnectorObserver = new ResizeObserver(() => {
     const bounds = overlay.getBoundingClientRect();
     if (!bounds.width) return;
-    for (const { left, right, path } of pairs) {
-      const start = left.getBoundingClientRect();
-      const end = right.getBoundingClientRect();
-      const leftStyle = getComputedStyle(left);
-      const rightStyle = getComputedStyle(right);
-      const x1 = start.right - bounds.left - parseFloat(leftStyle.borderTopRightRadius);
-      const x2 = end.left - bounds.left + parseFloat(rightStyle.borderTopLeftRadius);
-      const y1 = start.top - bounds.top - .5;
-      const y2 = end.top - bounds.top - .5;
-      const bend = (x1 + x2) / 2;
-      // Paths in the middle of a run meet at the shared tile's center.
-      const from = start.left - bounds.left + (left.classList.contains('meal-joins-left')
-        ? start.width / 2 : parseFloat(leftStyle.borderTopLeftRadius));
-      const to = end.right - bounds.left - (right.classList.contains('meal-joins-right')
-        ? end.width / 2 : parseFloat(rightStyle.borderTopRightRadius));
-      path.setAttribute('d', `M ${from} ${y1} H ${x1} C ${bend} ${y1} ${bend} ${y2} ${x2} ${y2} H ${to}`);
+    for (const { tiles, path, gradient } of lines) {
+      const tops = tiles.map((tile) => {
+        const rect = tile.getBoundingClientRect();
+        const style = getComputedStyle(tile);
+        return {
+          left: rect.left - bounds.left + parseFloat(style.borderTopLeftRadius),
+          right: rect.right - bounds.left - parseFloat(style.borderTopRightRadius),
+          y: rect.top - bounds.top - .5,
+        };
+      });
+      const first = tops[0];
+      const last = tops.at(-1);
+      const width = last.right - first.left;
+      gradient.setAttribute('x1', first.left);
+      gradient.setAttribute('x2', last.right);
+      const commands = [`M ${first.left} ${first.y} H ${first.right}`];
+      tops.forEach(({ left, right, y }, i) => {
+        const [start, end] = mealLineStops.get(tiles[i]);
+        start.setAttribute('offset', (left - first.left) / width);
+        end.setAttribute('offset', (right - first.left) / width);
+        if (i === 0) return;
+        const previous = tops[i - 1];
+        const bend = (previous.right + left) / 2;
+        commands.push(`C ${bend} ${previous.y} ${bend} ${y} ${left} ${y} H ${right}`);
+      });
+      path.setAttribute('d', commands.join(' '));
     }
   });
   mealConnectorObserver.observe(overlay);
-  for (const { left, right } of pairs) {
-    mealConnectorObserver.observe(left);
-    mealConnectorObserver.observe(right);
-  }
+  for (const tile of runs.flat()) mealConnectorObserver.observe(tile);
 }
 
 function renderPlanner() {
@@ -2088,7 +2119,12 @@ function showNow() {
   for (const tile of $('week').querySelectorAll('.tile.timed[data-date]')) {
     const { date, start, until } = tile.dataset;
     tile.classList.toggle('current', date === today && Number(start) <= minute && minute < Number(until));
-    tile.classList.toggle('past', date < today || date === today && Number(until) <= minute);
+    const past = date < today || date === today && Number(until) <= minute;
+    tile.classList.toggle('past', past);
+    const stops = mealLineStops.get(tile);
+    if (stops) {
+      for (const stop of stops) stop.classList.toggle('past', past);
+    }
   }
   const line = $('week').querySelector('.day.today .now-line');
   if (!line) return;
