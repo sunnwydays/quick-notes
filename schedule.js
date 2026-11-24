@@ -23,6 +23,7 @@ const DONE_PAGE = 3; // finished blocks shown per tap of "See more"
 
 let doneShown = 0; // finished blocks unfolded on today's schedule
 let scheduleTimer = 0;
+let scheduleRows = new Map();
 // The day a schedule was just saved for, so going back to the schedule screen
 // shows that day: a plan headed "Sun" and saved on Saturday is tomorrow's.
 let savedDay = null;
@@ -610,7 +611,11 @@ function renderSchedule(state, fresh = false) {
   $('schedule-new-btn').hidden = key < today;
 
   const box = $('schedule-list');
-  box.replaceChildren();
+  const rows = new Map();
+  function addRow(parts, create) {
+    const id = JSON.stringify([key, ...parts]);
+    rows.set(id, scheduleRows.get(id) ?? create());
+  }
   const plan = entry ? parseSchedule(entry.text) : { head: null, intro: [], blocks: [] };
   const nowMin = now.getHours() * 60 + now.getMinutes();
   $('schedule-review').hidden = !isToday || nowMin < REVIEW_START;
@@ -626,34 +631,55 @@ function renderSchedule(state, fresh = false) {
 
   if (!entry) {
     const how = ' Tap New, then paste one or type a line per block, like "9:00-11:30 Foosball".';
-    box.append(textLine('empty', isToday ? `No schedule for today.${how}` : key < today ? 'No schedule for this day.' : `No schedule for this day.${how}`));
+    const message = isToday ? `No schedule for today.${how}` : key < today ? 'No schedule for this day.' : `No schedule for this day.${how}`;
+    addRow(['empty', message], () => textLine('empty', message));
     // Point at a schedule saved for a later day, in case it was meant for today.
     const next = days[at + 1];
     if (next) {
-      const btn = document.createElement('button');
-      btn.className = 'next-day';
-      btn.textContent = `See ${dayLabel(next)} ›`;
-      btn.addEventListener('click', () => $('day-next').click());
-      box.append(btn);
+      addRow(['next-day', next], () => {
+        const btn = document.createElement('button');
+        btn.className = 'next-day';
+        btn.textContent = `See ${dayLabel(next)} ›`;
+        btn.addEventListener('click', () => $('day-next').click());
+        return btn;
+      });
     }
   } else {
-    if (plan.head) box.append(textLine('schedule-note', plan.head));
-    for (const line of plan.intro) box.append(textLine('schedule-note', line));
+    const notes = plan.head ? [plan.head, ...plan.intro] : plan.intro;
+    notes.forEach((line, i) => addRow(['note', i, line], () => textLine('schedule-note', line)));
     // Only today's schedule follows the clock; other days are shown as written.
     const done = isToday ? plan.blocks.filter((b) => b.until <= nowMin) : [];
     const nowBlock = isToday ? plan.blocks.find((b) => b.start <= nowMin && nowMin < b.until) : null;
     const nextBlock = isToday && !nowBlock ? plan.blocks.find((b) => b.start > nowMin) : null;
     const hidden = done.length - Math.min(doneShown, done.length);
-    if (done.length) box.append(foldRow(hidden, done.length));
+    if (done.length) addRow(['fold', hidden, done.length], () => foldRow(hidden, done.length));
     const marks = marksOn(key);
+    const markDay = key <= today ? key : null;
     for (const b of plan.blocks) {
       const d = done.indexOf(b);
       if (d >= 0 && d < hidden) continue;
-      if (b === nextBlock) box.append(textLine('free', `Free until ${clock(b.start)}`));
-      box.append(blockRow(b, d >= 0 ? 'done' : b === nowBlock ? 'now' : '', marks.get(blockKey(b.start)), key <= today ? key : null, entry.id));
+      if (b === nextBlock) addRow(['free', b.start], () => textLine('free', `Free until ${clock(b.start)}`));
+      const phase = d >= 0 ? 'done' : b === nowBlock ? 'now' : '';
+      const mark = marks.get(blockKey(b.start));
+      addRow(['block', entry.id, b, phase, markDay, key < today, mark?.status, mark?.endedAt, mark?.reason],
+        () => blockRow(b, phase, mark, markDay, entry.id));
     }
-    if (isToday && plan.blocks.length && !nowBlock && !nextBlock) box.append(textLine('empty', 'Done for today.'));
+    if (isToday && plan.blocks.length && !nowBlock && !nextBlock) {
+      addRow(['finished'], () => textLine('empty', 'Done for today.'));
+    }
   }
+
+  // Keep unchanged rows attached so the browser can anchor the scroll to them.
+  // Remove old rows first so a deleted row never makes us move one we're keeping.
+  for (const [id, row] of scheduleRows) {
+    if (!rows.has(id)) row.remove();
+  }
+  let index = 0;
+  for (const row of rows.values()) {
+    const at = box.children[index++];
+    if (row !== at) box.insertBefore(row, at ?? null);
+  }
+  scheduleRows = rows;
 
   // Redraw when the next block starts or ends (or at midnight), not every
   // minute: each redraw flashes an e-ink screen.
