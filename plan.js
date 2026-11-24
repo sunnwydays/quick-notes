@@ -54,6 +54,7 @@ let dropChoices = null;
 let goalsOpen = false;
 let lastPointerType;
 let mealConnectorObserver;
+let mealConnectorPairs = [];
 
 function schedulesForWeek(keys) {
   const latest = new Map();
@@ -1963,22 +1964,36 @@ function renderDay(key,{ blocks, bumped }, load, from, until, ghosts) {
 
 function renderMealConnectors(week, columns) {
   mealConnectorObserver?.disconnect();
+  mealConnectorPairs = [];
   const svgNamespace = 'http://www.w3.org/2000/svg';
-  const overlay = document.createElementNS(svgNamespace, 'svg');
-  const pairs = [];
+  const svg = (tag) => document.createElementNS(svgNamespace, tag);
+  const overlay = svg('svg');
+  const defs = svg('defs');
+  overlay.append(defs);
   for (const meal of ['lunch', 'dinner']) {
     const tiles = columns.map((day) => day.querySelectorAll(`[data-meal="${meal}"]`));
     for (let day = 1; day < tiles.length; day++) {
       const left = tiles[day - 1];
       const right = tiles[day];
       for (let i = 0; i < Math.min(left.length, right.length); i++) {
-        const line = document.createElementNS(svgNamespace, 'line');
-        overlay.append(line);
-        pairs.push({ left: left[i], right: right[i], line });
+        left[i].classList.add('meal-joins-right');
+        right[i].classList.add('meal-joins-left');
+        const gradient = svg('linearGradient');
+        gradient.id = `meal-bridge-${mealConnectorPairs.length}`;
+        gradient.setAttribute('gradientUnits', 'userSpaceOnUse');
+        const startColour = svg('stop');
+        const endColour = svg('stop');
+        endColour.setAttribute('offset', '1');
+        gradient.append(startColour, endColour);
+        defs.append(gradient);
+        const path = svg('path');
+        path.setAttribute('fill', `url(#${gradient.id})`);
+        overlay.append(path);
+        mealConnectorPairs.push({ left: left[i], right: right[i], path, gradient, startColour, endColour });
       }
     }
   }
-  if (!pairs.length) {
+  if (!mealConnectorPairs.length) {
     mealConnectorObserver = null;
     return;
   }
@@ -1988,19 +2003,35 @@ function renderMealConnectors(week, columns) {
   mealConnectorObserver = new ResizeObserver(() => {
     const bounds = overlay.getBoundingClientRect();
     if (!bounds.width) return;
-    for (const { left, right, line } of pairs) {
+    for (const { left, right, path, gradient } of mealConnectorPairs) {
       const start = left.getBoundingClientRect();
       const end = right.getBoundingClientRect();
-      line.setAttribute('x1', start.right - bounds.left);
-      line.setAttribute('y1', start.top + start.height / 2 - bounds.top);
-      line.setAttribute('x2', end.left - bounds.left);
-      line.setAttribute('y2', end.top + end.height / 2 - bounds.top);
+      // Overlap by a pixel so the fill stays continuous at fractional tile edges.
+      const x1 = start.right - bounds.left - 1;
+      const x2 = end.left - bounds.left + 1;
+      const bend = (x1 + x2) / 2;
+      const top1 = start.top - bounds.top;
+      const top2 = end.top - bounds.top;
+      const bottom1 = start.bottom - bounds.top;
+      const bottom2 = end.bottom - bounds.top;
+      gradient.setAttribute('x1', x1 + 1);
+      gradient.setAttribute('x2', x2 - 1);
+      path.setAttribute('d', `M ${x1} ${top1} C ${bend} ${top1} ${bend} ${top2} ${x2} ${top2}
+        L ${x2} ${bottom2} C ${bend} ${bottom2} ${bend} ${bottom1} ${x1} ${bottom1} Z`);
     }
+    updateMealConnectorColours();
   });
   mealConnectorObserver.observe(overlay);
-  for (const { left, right } of pairs) {
+  for (const { left, right } of mealConnectorPairs) {
     mealConnectorObserver.observe(left);
     mealConnectorObserver.observe(right);
+  }
+}
+
+function updateMealConnectorColours() {
+  for (const { left, right, startColour, endColour } of mealConnectorPairs) {
+    startColour.setAttribute('stop-color', getComputedStyle(left).backgroundColor);
+    endColour.setAttribute('stop-color', getComputedStyle(right).backgroundColor);
   }
 }
 
@@ -2077,6 +2108,7 @@ function showNow() {
     tile.classList.toggle('current', date === today && Number(start) <= minute && minute < Number(until));
     tile.classList.toggle('past', date < today || date === today && Number(until) <= minute);
   }
+  updateMealConnectorColours();
   const line = $('week').querySelector('.day.today .now-line');
   if (!line) return;
   const timeline = line.parentElement;

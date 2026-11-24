@@ -147,7 +147,6 @@ button:disabled { opacity: .55; cursor: default; }
 .meal-connectors {
   position: absolute; grid-area: 3 / 2 / 4 / -1; inset: 0;
   width: 100%; height: 100%; z-index: 1; pointer-events: none;
-  stroke: #a48464; stroke-width: 2;
 }
 .board:has(.drag-live) .meal-connectors { visibility: hidden; }
 .before-wake {
@@ -250,6 +249,17 @@ button:disabled { opacity: .55; cursor: default; }
   .timed-label .tile-title { clip-path: inset(50%); }
 }
 .tile.late, .tile.late:hover { background-color: #dddfe1; border-color: #8b9298; text-decoration: line-through; }
+@media (width > 700px) {
+  .tile.timed.meal-joins-left { border-top-left-radius: 0; border-bottom-left-radius: 0; border-left-color: transparent; }
+  .tile.timed.meal-joins-right { border-top-right-radius: 0; border-bottom-right-radius: 0; border-right-color: transparent; }
+  .tile.meal-joins-left.fixed { background-origin: border-box; }
+  .tile.late { --meal-fill: #dddfe1; }
+  .tile.timed.past:is(.meal-joins-left, .meal-joins-right) {
+    background-color: color-mix(in srgb, var(--meal-fill, var(--tile-colour)) 45%, white);
+    opacity: 1; filter: none;
+  }
+  .tile.timed.past:is(.meal-joins-left, .meal-joins-right) .timed-label { opacity: .55; }
+}
 .day-footer { padding: .45rem; background: #f8fbfd; border-top: 1px solid var(--line); }
 .day-footer .warning { margin: .2rem .15rem 0 0; }
 .meter {
