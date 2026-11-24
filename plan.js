@@ -1018,10 +1018,12 @@ function templatePointerDown(event) {
   if (edge) {
     event.preventDefault();
     tplDrag = { resize: true, id: edge.dataset.id, y: event.clientY, moved: false, pointer: event.pointerId };
+    if (event.pointerType === 'touch') holdToDrag(tplDrag, edge);
   } else if (tile) {
     event.preventDefault();
     const grab = event.clientY - tile.getBoundingClientRect().top;
     tplDrag = { id: tile.dataset.id, grab, y: event.clientY, moved: false, pointer: event.pointerId };
+    if (event.pointerType === 'touch') holdToDrag(tplDrag, tile);
   } else {
     if (event.pointerType === 'touch') return;
     event.preventDefault();
@@ -1033,6 +1035,13 @@ function templatePointerDown(event) {
 
 function templatePointerMove(event) {
   if (tplDrag?.pointer !== event.pointerId) return;
+  if (tplDrag.pending) {
+    if (Math.abs(event.clientY - tplDrag.y) > HOLD_SLOP) {
+      dropHold(tplDrag);
+      tplDrag = null;
+    }
+    return;
+  }
   if (!tplDrag.moved && Math.abs(event.clientY - tplDrag.y) < 6) return;
   tplDrag.moved = true;
   const timeline = $('template-day');
@@ -1067,6 +1076,7 @@ function templatePointerUp(event) {
   if (tplDrag?.pointer !== event.pointerId) return;
   const drag = tplDrag;
   tplDrag = null;
+  dropHold(drag);
   drag.preview?.remove();
   if (event.type !== 'pointerup') return;
   tplSkipClick = true;
@@ -2227,6 +2237,35 @@ function previewResize(drag, { start, until }) {
   setTileTime(drag.tile, start, until);
 }
 
+// On touch a drag only starts after a short hold, so a finger that moves first scrolls the page.
+const HOLD_TO_DRAG_MS = 300;
+const HOLD_SLOP = 8;
+
+function holdToDrag(drag, tile) {
+  drag.pending = true;
+  drag.liftTile = tile;
+  drag.holdTimer = setTimeout(() => {
+    drag.pending = false;
+    drag.armed = true;
+    navigator.vibrate?.(15);
+    tile.classList.add('lifted');
+  }, HOLD_TO_DRAG_MS);
+}
+
+function dropHold(drag) {
+  clearTimeout(drag.holdTimer);
+  drag.liftTile?.classList.remove('lifted');
+}
+
+// Once a hold has armed a touch drag, the page must not scroll under the finger.
+document.addEventListener('touchmove', (event) => {
+  if ((activeDrag?.armed || tplDrag?.armed) && event.cancelable) event.preventDefault();
+}, { passive: false });
+// A long press would otherwise open the browser's context menu mid-hold.
+document.addEventListener('contextmenu', (event) => {
+  if (activeDrag?.touch || tplDrag?.holdTimer) event.preventDefault();
+});
+
 function startDrag(event) {
   lastPointerType = event.pointerType;
   if (event.target.closest('.fit-opening')) return;
@@ -2240,9 +2279,11 @@ function startDrag(event) {
     clearTimeout(tileClick);
     tile.setPointerCapture(event.pointerId);
     activeDrag = { resize: true, tile, source, timeline: tile.closest('.timeline'), pointer: event.pointerId,
-      start: Number(tile.dataset.start), until: Number(tile.dataset.until), moved: false };
+      start: Number(tile.dataset.start), until: Number(tile.dataset.until), moved: false,
+      x: event.clientX, y: event.clientY, touch: event.pointerType === 'touch' };
     activeDrag.grab = timelineMinute(activeDrag.timeline, event.clientY, { round: minute => minute, clamp: false }) - activeDrag.until;
     activeDrag.window = resizeWindow(plan.days[source.date], source.block.id);
+    if (activeDrag.touch) holdToDrag(activeDrag, tile);
     return;
   }
   const tile = event.target.closest('.tile[data-id]');
@@ -2259,12 +2300,21 @@ function startDrag(event) {
     activeDrag.length = Number(tile.dataset.until) - Number(tile.dataset.start);
     activeDrag.grab = timelineMinute(timeline, event.clientY, { round: (minute) => minute }) - Number(tile.dataset.start);
   }
+  if (activeDrag.touch) holdToDrag(activeDrag, tile);
 }
 
 function moveDrag(event) {
   if (activeDrag?.pointer !== event.pointerId) return;
   if (activeDrag.draft) {
     moveDraft(event);
+    return;
+  }
+  if (activeDrag.pending) {
+    // Moving before the hold finishes is a scroll: leave the tile alone.
+    if (Math.hypot(event.clientX - activeDrag.x, event.clientY - activeDrag.y) > HOLD_SLOP) {
+      dropHold(activeDrag);
+      activeDrag = null;
+    }
     return;
   }
   if (activeDrag.resize) {
@@ -2348,6 +2398,12 @@ function endDrag(event) {
     endDraft(event);
     return;
   }
+  dropHold(activeDrag);
+  if (activeDrag.pending) {
+    // A tap, or a scroll that took over: nothing was lifted, so the click opens the editor as usual.
+    activeDrag = null;
+    return;
+  }
   if (activeDrag.resize) {
     const drag = activeDrag;
     const { tile, source, moved, requested } = drag;
@@ -2365,14 +2421,14 @@ function endDrag(event) {
     markEdited();
     return;
   }
-  const { tile, source, moved, preview } = activeDrag;
+  const { tile, source, moved, preview, armed } = activeDrag;
   // Release applies exactly what was previewed; anything else cancels and restores the view.
   const target = moved && event.type === 'pointerup' ? activeDrag.target : null;
   showDropTarget(null);
   activeDrag = null;
   preview?.remove();
   tile.classList.remove('dragging', 'drag-hidden');
-  if (moved) {
+  if (moved || armed) {
     // Swallow the click that follows the release, even after an Escape mid-drag.
     tile.dataset.dragged = 'true';
     const clear = () => setTimeout(() => delete tile.dataset.dragged, 0);

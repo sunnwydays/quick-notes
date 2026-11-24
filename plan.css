@@ -246,6 +246,9 @@ button:disabled { opacity: .55; cursor: default; }
   padding: .1rem .38rem; justify-content: flex-start;
 }
 .tile.dragging { opacity: .45; }
+/* On touch a tile scrolls the day until it is held; a held tile lifts and then drags. */
+@media (pointer: coarse) { .tile { touch-action: pan-y; -webkit-touch-callout: none; user-select: none; } }
+.tile.lifted { transform: scale(1.03); box-shadow: 0 6px 14px #24485a55; z-index: 5; }
 .board.resizing, .board.resizing .tile, .board.resizing .timeline,
 .timeline.resizing, .timeline.resizing .tile { cursor: ns-resize; }
 /* The pointer copy: small, tilted and translucent so the arrangement below stays readable. */
