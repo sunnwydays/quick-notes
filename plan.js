@@ -2045,13 +2045,15 @@ function renderMealConnectors(week, columns) {
 }
 
 function mealBridgeCurve(x1, y1, x2, y2, taper) {
-  // Move the midpoint and its two handles together to keep the taper smooth.
-  const midX = (x1 + x2) / 2;
-  const midY = (y1 + y2) / 2 + taper;
-  const dx = x2 - x1;
-  const dy = y2 - y1;
-  return `C ${x1 + dx / 4} ${y1} ${midX - dx / 8} ${midY - dy / 4} ${midX} ${midY}
-    C ${midX + dx / 8} ${midY + dy / 4} ${x2 - dx / 4} ${y2} ${x2} ${y2}`;
+  // Taper near each tile, then follow a straight segment between the short curves.
+  const edgeFraction = .18;
+  const edgeX = (x2 - x1) * edgeFraction;
+  const edgeY = (y2 - y1) * edgeFraction;
+  const startY = y1 + edgeY + taper;
+  const endY = y2 - edgeY + taper;
+  return `C ${x1 + edgeX / 3} ${y1} ${x1 + edgeX * 2 / 3} ${startY - edgeY / 3} ${x1 + edgeX} ${startY}
+    L ${x2 - edgeX} ${endY}
+    C ${x2 - edgeX * 2 / 3} ${endY + edgeY / 3} ${x2 - edgeX / 3} ${y2} ${x2} ${y2}`;
 }
 
 function updateMealConnectorColours() {
