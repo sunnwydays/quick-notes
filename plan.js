@@ -1770,6 +1770,7 @@ function renderDay(key,{ blocks, bumped }, load, from, until, ghosts) {
   const add = plannerButton('+', addUntimed, 'day-add');
   add.setAttribute('aria-label', `Add an untimed item for ${dayLabel(key)}`);
   shelf.append(add);
+  shelf.classList.toggle('empty', shelf.querySelectorAll('.tile').length === 0);
   shelf.addEventListener('click', (event) => {
     if (!event.target.closest('button')) addUntimed();
   });
