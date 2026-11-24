@@ -85,6 +85,7 @@ function openPlannerWeek() {
     }
     sources[date] = Array.isArray(day?.blocks) ? saved.value.sources?.[date] ?? null : schedule?.id ?? null;
   }
+  for (const date of keys) if (Array.isArray(days[date]?.blocks)) days[date] = { ...days[date], blocks: days[date].blocks.map(withExamGoal) };
   planSnap = null;
   plan = { key, keys, days, sources, schedules, version: saved?.entry.id ?? null, dirtyDays: new Set(), scheduleDirty: new Set(),
     budgets: goals?.value || {}, goalVersion: goals?.entry.id ?? null, goalsDirty: false,
@@ -244,6 +245,17 @@ function plannerButton(text, action, className = '') {
 
 function plannerGoals() {
   return entriesFor('Working on');
+}
+
+// Every study block belongs to the exam goal unless it already has one.
+function examGoalId() {
+  return plannerGoals().find((entry) => /95\+/.test(entry.text))?.id ?? null;
+}
+
+function withExamGoal(block) {
+  if (block.goal || blockKind(block) !== 'study') return block;
+  const goal = examGoalId();
+  return goal ? { ...block, goal } : block;
 }
 
 function goalColour(goal) {
@@ -799,7 +811,7 @@ function applyBlockEditor(event) {
   const resized = size !== (original.duration ?? original.size);
   // Done and deadline are no longer edited here, so existing values carry over untouched.
   const changes = {
-    text, next: fields.next.value.trim(), goal: fields.goal.value || null,
+    text, next: fields.next.value.trim(), goal: fields.goal.value || withExamGoal({ text, kind: fields.kind.value || undefined }).goal || null,
     kind: fields.kind.value || undefined,
     ...resized ? { size, duration: undefined, originalDuration: undefined, skipBreak: undefined } : {},
   };
@@ -1364,7 +1376,7 @@ function applyTemplateEditor(event) {
 
 function blockColour(block) {
   // A goal's own colour wins over the kind colours, so assigning a goal always shows.
-  const goalFill = goalColour(block.goal);
+  const goalFill = goalColour(withExamGoal(block).goal);
   if (goalFill) return goalFill;
   const kind = blockKind(block);
   const text = block.text || '';
