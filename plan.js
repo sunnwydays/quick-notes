@@ -1,5 +1,7 @@
-const PLAN_COLOURS = ['#c8efd9', '#ffdcc8', '#e5dcfa', '#fff1ba', '#d5ebff', '#f9d9ea'];
-const COLOUR_NAMES = ['Mint', 'Peach', 'Lavender', 'Butter yellow', 'Powder blue', 'Pink'];
+const PLAN_COLOURS = ['#5fc9a0', '#f5a35c', '#a58be8', '#f2c230', '#5aa9f0', '#ef7fb4'];
+// Old pastel picks saved before the palette got stronger, mapped to their replacements.
+const LEGACY_COLOURS = { '#c8efd9': PLAN_COLOURS[0], '#ffdcc8': PLAN_COLOURS[1], '#e5dcfa': PLAN_COLOURS[2], '#fff1ba': PLAN_COLOURS[3], '#d5ebff': PLAN_COLOURS[4], '#f9d9ea': PLAN_COLOURS[5] };
+const COLOUR_NAMES = ['Teal', 'Orange', 'Violet', 'Gold', 'Blue', 'Pink'];
 const BLOCK_KINDS = {
   '': 'Automatic', study: 'Study', project: 'Project / AI tutor',
   fun: 'Open-ended fun', free: 'Free', buffer: 'Buffer',
@@ -247,6 +249,7 @@ function plannerGoals() {
 function goalColour(goal) {
   const saved = plan.budgets[goal]?.colour;
   if (PLAN_COLOURS.includes(saved)) return saved;
+  if (LEGACY_COLOURS[saved]) return LEGACY_COLOURS[saved];
   const index = plannerGoals().findIndex((entry) => entry.id === goal);
   return index < 0 ? '' : PLAN_COLOURS[index % PLAN_COLOURS.length];
 }
@@ -1363,9 +1366,9 @@ function blockColour(block) {
   const kind = blockKind(block);
   const text = block.text || '';
   const routineCue = /^(?:wake|breakfast|walk outside|nap|screens off|wind down|bedtime|shower)\b/i;
-  if (kind === 'study' || (!block.kind && STUDY_SUBJECT.test(text))) return '#e7ddfa';
-  if (kind === 'routine' || kind === 'meal' || (!block.kind && routineCue.test(text))) return '#fbe5d5';
-  if (kind === 'free' || kind === 'buffer') return '#e9f6e6';
+  if (kind === 'study' || (!block.kind && STUDY_SUBJECT.test(text))) return '#cfc2f2';
+  if (kind === 'routine' || kind === 'meal' || (!block.kind && routineCue.test(text))) return '#efd3b8';
+  if (kind === 'free' || kind === 'buffer') return '#d6ecd0';
   // Blocks without a goal get a real neutral, so they don't read as greyed out like ghosts or late blocks.
   return goalColour(block.goal) || '#dbe7f0';
 }
