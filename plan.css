@@ -94,7 +94,8 @@ button:disabled { opacity: .55; cursor: default; }
 /* Doubled class so it beats the plain .tile display: block further down. */
 .tile.tray-tile { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 .3rem; }
 /* Zero basis so a long title wraps beside the tick instead of dropping below it. */
-.tray-tile .tile-title { flex: 1 1 0; min-width: 0; }
+/* Taller lines so the two-line clamp doesn't clip descenders like g and y. */
+.tray-tile .tile-title { flex: 1 1 0; min-width: 0; line-height: 1.25; }
 .tray-tile .split-prompt { flex-basis: 100%; }
 .tile-check {
   flex: none; display: inline-grid; place-items: center; width: .85rem; height: .85rem;
