@@ -623,6 +623,7 @@ function openBlockEditor(source, target = blockTarget(source)) {
   updateQuickHint();
   $('block-editor-title').textContent = source.fresh ? 'Add item' : 'Edit item';
   $('block-delete').hidden = Boolean(source.fresh);
+  $('block-buffer').hidden = !(source.fresh && timed);
   $('block-done').hidden = !source.copy && !liveTodo(block.todoId);
   quickDelete = !$('block-delete').hidden;
   // Only a timed block on today or an earlier day can have happened, so only it can be skipped or run over.
@@ -2873,6 +2874,14 @@ function startPlanner() {
     if ($('block-editor').open) resizeItemText(itemText);
   });
   $('block-cancel').addEventListener('click', () => $('block-editor').close());
+  // One tap turns the drawn time into a Buffer (washroom, running over, anything unplanned).
+  $('block-buffer').addEventListener('click', () => {
+    const fields = $('block-form').elements;
+    fields.text.value = 'Buffer';
+    fields.kind.value = 'buffer';
+    fields.goal.value = '';
+    $('block-form').requestSubmit();
+  });
   for (const button of $('block-quick').querySelectorAll('[data-quick]')) {
     button.addEventListener('click', () => quickReschedule(button.dataset.quick));
   }
