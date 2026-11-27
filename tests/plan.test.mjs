@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { reorderTimelineDrop, snapTimelineDrop, timelineDropPlace, arrangeTimelineDrop, resizeWindow, fitResize, resizeDayBlock, fitTimelineDrop, fullOpening, foldTail, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, insertPopup, layoutDay, restackBeforeScreensOff, suggestGhosts, toggleBlockPin, dropStaleFixed, parseQuickAdd, splitLength, fitTemplateAnchors, blockKind, stickyGoalColours } from '../plan-engine.js';
+import { reorderTimelineDrop, snapTimelineDrop, timelineDropPlace, arrangeTimelineDrop, resizeWindow, fitResize, resizeDayBlock, fitTimelineDrop, fullOpening, foldTail, applyWake, dayLoad, placeInDay, lockShownTimes, insertPopup, layoutDay, suggestGhosts, toggleBlockPin, dropStaleFixed, parseQuickAdd, splitLength, fitTemplateAnchors, blockKind, stickyGoalColours } from '../plan-engine.js';
 
 const block = (id, size, fields = {}) => ({ id, size, tier: 'medium', ...fields });
 const times = ({ blocks }) => blocks.map(({ id, start, until }) => [id, start, until]);
@@ -93,34 +93,12 @@ test('pin toggles preserve the displayed stack until an intentional reschedule',
   assert.deepEqual(times(layoutDay(repinned)), original);
   assert.equal(layoutDay(repinned).blocks[1].pinned, '09:00');
   assert.equal(toggleBlockPin(unpinned, 'middle', '09:15'), null);
-
-  const { day: rescheduled } = applyOverrun(unpinned, 'early', 475);
-  assert.deepEqual(times(layoutDay(rescheduled)), [['early', 420, 475], ['middle', 485, 515], ['late', 520, 550]]);
 });
 
 test('an old saved tail folds into the block length', () => {
   assert.deepEqual(foldTail(block('cardio', 60, { tail: 30 })), block('cardio', 90));
   assert.deepEqual(foldTail(block('cardio', 60, { duration: 45, tail: 15 })), { ...block('cardio', 60), duration: 60 });
   assert.deepEqual(foldTail(block('plain', 30, { tail: 0 })), block('plain', 30));
-});
-
-test('an overrun keeps the earlier stack and fixed time, and moves work from that block down', () => {
-  const day = {
-    imported: true,
-    blocks: [
-      block('earlier', 30, { importedStart: 420 }),
-      block('over', 30, { importedStart: 450 }),
-      block('meal', 30, { importedStart: 500, pinned: '08:20', tier: 'fixed' }),
-      block('flex', 45, { importedStart: 540 }),
-      block('bump-me', 30, { importedStart: 600, pinned: '10:00', tier: 'low' }),
-    ],
-  };
-  assert.equal(applyOverrun(day, 'over', 449), null);
-  const { day: changed, timed } = applyOverrun(day, 'over', 615);
-  assert.equal(timed.start, 450);
-  const result = layoutDay(changed);
-  assert.deepEqual(times(result), [['earlier', 420, 450], ['over', 450, 500], ['meal', 500, 530], ['flex', 625, 670]]);
-  assert.deepEqual(result.bumped.map((b) => b.id), ['bump-me']);
 });
 
 test('load excludes fixed time, exercise, and mandatory gaps', () => {
@@ -258,18 +236,6 @@ test('a pushed routine can move past screens-off', () => {
   const result = layoutDay(applyWake(day, '22:15'));
   assert.deepEqual(times(result), [['screens off', 1335, 1395]]);
   assert.deepEqual(result.bumped, []);
-});
-
-test('an overrun can bump late work while preserving the evening routine', () => {
-  const day = { wake: '21:00', blocks: [
-    block('running', 30),
-    block('work', 30, { tier: 'must' }),
-    block('screens off', 60, { pinned: '22:30', kind: 'routine', tier: 'low' }),
-  ] };
-  const overrun = applyOverrun(day, 'running', 1305);
-  const result = layoutDay(restackBeforeScreensOff(overrun.day));
-  assert.deepEqual(times(result), [['running', 1260, 1305], ['screens off', 1350, 1410]]);
-  assert.deepEqual(result.bumped.map(({ id }) => id), ['work']);
 });
 
 test('a bumped block already stored on the shelf is not listed as a second bump', () => {

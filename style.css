@@ -205,12 +205,7 @@ button.todo-line.primary .todo-age { color: #fff; }
 .glance-block, .glance-free { display: flex; align-items: baseline; gap: 6px; margin: 0; padding: 0 4px; border-radius: 6px; line-height: 1.4; }
 .glance-block time { flex: none; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .glance-text { flex: 1; min-width: 0; font-family: Literata, Georgia, serif; font-size: 19px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-/* A button only so it can be held to tick the block; it turns black (.primary) when held long enough. */
-button.glance-block { width: 100%; min-height: 0; border: 0; text-align: left; font-weight: 400; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
-.glance-block .icon { align-self: center; }
 .glance-block.now { background: #000; color: #fff; }
-button.glance-block.primary { background: #000; color: #fff; }
-button.glance-block.now.primary { background: #fff; color: #000; outline: 2px solid #000; outline-offset: -2px; }
 .glance-block.done { color: #555; }
 .glance-free { font-size: 15px; font-weight: 700; }
 /* Bigger and more spaced out when there's spare height on a phone (fitGlance in home.js). */
@@ -220,10 +215,6 @@ button.glance-block.now.primary { background: #fff; color: #000; outline: 2px so
   display: flex; align-items: center; gap: 10px; width: 100%; margin: 12px 0 4px; min-height: 48px; padding: 6px 12px;
   text-align: left; font-weight: 700; background: #000; color: #fff;
 }
-
-/* Marked blocks on the home glance (schedule.js). Done is struck through, skipped is italic. */
-.glance-block.marked-done .glance-text, .glance-block.marked-over .glance-text { text-decoration: line-through; text-decoration-thickness: 2px; }
-.glance-block.marked-skipped .glance-text { font-style: italic; }
 
 /* Kept on the far left, away from Copy all and Show times. */
 #remove-project-btn { margin-right: auto; }
@@ -289,14 +280,6 @@ input {
 }
 #login p { margin: 12px 0 0; }
 
-/* The ran-over dialog (schedule.js markOver). */
-#over-dialog { width: min(92vw, 420px); padding: 16px; color: #000; background: #fff; border: 2px solid #000; border-radius: 12px; }
-#over-dialog::backdrop { background: rgba(0, 0, 0, .5); }
-#over-form { margin: 0; }
-#over-form h2 { margin: 0; font-size: 20px; overflow-wrap: anywhere; }
-#over-form label { display: flex; flex-direction: column; gap: 4px; font-weight: 700; }
-#over-form .actions { display: flex; gap: 8px; }
-#over-form .actions button { flex: 1; }
 
 /* Phones: home and login sit at the bottom of the display so everything is in thumb reach,
    except the sync row, which stays at the top of the home screen.

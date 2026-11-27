@@ -47,7 +47,7 @@ $('code-form').addEventListener('submit', async (e) => {
   }
   // Upload everything on this device once; the server keeps whichever side is newer.
   reload();
-  for (const x of [...data.categories, ...data.entries, ...data.marks]) x.dirty = true;
+  for (const x of [...data.categories, ...data.entries]) x.dirty = true;
   persist();
   localStorage.removeItem(SYNC_KEY);
   logoutReason = null;

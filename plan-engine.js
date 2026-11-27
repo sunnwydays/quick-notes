@@ -82,7 +82,7 @@ function placeBlocks(day, stack) {
 
 // Pinned positions are reservations. Remove the lowest-priority work and lay
 // out again until the flexible work fits. Shelf blocks never enter the stack.
-function layoutDay(day, restacking = false) {
+function layoutDay(day) {
   if (day.pinLayout) {
     const byId = new Map(day.blocks.map((block) => [block.id, block]));
     return {
@@ -100,26 +100,25 @@ function layoutDay(day, restacking = false) {
     };
   }
   const wake = planMinutes(day.wake) ?? PLAN_START;
-  const cutoffFor = (block) => restacking ? restackCutoff(day, block) : day.workEnd ?? PLAN_END;
+  const cutoff = day.workEnd ?? PLAN_END;
   let stack = day.blocks.filter((block) => !block.shelf);
   const overruns = stack.filter((block) => block.actualUntil != null);
   const canBump = (block) => block.tier !== 'fixed' && block.actualStart == null && block.restackStart == null;
   const bumped = stack.filter((block) => {
     const pin = planMinutes(block.pinned);
     return canBump(block) && pin !== null && (pin < Math.max(wake, day.workStart ?? 0) ||
-      pin + blockDuration(block) > cutoffFor(block) ||
+      pin + blockDuration(block) > cutoff ||
       overruns.some((actual) => pin < actual.actualUntil && pin + blockDuration(block) > actual.actualStart));
   });
   stack = stack.filter((block) => !bumped.includes(block));
   let blocks = placeBlocks(day, stack);
   for (;;) {
     const future = blocks.filter(canBump);
-    const overflow = future.some((block) => block.until > cutoffFor(block));
+    const overflow = future.some((block) => block.until > cutoff);
     const work = future.filter(workBlock);
     const pastWork = blocks.filter((block) => !canBump(block) && workBlock(block)).length;
     if (!overflow && (!work.length || work.length + pastWork <= (day.workCap ?? Infinity))) break;
-    const candidates = overflow ? future.filter((block) =>
-      !restacking || blockKind(block) !== 'routine' || block.until > cutoffFor(block)) : work;
+    const candidates = overflow ? future : work;
     const lowest = candidates.reduce((a, b) => PLAN_TIERS.indexOf(a.tier) < PLAN_TIERS.indexOf(b.tier) ? a : b);
     const removed = stack.find((block) => block.id === lowest.id);
     bumped.push(removed);
@@ -127,18 +126,6 @@ function layoutDay(day, restacking = false) {
     blocks = placeBlocks(day, stack);
   }
   return { blocks, bumped };
-}
-
-function applyOverrun(day, id, endedAt) {
-  const layout = layoutDay(day);
-  const timed = layout.blocks.find((block) => block.id === id);
-  if (!timed || !Number.isInteger(endedAt) || endedAt <= timed.start || endedAt >= PLAN_END) return null;
-  const locked = layout.blocks.filter((block) => block.start < timed.start || block.tier === 'fixed');
-  const blocks = lockRestackTimes(day.blocks.map(unlocked), locked).map((block) => block.id === id
-    ? { ...block, actualStart: timed.start, actualUntil: endedAt } : block);
-  const starts = new Map(layout.blocks.map((block) => [block.id, block.start]));
-  blocks.sort((a, b) => (starts.get(a.id) ?? Infinity) - (starts.get(b.id) ?? Infinity));
-  return { day: editDay(day, blocks, true), timed };
 }
 
 function restackCutoff(day, block) {
@@ -193,11 +180,6 @@ function applyWake(day, wake) {
   kept.sort((a, b) => a.start - b.start);
   const edited = editDay({ ...day, wake }, lockRestackTimes(blocks, kept), true);
   return keepDayTimes(edited, edited.blocks, kept, bumped);
-}
-
-function restackBeforeScreensOff(day) {
-  const { blocks, bumped } = layoutDay(day, true);
-  return keepDayTimes(day, day.blocks, blocks, bumped);
 }
 
 function planBlock(id, text, fields = {}) {
@@ -841,6 +823,6 @@ function stickyGoalColours(goals, palette) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { reorderTimelineDrop, snapTimelineDrop, timelineDropPlace, timelineDropStart, arrangeTimelineDrop, resizeWindow, fitResize, resizeDayBlock, fitTimelineDrop, fullOpening, foldTail, dropStaleFixed, layoutDay, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, toggleBlockPin, suggestGhosts,
-    insertPopup, restackBeforeScreensOff, parseQuickAdd, splitLength, fitTemplateAnchors, blockKind, stickyGoalColours };
+  module.exports = { reorderTimelineDrop, snapTimelineDrop, timelineDropPlace, timelineDropStart, arrangeTimelineDrop, resizeWindow, fitResize, resizeDayBlock, fitTimelineDrop, fullOpening, foldTail, dropStaleFixed, layoutDay, applyWake, dayLoad, placeInDay, lockShownTimes, toggleBlockPin, suggestGhosts,
+    insertPopup, parseQuickAdd, splitLength, fitTemplateAnchors, blockKind, stickyGoalColours };
 }

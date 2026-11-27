@@ -17,7 +17,7 @@ Live: https://dash-notes.vercel.app
 - `now call the dentist` or `asap call the dentist` → Todo as `now: call the dentist`. The planner offers it under **Fit in now**.
 - Anything else → Todo. Schedule is never picked.
 
-**Home screen:** built-in categories are circles in a "flower" round **Add note**; projects sit above them. Icons are SVG so they stay sharp on e-ink. Under the header are a few unscheduled to-dos (newest, then the oldest with its age) and today's schedule (the block on now in black). Hold a to-do or schedule line to tick it (`HOLD_TO_DONE_MS`). The document icon opens **Transfer** and the calendar icon opens the **Week planner**. The ☰ menu holds **New project**, **Export**, **Help** and **Log in**. Help's text lives in `index.html`, so update it when behaviour changes.
+**Home screen:** built-in categories are circles in a "flower" round **Add note**; projects sit above them. Icons are SVG so they stay sharp on e-ink. Under the header are a few unscheduled to-dos (newest, then the oldest with its age) and today's schedule (the block on now in black). Hold a to-do to tick it (`HOLD_TO_DONE_MS`); tap the schedule to open the planner. The document icon opens **Transfer** and the calendar icon opens the **Week planner**. The ☰ menu holds **New project**, **Export**, **Help** and **Log in**. Help's text lives in `index.html`, so update it when behaviour changes.
 
 **Search:** the box at the top shows every note containing all the typed words, grouped by category.
 
@@ -51,7 +51,7 @@ Open the **calendar icon** in Dash's home header. Drag a Todo onto a day's **Unt
 - Deleting, shrinking, or renaming a block leaves the surrounding schedule in place. A pin stays attached when you drag its block to another time or day. Clear **Pin** in the editor to release it. For timeline drops, see [Rescheduling a block](#rescheduling-a-block).
 - Dashed outlines with a **+** are suggestions. The planner checks the day's shelf first, then the week tray. It stays below 75% load and respects goal budgets. Click a ghost to schedule it. Old Todos prompt you to split off a first step, and days with at least ten parked AI tutor ideas show a drift badge.
 - **Fit in now** fits an interruption into today. Up to 15 minutes uses a gap, free time, or a buffer. Longer interruptions restack the day and return bumped blocks to the tray.
-- **Review today** shows the day's blocks with Dash's marks. Apply **NEXT** on a project block to carry the text into the next timed block for that goal.
+- **Review today** lists the day's blocks. Apply **NEXT** on a project block to carry the text into the next timed block for that goal.
 - On a phone or Boox (under 700px wide) the planner shows the tray beside one day; an empty To Do shrinks to a strip. Switch days with the tabs or by swiping sideways on the day (past Monday or Sunday goes to the next week), or drop a block on a tab to move it to that day. Tap the open day's tab for its Template and Woke at menu. Normal swipes scroll; hold a block for about a third of a second (it lifts and the phone buzzes) to drag or resize it. Tap **Goals** to show the goal chips.
 - The planner saves itself a second after each change, writing changed days as normal Schedule notes (no save button). Log in on both devices to see the plan on your phone or Boox.
 - Items added in the planner (**+**, a To do shelf, or drawing on a timeline) are also added to Todo, unless their kind is Free, Buffer, Meal or Routine; an existing Todo with the same text is linked instead.
@@ -104,7 +104,7 @@ Plain HTML, CSS and JS: no framework, no build step. The JS files are plain `<sc
 | `search.js` | Search. |
 | `entries.js` | Notes screen. |
 | `transfer.js` | Transfer pads (hidden categories `Transfer 1`–`3`). |
-| `schedule.js` | Schedule parsing, block marks, and the home schedule column. |
+| `schedule.js` | Schedule parsing and the home schedule column. |
 | `plan.html`, `plan.css`, `plan.js` | Week planner, tray, templates, budgets, and review. |
 | `plan-engine.js` | Timing and restacking shared by the planner and Schedule. |
 | `export.js` | Export and Copy all. |
@@ -142,7 +142,7 @@ Deletes set `deletedAt` (a tombstone) so they can sync; `dirty` means not upload
 
 **Updates:** `sw.js` serves from cache and refreshes in the background. When a file changed, open pages reload ~2 s later (`reloadForUpdate`), but only on home with search empty or on a saved Transfer pad, so nothing typed is lost. Supabase requests always go to the network.
 
-**Sync:** tables `qn_entries`, `qn_categories` and `qn_block_marks` in the Supabase project `job-tracker` (`schema.sql`). RLS limits each account to its own rows, so the publishable key in `sync.js` is safe. Plain `fetch`, no library. Each sync pushes `dirty` rows, pulls rows with `synced_at` after the cursor (`quicknotes-sync`), and merges: notes are a union by id with deletes winning; categories take the newer `updatedAt`. Triggers enforce the same rules server-side. Block marks are insert-only; the newest `marked_at` per `(day, block_start)` wins. Claude reads them via the Supabase MCP at the evening review. Sync runs on open, on focus, on reconnect, every minute while the page is visible and after each change, never blocks the UI, and failures just stay `dirty`. Tabs share `localStorage`, so storage is re-read before saving after a network wait ([docs/two-tabs-sync-bug.md](docs/two-tabs-sync-bug.md)).
+**Sync:** tables `qn_entries` and `qn_categories` in the Supabase project `job-tracker` (`schema.sql`). RLS limits each account to its own rows, so the publishable key in `sync.js` is safe. Plain `fetch`, no library. Each sync pushes `dirty` rows, pulls rows with `synced_at` after the cursor (`quicknotes-sync`), and merges: notes are a union by id with deletes winning; categories take the newer `updatedAt`. Triggers enforce the same rules server-side. Sync runs on open, on focus, on reconnect, every minute while the page is visible and after each change, never blocks the UI, and failures just stay `dirty`. Tabs share `localStorage`, so storage is re-read before saving after a network wait ([docs/two-tabs-sync-bug.md](docs/two-tabs-sync-bug.md)).
 
 **Login:** Supabase emails a one-time code (`/auth/v1/otp`, `create_user: false`; the Magic Link template must include `{{ .Token }}`), verified at `/auth/v1/verify`. The session is kept in `quicknotes-auth` and refreshed automatically. Sign-ups are off. Logging in marks every local row dirty so existing notes merge in.
 

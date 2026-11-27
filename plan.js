@@ -91,7 +91,7 @@ function openPlannerWeek() {
   planSnap = null;
   plan = { key, keys, days, sources, schedules, version: saved?.entry.id ?? null, dirtyDays: new Set(), scheduleDirty: new Set(),
     budgets: goals?.value || {}, goalVersion: goals?.entry.id ?? null, goalsDirty: false,
-    tray: Array.isArray(saved?.value.tray?.week) ? saved.value.tray.week : [], trayDirty: false, pendingMarks: [],
+    tray: Array.isArray(saved?.value.tray?.week) ? saved.value.tray.week : [], trayDirty: false,
     savedDates: new Set(Object.keys(saved?.value.days || {})) };
 }
 
@@ -169,7 +169,6 @@ function saveWeek({ ask = true } = {}) {
     }
     sources[key] = entry?.id ?? null;
   }
-  const marks = plan.pendingMarks.filter((mark) => !dashDays.has(mark.day));
   const text = JSON.stringify({ key: plan.key, value: { days, sources, tray: { week: plan.tray } } });
   const weekNote = text !== previous?.entry.text ? plannerEntry(PLAN_WEEK, text, previous?.entry) : null;
   if (weekNote) notes.push(weekNote);
@@ -189,9 +188,8 @@ function saveWeek({ ask = true } = {}) {
     return;
   }
   data.entries.push(...notes);
-  data.marks.push(...marks);
   try {
-    if (notes.length || marks.length) persist();
+    if (notes.length) persist();
   } catch {
     reload();
     $('plan-status').textContent = 'Could not save. Device storage is full or unavailable.';
@@ -200,7 +198,7 @@ function saveWeek({ ask = true } = {}) {
   // Keep the open week (and its Undo history) instead of reopening it from the saved notes.
   Object.assign(plan, { days, sources, schedules: schedulesForWeek(plan.keys), savedDates: new Set(plan.keys),
     version: weekNote?.id ?? plan.version, goalVersion: goalNote?.id ?? goalVersion?.entry.id ?? null,
-    trayDirty: false, goalsDirty: false, pendingMarks: [] });
+    trayDirty: false, goalsDirty: false });
   plan.dirtyDays.clear();
   plan.scheduleDirty.clear();
   if (!activeDrag) renderPlanner();
@@ -293,8 +291,8 @@ let planSnap = null;
 const undoStack = [];
 
 function snapshotPlan() {
-  const { days, tray, budgets, pendingMarks, dirtyDays, scheduleDirty, trayDirty, goalsDirty } = plan;
-  return structuredClone({ days, tray, budgets, pendingMarks, dirtyDays, scheduleDirty, trayDirty, goalsDirty });
+  const { days, tray, budgets, dirtyDays, scheduleDirty, trayDirty, goalsDirty } = plan;
+  return structuredClone({ days, tray, budgets, dirtyDays, scheduleDirty, trayDirty, goalsDirty });
 }
 
 function hidePlanUndo() {
@@ -668,8 +666,6 @@ function openBlockEditor(source, target = blockTarget(source)) {
   $('block-buffer').hidden = !(source.fresh && timed);
   $('block-done').hidden = !source.copy && !liveTodo(block.todoId);
   quickDelete = !$('block-delete').hidden;
-  // Only a timed block on today or an earlier day can have happened, so only it can be skipped or run over.
-  $('block-mark-row').hidden = !(existing && !source.copy && timed && date <= dayKey(new Date()));
   // Existing planned or parked blocks can be copied onto another day of this week.
   $('block-copy-row').hidden = Boolean(source.fresh || source.copy);
   fillOptions($('block-copy'), [['', 'Another day…'],
@@ -1533,15 +1529,6 @@ function carryNextAcrossWeeks(days, notes) {
   return changed;
 }
 
-function reviewMarks(key) {
-  const marks = marksOn(key);
-  for (const mark of plan.pendingMarks) {
-    if (mark.day !== key) continue;
-    if (!marks.has(mark.blockStart) || marks.get(mark.blockStart).markedAt <= mark.markedAt) marks.set(mark.blockStart, mark);
-  }
-  return marks;
-}
-
 function refreshReviewStatus() {
   const now = new Date();
   $('day-review').hidden = now.getHours() * 60 + now.getMinutes() < REVIEW_START;
@@ -1551,17 +1538,15 @@ function refreshReviewRows() {
   if (!$('review-editor').open) return;
   const key = $('review-form').dataset.day;
   const blocks = new Map(layoutDay(plan.days[key]).blocks.map((block) => [block.id, block]));
-  const marks = reviewMarks(key);
-  const schedule = plan.schedules.get(key);
-  const saved = new Map((schedule ? parseSchedule(schedule.text).blocks : []).map((block) => [block.start, block]));
   for (const row of $('review-list').children) {
     const block = blocks.get(row.dataset.id);
     if (!block) continue;
-    const lines = [block.done ? `${block.text} (done = ${block.done})` : block.text];
-    const scheduled = saved.get(block.start);
-    const matching = scheduled?.lines[0] === scheduleProse(lines[0]);
-    const view = { ...block, end: block.until, lines };
-    row.firstElementChild.replaceWith(blockRow(view, '', marks.get(blockKey(block.start)), matching ? key : null));
+    const line = element('div', 'block');
+    const body = element('div', 'block-body');
+    body.append(element('time', '', timeRange(block.start, block.until)),
+      element('p', '', block.done ? `${block.text} (done = ${block.done})` : block.text));
+    line.append(body);
+    row.firstElementChild.replaceWith(line);
   }
 }
 
@@ -1740,45 +1725,16 @@ function applyGoalEditor(event) {
   markEdited();
 }
 
-function openRestack(key, id = null) {
-  const day = plan.days[key];
-  const block = id == null ? null : layoutDay(day).blocks.find((block) => block.id === id);
-  if (id != null && !block) return;
-  restacking = { key, id };
-  const fields = $('restack-form').elements;
-  $('restack-title').textContent = block ? 'Ran over until…' : 'Woke at…';
-  $('restack-text').textContent = block ? block.text : dayLabel(key);
-  $('restack-reason').hidden = !block;
-  $('restack-error').hidden = true;
-  const now = new Date();
-  const minute = key === dayKey(now) ? now.getHours() * 60 + now.getMinutes() : 0;
-  fields.time.value = block ? blockKey(Math.min(1439, Math.max(block.actualUntil ?? block.until, minute))) : day.wake;
-  fields.reason.value = '';
+function openRestack(key) {
+  restacking = key;
+  $('restack-text').textContent = dayLabel(key);
+  $('restack-form').elements.time.value = plan.days[key].wake;
   $('restack-editor').showModal();
 }
 
 function applyRestack(event) {
   event.preventDefault();
-  const fields = event.target.elements;
-  const { key, id } = restacking;
-  const day = plan.days[key];
-  const time = fields.time.value;
-  if (id == null) {
-    storeDay(key, applyWake(day, time));
-  } else {
-    const result = applyOverrun(day, id, planMinutes(time));
-    if (!result) {
-      $('restack-error').textContent = 'Choose an end time after the block started.';
-      $('restack-error').hidden = false;
-      return;
-    }
-    storeDay(key, restackBeforeScreensOff(result.day));
-    const mark = makeBlockMark(key, { start: result.timed.start, lines: [result.timed.text] }, {
-      status: 'over', endedAt: time, reason: fields.reason.value.trim() || null,
-    });
-    plan.pendingMarks = plan.pendingMarks.filter((item) => item.day !== key || item.blockStart !== mark.blockStart);
-    plan.pendingMarks.push(mark);
-  }
+  storeDay(restacking, applyWake(plan.days[restacking], event.target.elements.time.value));
   $('restack-editor').close();
   markEdited();
 }
@@ -1992,8 +1948,7 @@ function renderTile(block, date) {
     ` · Missed ${keyDate(block.missedFrom).toLocaleDateString(undefined, { weekday: 'short' })}`));
   if (!date || block.shelf) tile.append(element('span', 'tile-size', lengthLabel(block.duration ?? block.size)));
   tile.title = [block.text, planMinutes(block.pinned) != null && `Pinned at ${clock12(block.pinned)}`,
-    block.done && `Done = ${block.done}`, block.next,
-    block.actualUntil != null && `Ran over until ${clock12(block.actualUntil)}`].filter(Boolean).join('\n');
+    block.done && `Done = ${block.done}`, block.next].filter(Boolean).join('\n');
   return tile;
 }
 
@@ -2129,8 +2084,7 @@ function renderDay(key,{ blocks, bumped }, load, from, until, ghosts) {
       tile.dataset.meal = meal?.[0].toLowerCase() ?? 'other';
     }
     tile.classList.toggle('late', afterDeadline(key, block));
-    const time = timeTile(tile, block.start, block.until, from);
-    if (block.actualUntil != null) time.append(element('span', 'over-badge', '↗'));
+    timeTile(tile, block.start, block.until, from);
     timeline.append(tile);
   }
   for (const ghost of ghosts) {
@@ -3110,21 +3064,6 @@ function startPlanner() {
     }
   });
   $('block-editor').addEventListener('pointerdown', () => { quickDelete = false; });
-  $('block-skip').addEventListener('click', () => {
-    const { block, target: { date } } = editedBlock;
-    const timed = layoutDay(plan.days[date]).blocks.find((item) => item.id === block.id);
-    if (!timed) return;
-    const mark = makeBlockMark(date, { start: timed.start, lines: [timed.text] }, { status: 'skipped' });
-    plan.pendingMarks = plan.pendingMarks.filter((item) => item.day !== date || item.blockStart !== mark.blockStart);
-    plan.pendingMarks.push(mark);
-    $('block-editor').close();
-    markEdited();
-  });
-  $('block-over').addEventListener('click', () => {
-    const { block, target: { date } } = editedBlock;
-    $('block-editor').close();
-    openRestack(date, block.id);
-  });
   $('block-done').addEventListener('click', () => {
     const { copy, block, target: { date, shelf } = {} } = editedBlock;
     removeNote(copy ? editedBlock.entry.id : block.todoId, 'done');

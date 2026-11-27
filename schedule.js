@@ -360,146 +360,6 @@ function textLine(className, text) {
   return p;
 }
 
-// ---------- ticks ----------
-// A block counts as done unless marked otherwise, so a tap just toggles skipped
-// on and off. Each tap adds a row to data.marks and never changes one:
-// the newest mark for a day and start time wins, and unskipping adds 'cleared'.
-// A block is its day and start time, so a mark carries over to a new version of
-// that day's schedule wherever the start time still matches.
-// Holding the box marks it 'over' (ran over) instead, asking when it ended and
-// why; a tap on an 'over' block skips it, like an unmarked one.
-const MARK_BOX = 'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z';
-
-// 'HH:MM', 24 hours, as stored in qn_block_marks.
-function keyMinutes(key) {
-  const [h, m] = key.split(':').map(Number);
-  return h * 60 + m;
-}
-
-// The mark each block of a day currently has: a Map of 'HH:MM' -> its newest
-// mark row, status 'done', 'over' or 'skipped'.
-function marksOn(day) {
-  const newest = new Map();
-  for (const m of data.marks) {
-    if (m.day !== day) continue;
-    const prev = newest.get(m.blockStart);
-    if (!prev || m.markedAt > prev.markedAt || (m.markedAt === prev.markedAt && m.id > prev.id)) newest.set(m.blockStart, m);
-  }
-  return new Map([...newest].filter(([, m]) => m.status !== 'cleared'));
-}
-
-function makeBlockMark(day, b, fields) {
-  return {
-    id: newId(), day, blockStart: blockKey(b.start), blockText: b.lines.find(Boolean) || '',
-    markedAt: new Date().toISOString(), dirty: true, ...fields,
-  };
-}
-
-function addMark(day, b, fields) {
-  reload();
-  data.marks.push(makeBlockMark(day, b, fields));
-  persist();
-  refreshView();
-  sync();
-}
-
-function cycleMark(day, b) {
-  const mark = marksOn(day).get(blockKey(b.start));
-  addMark(day, b, { status: mark && mark.status === 'skipped' ? 'cleared' : 'skipped' });
-}
-
-// A small dialog (index.html) for the end time and an optional reason. The time
-// starts at when it's being marked if that's past the block's end (so the usual
-// case is just OK), else at the end. The planner page has no such dialog.
-function markOver(day, b, scheduleId = null) {
-  const dialog = document.getElementById('over-dialog');
-  if (!dialog || dialog.open) return;
-  const now = new Date();
-  const nowMin = day === dayKey(now) ? now.getHours() * 60 + now.getMinutes() : -1;
-  const form = $('over-form');
-  $('over-title').textContent = `Ran over · ${b.lines.find(Boolean) || clock(b.start)}`;
-  form.elements.time.value = blockKey(Math.min(Math.max(nowMin, b.until), DAY_END - 1));
-  form.elements.reason.value = '';
-  dialog.returnValue = '';
-  dialog.addEventListener('close', () => {
-    if (dialog.returnValue !== 'ok') return;
-    const time = form.elements.time.value;
-    const fields = {
-      status: 'over',
-      endedAt: time ? blockKey(Math.min(keyMinutes(time), DAY_END - 1)) : null,
-      reason: form.elements.reason.value.trim(),
-    };
-    if (scheduleId && day === dayKey(new Date()) && fields.endedAt) restackSavedSchedule(day, scheduleId, { over: b, fields });
-    else addMark(day, b, fields);
-  }, { once: true });
-  dialog.showModal();
-}
-
-function markLabel(mark) {
-  if (mark.status !== 'over') return { done: 'Done', skipped: 'Skipped' }[mark.status];
-  return 'Ran over' + (mark.endedAt ? ` to ${clock(keyMinutes(mark.endedAt))}` : '') + (mark.reason ? `: ${mark.reason}` : '');
-}
-
-// A ticked box (done), one with an arrow out of it (ran over) or a dashed one
-// with an X (skipped), so the states differ in shape and not only in shade.
-function markIcon(status, size) {
-  const span = document.createElement('span');
-  span.className = 'icon';
-  const dash = status === 'skipped' ? ' stroke-dasharray="4 3"' : '';
-  const inner = {
-    done: '<path d="M8 12l3 3 5-6"/>', over: '<path d="M7 12h10M13 8l4 4-4 4"/>', skipped: '<path d="M9 9l6 6M15 9l-6 6"/>',
-  }[status] || '';
-  span.innerHTML =
-    `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">` +
-    `<path d="${MARK_BOX}"${dash}/>${inner}</svg>`;
-  return span;
-}
-
-// day is null on a day that hasn't come yet, where there's nothing to tick.
-function blockRow(b, state, mark, day, scheduleId = null) {
-  const status = mark && mark.status;
-  const div = document.createElement('div');
-  div.className = ['block', state, status && `marked-${status}`].filter(Boolean).join(' ');
-  const body = document.createElement('div');
-  body.className = 'block-body';
-  const time = document.createElement('time');
-  time.textContent = b.end != null ? timeRange(b.start, b.end) : clock(b.start);
-  body.append(time);
-  if (state === 'now') {
-    const now = document.createElement('b');
-    now.className = 'block-now';
-    now.textContent = b.until < DAY_END ? `Now, until ${clock(b.until)}` : 'Now';
-    body.append(now);
-  }
-  if (mark) {
-    const label = document.createElement('b');
-    label.className = 'block-mark';
-    label.textContent = markLabel(mark);
-    body.append(label);
-  }
-  body.append(textLine('', b.lines.filter(Boolean).join('\n')));
-  div.append(body);
-  if (day) {
-    // A tap toggles skipped; a hold, until the box turns black, marks it ran over.
-    const btn = document.createElement('button');
-    btn.className = 'mark-btn quiet';
-    btn.setAttribute('aria-label', status === 'skipped' ? 'Clear skipped' : 'Mark skipped');
-    // Unmarked counts as done, but only a block that's over gets the tick.
-    const past = state === 'done' || day < dayKey(new Date());
-    if (!status && !past) {
-      // Not over and unmarked: say what a tap does, rather than showing an empty box.
-      btn.classList.add('skip-btn');
-      btn.textContent = 'Skip';
-    } else btn.append(markIcon(status || 'done', 26));
-    btn.addEventListener('click', () => {
-      if (!btn.held) cycleMark(day, b);
-    });
-    onHoldRelease(btn, () => markOver(day, b, scheduleId), HOLD_TO_DONE_MS);
-    div.append(btn);
-  }
-  return div;
-}
-
 // ---------- on the home screen ----------
 // Beside the to-dos: today's block on now, with the one before it and as many of
 // the ones after as there are lines for (glanceLines, home.js). Between blocks,
@@ -508,22 +368,15 @@ function blockRow(b, state, mark, day, scheduleId = null) {
 // redraw flashes an e-ink screen.
 let homeScheduleTimer = 0;
 
-// Each line is a button so it can be held to skip the block (and unskip it),
-// like holding a to-do. A marked block shows its box before the time, and
-// the text struck through (done, ran over) or in italics (skipped). Ran over is
-// only set from the Schedule screen.
-function homeBlockLine(b, state, mark, day) {
-  const status = mark && mark.status;
-  const line = document.createElement('button');
-  line.className = ['glance-block', state, status && `marked-${status}`].filter(Boolean).join(' ');
-  onHoldRelease(line, () => cycleMark(day, b), HOLD_TO_DONE_MS);
+function homeBlockLine(b, state) {
+  const line = document.createElement('div');
+  line.className = ['glance-block', state].filter(Boolean).join(' ');
   const time = document.createElement('time');
   time.textContent = clock(b.start, true, true);
   const text = document.createElement('span');
   text.className = 'glance-text';
   text.textContent = b.lines.find(Boolean) || '';
   line.append(time, text);
-  if (status) line.prepend(markIcon(status, 15));
   return line;
 }
 
@@ -534,8 +387,7 @@ function renderHomeSchedule() {
   const today = dayKey(now);
   const entry = scheduleOn(today);
   const blocks = entry ? parseSchedule(entry.text).blocks : [];
-  const ticks = marksOn(today);
-  const line = (b, state) => homeBlockLine(b, state, ticks.get(blockKey(b.start)), today);
+  const line = homeBlockLine;
   const box = $('home-schedule');
   box.hidden = !blocks.length;
   if (blocks.length) {
@@ -564,8 +416,6 @@ document.addEventListener('visibilitychange', () => {
   if (!document.hidden && $('home-schedule') && !current) renderHomeSchedule();
 });
 
-$('home-schedule')?.addEventListener('click', (e) => {
-  const held = e.target.closest('.glance-block');
-  if (held && held.held) return; // the click that ends a hold
+$('home-schedule')?.addEventListener('click', () => {
   location.href = 'plan.html';
 });

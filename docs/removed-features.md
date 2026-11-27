@@ -11,3 +11,9 @@ The Week planner replaced it: tapping Schedule opens `plan.html`. Woke at and Re
 ## Version history: All saved (removed 2026-11-27)
 
 Every save of a day's schedule added a new note, and **All saved** on the Schedule screen listed them all. Saves still add a note per version (the newest per day is the one used), but there's no screen to browse old ones. They're still in the Schedule category's data and in exports.
+
+## Skip and Ran over marks (removed 2026-11-27)
+
+A block could be marked **Skipped** (the Skip button on the Schedule screen, holding a line in the home glance, or **Skipped** in the planner's block editor) or **Ran over** (hold the Skip button, the **Ran over…** button, or the planner editor's **Ran over…**). Ran over asked for the real end time and an optional reason, then restacked the rest of the day from that time. Finished blocks with no mark counted as done. The planner's Review today showed each block's mark, and Claude read them at the evening review.
+
+Marks were rows in Supabase's `qn_block_marks` table (`day`, `block_start`, `block_text`, `status` of done/skipped/over/cleared, `marked_at`, `ended_at`, `reason`), insert-only, with the newest per day and start time winning. Dash no longer reads or syncs them and drops its local copy. The table and its old rows are still in Supabase (`schema.sql`). Days saved with a ran-over end time (`actualUntil`) still lay out with it.

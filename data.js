@@ -60,9 +60,7 @@ const $ = (id) => document.getElementById(id);
 // to other devices. deletedHow says what removed it ('deleted', 'done',
 // 'replaced', 'sent', 'moved', 'undone' or 'project_removed'; missing on older
 // notes). A moved note is a new copy in the other category. dirty = changed here
-// and not yet uploaded. Marks (ticks on schedule blocks) are
-// {id, day, blockStart, blockText, status, markedAt, endedAt, reason, dirty}: only ever
-// added, never changed. endedAt and reason are only on 'over' marks.
+// and not yet uploaded.
 
 function readJSON(key) {
   try {
@@ -77,7 +75,8 @@ function load() {
   if (!saved || !Array.isArray(saved.categories) || !Array.isArray(saved.entries)) {
     saved = { categories: [], entries: [] };
   }
-  if (!Array.isArray(saved.marks)) saved.marks = [];
+  // Skip and Ran over marks were removed (docs/removed-features.md).
+  delete saved.marks;
   return migrate(saved);
 }
 
