@@ -293,6 +293,7 @@ button:disabled { opacity: .55; cursor: default; }
 .head-load .meter { flex: 1; margin: 0; height: 5px; }
 .day-footer:empty { padding: 0; border: 0; }
 .bumped { font-size: .7rem; color: var(--muted); }
+.missed { font-size: .7rem; color: #b86e00; }
 .over-badge { margin-left: .25rem; font-weight: bold; color: #654325; }
 .timeline { user-select: none; cursor: default; }
 .tile.draft {
@@ -318,16 +319,18 @@ button:disabled { opacity: .55; cursor: default; }
 .tile.drag-hidden { visibility: hidden; }
 .tray.drop-target, .tray-box.drop-target, .shelf.drop-target, .day-head.drop-target { outline: 2px dashed #387fa6; outline-offset: -3px; }
 /* Shown only mid-drag, laid over the masthead and week overview without moving them.
-   Dropping on the left half sends a block back to To do; the right half deletes it. */
-#drag-zones { position: fixed; z-index: 19; display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; }
+   To do sends a block back to the tray, Missed carries it to tomorrow's To do, Delete deletes it. */
+#drag-zones { position: fixed; z-index: 19; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .4rem; }
 #drag-zones[hidden] { display: none; }
 #drag-zones > div {
   display: flex; align-items: center; justify-content: center; gap: .4rem;
   border: 2px dashed currentColor; border-radius: .6rem; font-weight: 600;
 }
-#drag-incomplete { background: #e4f1f8dd; color: #387fa6; }
+#drag-todo { background: #e4f1f8dd; color: #387fa6; }
+#drag-missed { background: #fdf3e1dd; color: #b86e00; }
 #drag-trash { background: #fdeceadd; color: #c0392b; }
-#drag-incomplete.drop-target { background: #387fa6cc; color: #fff; border-style: solid; }
+#drag-todo.drop-target { background: #387fa6cc; color: #fff; border-style: solid; }
+#drag-missed.drop-target { background: #b86e00cc; color: #fff; border-style: solid; }
 #drag-trash.drop-target { background: #c0392bcc; color: #fff; border-style: solid; }
 .tile.drop-target { border-top: 3px dashed #387fa6; }
 .timeline.drop-line::after {

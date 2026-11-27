@@ -415,6 +415,8 @@ function moveBlock(source, target, changes = {}, { copy = false } = {}) {
   if (!source?.block) return 'That block is no longer available.';
   const old = source.block;
   const changed = { ...old, ...changes, bumped: false, bumpedFrom: undefined };
+  // The Missed tag lasts while the block waits in a To do; scheduling it clears it.
+  if (!changes.missedFrom && !target.shelf) delete changed.missedFrom;
   if (copy) {
     // A duplicate is its own block: no link to the note and no progress carried over.
     changed.id = newId();
@@ -1632,7 +1634,7 @@ function acceptGhost({ key, block, shelf }) {
   const day = plan.days[key];
   const { blocks, bumped } = layoutDay(day);
   const { start, until, ...fields } = block;
-  const placed = { ...fields, bumped: false, bumpedFrom: undefined };
+  const placed = { ...fields, bumped: false, bumpedFrom: undefined, missedFrom: undefined };
   const all = [...day.blocks.filter((item) => !shelf || item.id !== block.id), placed];
   if (plan.tray.some((item) => item.id === block.id)) {
     plan.tray = plan.tray.filter((item) => item.id !== block.id);
@@ -1847,6 +1849,8 @@ function renderTile(block, date) {
   tile.append(element('span', 'tile-title', block.text));
   if (block.bumped) tile.append(element('span', 'bumped', block.bumpedFrom
     ? ` · Bumped from ${block.bumpedFrom === dayKey(new Date()) ? 'today' : dayLabel(block.bumpedFrom, false)}` : ' · Bumped'));
+  if (block.missedFrom) tile.append(element('span', 'missed',
+    ` · Missed ${keyDate(block.missedFrom).toLocaleDateString(undefined, { weekday: 'short' })}`));
   if (!date || block.shelf) tile.append(element('span', 'tile-size', lengthLabel(block.duration ?? block.size)));
   tile.title = [block.text, planMinutes(block.pinned) != null && `Pinned at ${clock12(block.pinned)}`,
     block.done && `Done = ${block.done}`, block.next,
@@ -2218,9 +2222,17 @@ function plannerDropTarget(event, source) {
   const under = document.elementFromPoint(event.clientX, event.clientY);
   const trash = under?.closest('#drag-trash');
   if (trash) return { trash: true, indicator: trash };
-  // Incomplete unschedules a planned block back into the To do tray.
-  const incomplete = under?.closest('#drag-incomplete');
-  if (incomplete) return source.date ? { indicator: incomplete } : null;
+  // To do unschedules a planned block back into the tray.
+  const todo = under?.closest('#drag-todo');
+  if (todo) return source.date ? { indicator: todo } : null;
+  // Missed carries a planned block to the next day's To do, marked with the day it first slipped from.
+  const missed = under?.closest('#drag-missed');
+  if (missed) {
+    if (!source.date) return null;
+    const next = nextDateKey(source.date);
+    const missedFrom = source.block.missedFrom ?? source.date;
+    return plan.days[next] ? { date: next, shelf: true, missedFrom, indicator: missed } : { missedFrom, indicator: missed };
+  }
   const tab = under?.closest('[data-tab-day]');
   // Drops never unpin: a pinned block keeps its pin (and, on another day, its time).
   if (tab) return { date: tab.dataset.tabDay, indicator: tab };
@@ -2807,7 +2819,7 @@ function endDrag(event) {
   }
   // Shift or Ctrl while dropping copies a planned or parked block instead of moving it.
   const copy = target?.copy ?? ((event.shiftKey || event.ctrlKey) && !source.copy);
-  const error = target && moveBlock(source, target, {}, { copy });
+  const error = target && moveBlock(source, target, target.missedFrom ? { missedFrom: target.missedFrom } : {}, { copy });
   if (!error && target?.indicator?.matches('[data-tab-day]')) selectDay(target.date);
   if (error) {
     tile.classList.add('invalid-drop');
