@@ -2205,6 +2205,15 @@ function refreshView() {
   if (!activeDrag) renderPlanner();
 }
 
+// The delete zone covers everything above the day tabs: none of it takes a drop.
+function showDragTrash() {
+  const top = document.querySelector('.masthead').getBoundingClientRect();
+  const bottom = document.querySelector('.week-overview').getBoundingClientRect();
+  Object.assign($('drag-trash').style, { left: `${top.left - 3}px`, top: `${Math.max(0, top.top - 3)}px`,
+    width: `${top.width + 6}px`, height: `${Math.max(top.bottom, bottom.bottom) - Math.max(0, top.top - 3) + 3}px` });
+  $('drag-trash').hidden = false;
+}
+
 function plannerDropTarget(event, source) {
   const under = document.elementFromPoint(event.clientX, event.clientY);
   const trash = under?.closest('#drag-trash');
@@ -2691,7 +2700,7 @@ function moveDrag(event) {
     activeDrag.preview = preview;
     activeDrag.tile.classList.add('dragging');
     activeDrag.tile.setPointerCapture(event.pointerId);
-    $('drag-trash').hidden = false;
+    showDragTrash();
     requestAnimationFrame(scrollDuringDrag);
   }
   event.preventDefault();
