@@ -354,31 +354,43 @@ function scheduleOn(key) {
   return entriesFor(SCHEDULE).find((e) => scheduleDay(e) === key);
 }
 
-// To-dos the planner has put on a day from today on: a Map of Todo id ->
-// {order, label}, the earliest slot if there are several. A day edited in Dash
-// since the planner saved it only counts blocks whose text is still in it.
+// To-dos the planner has put on a day: a Map of Todo id -> {order, label, past}.
+// A slot still ahead (today's not yet ended, or a later day) wins, the earliest
+// if there are several. Otherwise the latest slot already gone by counts, with
+// past set, since it's taken as done; moving that block later brings it back.
+// A day edited in Dash since the planner saved it only counts blocks whose text
+// is still in it.
 function scheduledTodos() {
-  const today = dayKey(new Date());
-  const tomorrow = dayKey(addDays(new Date(), 1));
-  const found = new Map();
+  const now = new Date();
+  const today = dayKey(now);
+  const tomorrow = dayKey(addDays(now, 1));
+  const yesterday = dayKey(addDays(now, -1));
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const ahead = new Map();
+  const gone = new Map();
   for (const { value } of plannerNotes(PLAN_WEEK).values()) {
     for (const [key, day] of Object.entries(value.days || {})) {
-      if (key < today || !Array.isArray(day?.blocks) || !day.blocks.some((block) => block.todoId)) continue;
+      if (!Array.isArray(day?.blocks) || !day.blocks.some((block) => block.todoId)) continue;
       const schedule = scheduleOn(key);
       const stale = (schedule?.id ?? null) !== (value.sources?.[key] ?? null);
-      const starts = new Map(layoutDay(day).blocks.map((block) => [block.id, block.start]));
+      const times = new Map(layoutDay(day).blocks.map((block) => [block.id, block]));
       for (const block of day.blocks) {
         if (!block.todoId) continue;
         if (stale && !schedule?.text.toLowerCase().includes(String(block.text).toLowerCase())) continue;
-        const start = block.shelf ? null : starts.get(block.id) ?? null;
+        const timed = block.shelf ? null : times.get(block.id);
+        const start = timed?.start ?? null;
+        const past = key < today || (key === today && timed?.until != null && timed.until <= nowMinutes);
         const order = `${key} ${start == null ? 'zz' : String(start).padStart(4, '0')}`;
-        if (found.has(block.todoId) && found.get(block.todoId).order <= order) continue;
-        const dayName = key === today ? 'Today' : key === tomorrow ? 'Tomorrow' : dayLabel(key);
-        found.set(block.todoId, { order, label: start == null ? dayName : `${dayName} · ${clock(start, true, true)}` });
+        const into = past ? gone : ahead;
+        const have = into.get(block.todoId);
+        if (have && (past ? have.order >= order : have.order <= order)) continue;
+        const dayName = key === today ? 'Today' : key === tomorrow ? 'Tomorrow' : key === yesterday ? 'Yesterday' : dayLabel(key);
+        into.set(block.todoId, { order, past, label: start == null ? dayName : `${dayName} · ${clock(start, true, true)}` });
       }
     }
   }
-  return found;
+  for (const [id, slot] of gone) if (!ahead.has(id)) ahead.set(id, slot);
+  return ahead;
 }
 
 // The text an edit starts from. It's saved again as a new note today, so its

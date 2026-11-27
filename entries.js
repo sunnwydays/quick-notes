@@ -109,8 +109,11 @@ function appendEntries(list, cat, entries = entriesFor(cat), empty = 'No notes y
   for (const entry of entries) list.append(entryRow(entry, cat));
 }
 
-// Todo shows what still needs a slot first; to-dos already on a planner day
-// (today or later) go under Scheduled, soonest first, each with when it's on.
+// Todo shows what still needs a slot first; to-dos on a planner day go under
+// Scheduled, soonest first, each with when it's on. Ones whose slot has already
+// gone by are taken as done and only show after Show all, latest first.
+let showPastScheduled = false;
+
 function appendTodos(list) {
   const when = scheduledTodos();
   const todos = entriesFor('Todo');
@@ -121,14 +124,16 @@ function appendTodos(list) {
 function appendScheduled(box) {
   const when = scheduledTodos();
   const order = (entry) => when.get(entry.id).order;
-  const scheduled = entriesFor('Todo').filter((entry) => when.has(entry.id)).sort((a, b) => order(a).localeCompare(order(b)));
-  if (!scheduled.length) return;
+  const all = entriesFor('Todo').filter((entry) => when.has(entry.id));
+  const upcoming = all.filter((entry) => !when.get(entry.id).past).sort((a, b) => order(a).localeCompare(order(b)));
+  const past = all.filter((entry) => when.get(entry.id).past).sort((a, b) => order(b).localeCompare(order(a)));
+  if (!all.length) return;
   const head = document.createElement('h3');
   head.className = 'sent-head';
-  head.textContent = `Scheduled (${scheduled.length})`;
+  head.textContent = `Scheduled (${upcoming.length})`;
   const list = document.createElement('div');
   list.className = 'scheduled';
-  for (const entry of scheduled) {
+  for (const entry of [...upcoming, ...(showPastScheduled ? past : [])]) {
     const row = entryRow(entry, 'Todo');
     const label = document.createElement('span');
     label.className = 'todo-when';
@@ -137,6 +142,15 @@ function appendScheduled(box) {
     list.append(row);
   }
   box.append(head, list);
+  if (!past.length) return;
+  const toggle = document.createElement('button');
+  toggle.className = 'quiet show-past';
+  toggle.textContent = showPastScheduled ? 'Hide past' : `Show all (${past.length} past)`;
+  toggle.addEventListener('click', () => {
+    showPastScheduled = !showPastScheduled;
+    renderEntries('Todo');
+  });
+  box.append(toggle);
 }
 
 function entryRow(entry, cat) {
