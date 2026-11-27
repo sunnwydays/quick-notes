@@ -1637,7 +1637,7 @@ function dayWarnings(key, day, blocks) {
   const work = blocks.filter(workBlock);
   const cap = day.deepCap ?? 4;
   if (work.filter((b) => ['high', 'must'].includes(b.tier)).length > cap) warnings.add(`More than ${cap} deep blocks`);
-  if (work.length && blocks.filter((b) => blockKind(b) === 'buffer').reduce((sum, b) => sum + b.until - b.start, 0) < 45) {
+  if (key > dayKey(new Date()) && work.length && blocks.filter((b) => blockKind(b) === 'buffer').reduce((sum, b) => sum + b.until - b.start, 0) < 45) {
     warnings.add('Less than 45m of buffer');
   }
   for (const [i, block] of blocks.entries()) {
