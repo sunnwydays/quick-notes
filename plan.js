@@ -2584,8 +2584,8 @@ function tileBottomEdgeAt(event) {
   if (event.pointerType === 'touch') {
     const inside = event.target.closest('.tile.timed[data-id]');
     if (!inside) return null;
-    const bottom = inside.getBoundingClientRect().bottom;
-    return event.clientY >= bottom - 14 ? inside : null;
+    const box = inside.getBoundingClientRect();
+    return event.clientY >= box.bottom - Math.min(14, box.height / 3) ? inside : null;
   }
   const timeline = event.target.closest('.timeline');
   if (!timeline) return null;
@@ -2594,7 +2594,7 @@ function tileBottomEdgeAt(event) {
   for (const tile of timeline.querySelectorAll('.tile.timed[data-id]')) {
     const box = tile.getBoundingClientRect();
     const gap = Math.abs(event.clientY - box.bottom);
-    if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.bottom - 8 || event.clientY > box.bottom + 8) continue;
+    if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.bottom - Math.min(8, box.height / 3) || event.clientY > box.bottom + 8) continue;
     if (gap < bestGap) { best = tile; bestGap = gap; }
   }
   return best;
