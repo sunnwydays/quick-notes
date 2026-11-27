@@ -2183,7 +2183,7 @@ function selectDay(key) {
   scrollToNow();
 }
 
-// Scrolls today's timeline so an hour before now sits just under the day headers.
+// Scrolls today's timeline so an hour before now (on a phone, 1.5h before the current block) sits just under the day headers.
 // The phone scrolls the selected day; wider screens scroll the whole week.
 function scrollToNow() {
   const timeline = $('week').querySelector('.day.today .timeline');
@@ -2192,7 +2192,11 @@ function scrollToNow() {
   if (narrow && !timeline.closest('.day.selected')) return;
   const scroller = narrow ? timeline.closest('.day') : document.querySelector('.board-scroll');
   const now = new Date();
-  const minute = Math.max(now.getHours() * 60 + now.getMinutes() - 60, Number(timeline.dataset.from));
+  // The phone keeps an hour and a half above the current block in view.
+  const current = Number(timeline.querySelector('.tile.timed.current')?.dataset.start);
+  const anchor = narrow ? Math.min(now.getHours() * 60 + now.getMinutes(), current || Infinity) - 90
+    : now.getHours() * 60 + now.getMinutes() - 60;
+  const minute = Math.max(anchor, Number(timeline.dataset.from));
   const perMinute = parseFloat(getComputedStyle(timeline).getPropertyValue('--minute-height')) || 1.45;
   const head = timeline.closest('.day').querySelector('.day-head').offsetHeight;
   const y = timeline.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop;
