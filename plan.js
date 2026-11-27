@@ -2197,6 +2197,8 @@ function refreshView() {
 
 function plannerDropTarget(event, source) {
   const under = document.elementFromPoint(event.clientX, event.clientY);
+  const trash = under?.closest('#drag-trash');
+  if (trash) return { trash: true, indicator: trash };
   const tab = under?.closest('[data-tab-day]');
   // Drops never unpin: a pinned block keeps its pin (and, on another day, its time).
   if (tab) return { date: tab.dataset.tabDay, indicator: tab };
@@ -2679,6 +2681,7 @@ function moveDrag(event) {
     activeDrag.preview = preview;
     activeDrag.tile.classList.add('dragging');
     activeDrag.tile.setPointerCapture(event.pointerId);
+    $('drag-trash').hidden = false;
     requestAnimationFrame(scrollDuringDrag);
   }
   event.preventDefault();
@@ -2756,6 +2759,7 @@ function endDrag(event) {
   const target = moved && event.type === 'pointerup' ? activeDrag.target : null;
   showDropTarget(null);
   activeDrag = null;
+  $('drag-trash').hidden = true;
   preview?.remove();
   tile.classList.remove('dragging', 'drag-hidden');
   if (moved || armed) {
@@ -2766,6 +2770,10 @@ function endDrag(event) {
     else window.addEventListener('pointerup', clear, { once: true });
   }
   if (!moved || event.type !== 'pointerup') return;
+  if (target?.trash) {
+    deleteBlock(source);
+    return;
+  }
   if (target?.moveTo) {
     if (source.parked) {
       plan.tray = plan.tray.filter((block) => block.id !== source.block.id);

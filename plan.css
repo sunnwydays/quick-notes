@@ -317,6 +317,14 @@ button:disabled { opacity: .55; cursor: default; }
 .tile.drag-shifted { transition: top 120ms ease-out; }
 .tile.drag-hidden { visibility: hidden; }
 .tray.drop-target, .tray-box.drop-target, .shelf.drop-target, .day-head.drop-target { outline: 2px dashed #387fa6; outline-offset: -3px; }
+/* Shown only mid-drag, over the masthead's top-right buttons; dropping a block here deletes it. */
+#drag-trash {
+  position: fixed; top: .6rem; right: .6rem; z-index: 19; display: flex; align-items: center; gap: .4rem;
+  padding: .7rem 1.1rem; border: 2px dashed #c0392b; border-radius: .8rem;
+  background: #fdecea; color: #c0392b; font-weight: 600; box-shadow: 0 4px 12px #24485a33;
+}
+#drag-trash[hidden] { display: none; }
+#drag-trash.drop-target { background: #c0392b; color: #fff; border-style: solid; transform: scale(1.08); }
 .tile.drop-target { border-top: 3px dashed #387fa6; }
 .timeline.drop-line::after {
   content: ''; position: absolute; z-index: 11; inset-inline: .1rem; height: 3px; border-radius: 2px;
