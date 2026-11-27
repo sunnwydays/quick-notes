@@ -501,7 +501,7 @@ label.choice:has(input:checked) { border-color: #5b8aa6; background: #eef6fb; }
   .time-gutter, .meal-connectors { display: none; }
   .hour { inset-inline: 0; }
   .hour-label { display: inline; }
-  .tile.timed { --tile-left: 2.6rem; }
+  .tile.timed { --tile-left: 2.6rem; --tile-right: .32rem; }
   .gap, .now-line { inset-inline-start: 2.6rem; }
   .day.selected { border-inline-end: 1px solid var(--line); display: block; grid-row: 1; overflow-y: auto; overscroll-behavior: contain; }
   .day.selected { touch-action: pan-y; }
