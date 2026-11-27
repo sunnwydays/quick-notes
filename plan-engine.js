@@ -670,64 +670,6 @@ function lockRestackTimes(blocks, timed) {
   });
 }
 
-function insertPopup(day, popup, minute) {
-  const { blocks, bumped } = layoutDay(day);
-  const duration = blockDuration(popup);
-  const cutoff = Math.min(SCREENS_OFF, day.workEnd ?? SCREENS_OFF);
-  const wake = (planMinutes(day.wake) ?? PLAN_START) + (day.startOffset ?? 0);
-  const earliest = Math.max(minute, wake);
-  if (duration <= 15) {
-    let cursor = earliest;
-    for (const next of [...blocks, { start: cutoff, until: cutoff }]) {
-      const start = cursor;
-      const until = start + duration;
-      const fitsGap = until <= Math.min(next.start, cutoff);
-      const freeStart = Math.max(start, next.start);
-      const freeEnd = freeStart + duration;
-      const fitsFree = ['free', 'buffer'].includes(blockKind(next)) && freeEnd <= Math.min(next.until, cutoff);
-      if (fitsGap || fitsFree) {
-        const timed = fitsGap ? { ...popup, start, until } : { ...popup, start: freeStart, until: freeEnd };
-        const remaining = fitsGap ? blocks : blocks.filter((block) => block.id !== next.id);
-        if (!fitsGap) {
-          const { actualStart, actualUntil, restackStart, restackUntil, importedStart, ...free } = next;
-          const parts = [[next.start, freeStart], [freeEnd, next.until]];
-          for (const [i, [from, to]] of parts.entries()) {
-            if (to <= from) continue;
-            remaining.push({ ...free, id: i === 0 ? next.id : `${popup.id}-free`,
-              pinned: next.pinned ? blockKey(from) : null, start: from, until: to, duration: to - from });
-          }
-        }
-        const stack = [...remaining, timed].sort((a, b) => a.start - b.start);
-        const untimed = day.blocks.filter((block) => block.shelf || bumped.some((item) => item.id === block.id));
-        return { day: keepDayTimes(day, [...stack, ...untimed], stack, bumped), bumped };
-      }
-      cursor = Math.max(cursor, next.until);
-    }
-    return null;
-  }
-  const overlappingEnd = Math.max(earliest, ...blocks.filter((block) => block.start <= earliest && earliest < block.until).map((block) => block.until));
-  const boundary = blocks.find((block) => block.start >= overlappingEnd)?.start ?? overlappingEnd;
-  const fixed = blocks.filter((block) => block.tier === 'fixed' || block.actualStart != null);
-  const keep = blocks.filter((block) => block.start < boundary || fixed.includes(block));
-  let start = boundary;
-  for (const block of fixed) {
-    if (start < block.until && start + duration > block.start) start = block.until + gapBetween(block, popup);
-  }
-  if (start + duration > cutoff) return null;
-  const displaced = blocks.filter((block) => block.pinned && !keep.includes(block) &&
-    block.start < start + duration && start < block.until);
-  const displacedIds = new Set(displaced.map((block) => block.id));
-  const stack = lockRestackTimes(day.blocks.filter((block) => !displacedIds.has(block.id)).map(unlocked), keep);
-  const next = blocks.find((block) => block.start >= boundary && !displacedIds.has(block.id));
-  const at = next ? stack.findIndex((block) => block.id === next.id) : stack.length;
-  stack.splice(at, 0, { ...popup, restackStart: start, restackUntil: start + duration });
-  const edited = editDay(day, stack, true);
-  const result = layoutDay({ ...edited, workEnd: cutoff });
-  const allBumped = [...new Map([...bumped, ...displaced, ...result.bumped].map((block) => [block.id, block])).values()]
-    .filter((block) => !result.blocks.some((item) => item.id === block.id));
-  return { day: keepDayTimes(edited, [...edited.blocks, ...displaced], result.blocks, allBumped), bumped: allBumped };
-}
-
 // Typed quick-add: pull a start time and/or a length out of an item title.
 // Returns { text, start?, duration? }: start in minutes after midnight, duration in minutes,
 // and text with those tokens removed. A bare number only counts as a time when it looks like
@@ -824,5 +766,5 @@ function stickyGoalColours(goals, palette) {
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { reorderTimelineDrop, snapTimelineDrop, timelineDropPlace, timelineDropStart, arrangeTimelineDrop, resizeWindow, fitResize, resizeDayBlock, fitTimelineDrop, fullOpening, foldTail, dropStaleFixed, layoutDay, applyWake, dayLoad, placeInDay, lockShownTimes, toggleBlockPin, suggestGhosts,
-    insertPopup, parseQuickAdd, splitLength, fitTemplateAnchors, blockKind, stickyGoalColours };
+    parseQuickAdd, splitLength, fitTemplateAnchors, blockKind, stickyGoalColours };
 }

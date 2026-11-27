@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { reorderTimelineDrop, snapTimelineDrop, timelineDropPlace, arrangeTimelineDrop, resizeWindow, fitResize, resizeDayBlock, fitTimelineDrop, fullOpening, foldTail, applyWake, dayLoad, placeInDay, lockShownTimes, insertPopup, layoutDay, suggestGhosts, toggleBlockPin, dropStaleFixed, parseQuickAdd, splitLength, fitTemplateAnchors, blockKind, stickyGoalColours } from '../plan-engine.js';
+import { reorderTimelineDrop, snapTimelineDrop, timelineDropPlace, arrangeTimelineDrop, resizeWindow, fitResize, resizeDayBlock, fitTimelineDrop, fullOpening, foldTail, applyWake, dayLoad, placeInDay, lockShownTimes, layoutDay, suggestGhosts, toggleBlockPin, dropStaleFixed, parseQuickAdd, splitLength, fitTemplateAnchors, blockKind, stickyGoalColours } from '../plan-engine.js';
 
 const block = (id, size, fields = {}) => ({ id, size, tier: 'medium', ...fields });
 const times = ({ blocks }) => blocks.map(({ id, start, until }) => [id, start, until]);
@@ -244,17 +244,6 @@ test('a bumped block already stored on the shelf is not listed as a second bump'
     pinLayout: { blocks: [], bumped: ['screens off'] },
   };
   assert.deepEqual(layoutDay(day).bumped, []);
-});
-
-test('a short interruption uses only the time it needs from a pinned buffer', () => {
-  const day = { blocks: [
-    block('buffer', 45, { text: 'Buffer', pinned: '10:00', tier: 'fixed' }),
-    block('meal', 30, { pinned: '10:45', tier: 'fixed' }),
-  ] };
-  const { day: updated } = insertPopup(day, block('popup', 15), 610);
-  assert.deepEqual(times(layoutDay(updated)), [
-    ['buffer', 600, 610], ['popup', 610, 625], ['popup-free', 625, 645], ['meal', 645, 675],
-  ]);
 });
 
 test('a block placed at a time without a pin keeps that time until the stack is re-timed', () => {

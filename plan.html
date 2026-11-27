@@ -30,7 +30,6 @@
       <div class="actions">
         <button id="plan-paste" class="quiet" type="button" title="Paste a schedule written as text">Paste</button>
         <button id="week-routine" class="quiet" type="button" title="Pick a template for each day this week">Routine</button>
-        <button id="plan-now" class="primary" type="button">Fit in now</button>
         <span class="system-actions">
           <button id="plan-undo-btn" class="icon" type="button" aria-label="Undo" title="Undo" disabled>↶</button>
           <button id="sync-status" class="icon" type="button"></button>
@@ -228,19 +227,6 @@
       <div class="actions">
         <button type="submit" class="primary">Restack day</button>
         <button id="restack-cancel" type="button">Cancel</button>
-      </div>
-    </form>
-  </dialog>
-  <dialog id="now-editor" aria-labelledby="now-title">
-    <form id="now-form">
-      <h2 id="now-title">Fit in now</h2>
-      <label id="now-source">Todo <select name="todo"></select></label>
-      <label>Block title <input name="title" required autofocus></label>
-      <label>Length <input type="number" name="duration" min="1" max="180" required data-scrub></label>
-      <p id="now-error" class="warning" role="alert" hidden></p>
-      <div class="actions">
-        <button class="primary">Fit into today</button>
-        <button id="now-cancel" type="button">Cancel</button>
       </div>
     </form>
   </dialog>

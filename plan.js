@@ -1531,60 +1531,6 @@ function carryNextAcrossWeeks(days, notes) {
   return changed;
 }
 
-function urgentTodos() {
-  const copies = new Set(Object.values(plan.days).flatMap((day) => day.blocks.map((block) => block.todoId)));
-  return entriesFor('Todo').filter((entry) => !copies.has(entry.id) && /^now:\s*\S/i.test(bare(entry.text)));
-}
-
-function fillPopupFields() {
-  const fields = $('now-form').elements;
-  const text = bare(urgentTodos().find((entry) => entry.id === fields.todo.value)?.text ?? '').replace(/^now:\s*/i, '');
-  const duration = /\s+\(?([1-9]\d*)\s*m(?:in(?:utes?)?)?\)?$/i.exec(text);
-  fields.title.value = duration ? text.slice(0, duration.index).trim() : text;
-  fields.duration.value = duration ? Math.min(180, Number(duration[1])) : 15;
-}
-
-function openPopup(todoId = '') {
-  const today = new Date();
-  const key = dayKey(today);
-  if (!plan.days[key]) changePlannerWeek(weekMonday(today));
-  if (!plan.days[key]) return;
-  const todos = urgentTodos();
-  fillOptions($('now-form').elements.todo, [['', 'New interruption'], ...todos.map((entry) =>
-    [entry.id, bare(entry.text).replace(/^now:\s*/i, '')])], todoId || todos[0]?.id || '');
-  $('now-source').hidden = !todos.length;
-  $('now-error').hidden = true;
-  fillPopupFields();
-  $('now-editor').showModal();
-}
-
-function applyPopup(event) {
-  event.preventDefault();
-  const fields = event.target.elements;
-  const now = new Date();
-  const key = dayKey(now);
-  const text = fields.title.value.trim();
-  const duration = fields.duration.valueAsNumber;
-  if (!text || !plan.days[key] || !Number.isInteger(duration) || duration < 1 || duration > 180) return;
-  const popup = planBlock(newId(), text, { duration, tier: 'must', todoId: fields.todo.value || null });
-  const result = insertPopup(plan.days[key], popup, now.getHours() * 60 + now.getMinutes());
-  if (!result) {
-    $('now-error').textContent = 'No room left today for that length.';
-    $('now-error').hidden = false;
-    return;
-  }
-  if (popup.todoId && plan.tray.some((block) => block.todoId === popup.todoId)) {
-    plan.tray = plan.tray.filter((block) => block.todoId !== popup.todoId);
-    plan.trayDirty = true;
-  }
-  storeDay(key, result.day, duration > 15);
-  $('now-editor').close();
-  markEdited();
-  if (result.bumped.length && duration > 15) {
-    $('plan-status').textContent = `Bumped from today · ${result.bumped.map((block) => block.text).join(', ')} · Unsaved`;
-  }
-}
-
 function acceptGhost({ key, block, shelf }) {
   const day = plan.days[key];
   const { blocks, bumped } = layoutDay(day);
@@ -2960,16 +2906,12 @@ function startPlanner() {
   $('week-prev').addEventListener('click', () => changePlannerWeek(addDays(monday, -7)));
   $('week-next').addEventListener('click', () => changePlannerWeek(addDays(monday, 7)));
   $('week-today').addEventListener('click', () => changePlannerWeek(homeMonday()));
-  $('plan-now').addEventListener('click', () => openPopup());
   $('week-routine').addEventListener('click', openRoutineEditor);
   $('plan-paste').addEventListener('click', openPaste);
   $('paste-form').addEventListener('submit', applyPaste);
   $('paste-cancel').addEventListener('click', () => $('paste-editor').close());
   $('routine-form').addEventListener('submit', applyRoutineEditor);
   $('routine-cancel').addEventListener('click', () => $('routine-editor').close());
-  $('now-form').addEventListener('submit', applyPopup);
-  $('now-form').elements.todo.addEventListener('change', fillPopupFields);
-  $('now-cancel').addEventListener('click', () => $('now-editor').close());
   $('block-form').addEventListener('submit', applyBlockEditor);
   for (const input of document.querySelectorAll('input[data-scrub]')) initScrub(input);
   $('block-form').addEventListener('change', updateEditorFields);
@@ -3106,8 +3048,7 @@ function startPlanner() {
     if (!tile || tile.dataset.dragged || event.detail > 1) return;
     const open = () => {
       const source = blockSource(tile);
-      if (tile.dataset.source === 'Todo' && urgentTodos().some((entry) => entry.id === tile.dataset.id)) openPopup(tile.dataset.id);
-      else if (source?.block) openBlockEditor(source);
+      if (source?.block) openBlockEditor(source);
     };
     open();
   });
