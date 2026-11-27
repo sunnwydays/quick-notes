@@ -814,6 +814,16 @@ function parseQuickAdd(input) {
   return { text: cleaned, ...start != null ? { start } : {}, ...duration != null ? { duration } : {} };
 }
 
+// A length written at the end of a title ("mock 30 min", "read (1h 30m)"). Returns
+// { title, length, minutes }: the title without it, the length as written, and in minutes.
+function splitLength(text) {
+  const found = /\s+(\(?(?:\d+(?:\.\d+)?\s*(?:h|hrs?|hours?)(?:\s*\d+\s*(?:m|mins?|minutes?))?|\d+\s*(?:m|mins?|minutes?))\)?)$/i.exec(text);
+  const minutes = found && parseQuickAdd(`x ${found[1].replace(/[()]/g, '')}`).duration;
+  if (!minutes) return null;
+  const title = text.slice(0, found.index).replace(/\s+for$/i, '').trim();
+  return title ? { title, length: found[1], minutes } : null;
+}
+
 // Each goal keeps the colour it got when it was added: the first palette colour
 // no goal on the list at that moment had. Done goals (deleted entries) still
 // count for goals added while they were live, so ticking goals off never
@@ -832,5 +842,5 @@ function stickyGoalColours(goals, palette) {
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { reorderTimelineDrop, snapTimelineDrop, timelineDropPlace, timelineDropStart, arrangeTimelineDrop, resizeWindow, fitResize, resizeDayBlock, fitTimelineDrop, fullOpening, foldTail, dropStaleFixed, layoutDay, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, toggleBlockPin, suggestGhosts,
-    insertPopup, restackBeforeScreensOff, parseQuickAdd, fitTemplateAnchors, blockKind, stickyGoalColours };
+    insertPopup, restackBeforeScreensOff, parseQuickAdd, splitLength, fitTemplateAnchors, blockKind, stickyGoalColours };
 }

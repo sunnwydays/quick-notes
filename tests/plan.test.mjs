@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { reorderTimelineDrop, snapTimelineDrop, timelineDropPlace, arrangeTimelineDrop, resizeWindow, fitResize, resizeDayBlock, fitTimelineDrop, fullOpening, foldTail, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, insertPopup, layoutDay, restackBeforeScreensOff, suggestGhosts, toggleBlockPin, dropStaleFixed, parseQuickAdd, fitTemplateAnchors, blockKind, stickyGoalColours } from '../plan-engine.js';
+import { reorderTimelineDrop, snapTimelineDrop, timelineDropPlace, arrangeTimelineDrop, resizeWindow, fitResize, resizeDayBlock, fitTimelineDrop, fullOpening, foldTail, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, insertPopup, layoutDay, restackBeforeScreensOff, suggestGhosts, toggleBlockPin, dropStaleFixed, parseQuickAdd, splitLength, fitTemplateAnchors, blockKind, stickyGoalColours } from '../plan-engine.js';
 
 const block = (id, size, fields = {}) => ({ id, size, tier: 'medium', ...fields });
 const times = ({ blocks }) => blocks.map(({ id, start, until }) => [id, start, until]);
@@ -538,4 +538,13 @@ test('goal colours stay put when goals are ticked off', () => {
   // A goal added after one is done reuses its colour.
   const next = stickyGoalColours([goal('one', '2026-01-01', '2026-02-01'), live[1], live[2], goal('four', '2026-03-01')], palette);
   assert.equal(next.get('four'), 'a');
+});
+
+test('splitLength takes a length off the end of a title', () => {
+  assert.deepEqual(splitLength('311 m2 mock 30 min'), { title: '311 m2 mock', length: '30 min', minutes: 30 });
+  assert.equal(splitLength('read (1h 30m)').minutes, 90);
+  assert.equal(splitLength('read for 20m').title, 'read');
+  assert.equal(splitLength('311 m2 mock'), null);
+  assert.equal(splitLength('30 min'), null);
+  assert.equal(splitLength('walk 10 min then read'), null);
 });

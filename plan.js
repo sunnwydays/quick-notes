@@ -390,7 +390,7 @@ function moveNote(id, category, fallbackText) {
 
 function trayTodo(entry, goals = plannerGoals()) {
   const text = bare(entry.text).replace(/\s+/g, ' ');
-  const size = Number(/\b(30|45|60|90)\s*m(?:in)?\b/i.exec(text)?.[1]) || 45;
+  const size = splitLength(text)?.minutes ?? (Number(/\b(30|45|60|90)\s*m(?:in)?\b/i.exec(text)?.[1]) || 45);
   const goal = goals.find((item) => text.toLowerCase().startsWith(`${bare(item.text).trim().toLowerCase()}:`));
   return planBlock(newId(), text, { todoId: entry.id, size, goal: goal?.id ?? null });
 }
@@ -865,7 +865,9 @@ function applyBlockEditor(event) {
   const date = fresh ? from : fields.day.value || null;
   // A new item's title may carry a time and length ("gym 5pm 1h"); a typed time beats the field.
   const typed = fresh ? parseQuickAdd(entered) : {};
-  const text = typed.text ?? entered;
+  // A length typed at the end stays in the name, so the to-do list shows it; tiles hide it.
+  const tail = fresh ? splitLength(entered) : null;
+  const text = tail ? `${parseQuickAdd(tail.title).text} ${tail.length}` : typed.text ?? entered;
   const typedStart = date && typed.start != null ? blockKey(typed.start) : null;
   const time = typedStart ?? (date && !fields.time.disabled ? fields.time.value || null : null);
   const onTimeline = Boolean(date && time);
@@ -1896,6 +1898,11 @@ function lengthLabel(minutes) {
   return h && m ? `${h}h ${m}m` : h ? `${h}h` : `${m}m`;
 }
 
+// Tiles show the length on their own, so one written into the name is left off.
+function tileTitle(text) {
+  return splitLength(text)?.title ?? text;
+}
+
 function renderTile(block, date) {
   const tile = element('button', 'tile');
   tile.type = 'button';
@@ -1904,7 +1911,7 @@ function renderTile(block, date) {
   // The hatched stripe marks anything held at its time: pinned blocks and fixed commitments.
   tile.classList.toggle('fixed', block.tier === 'fixed' || planMinutes(block.pinned) != null);
   tile.style.setProperty('--tile-colour', blockColour(block));
-  tile.append(element('span', 'tile-title', block.text));
+  tile.append(element('span', 'tile-title', tileTitle(block.text)));
   if (block.bumped) tile.append(element('span', 'bumped', block.bumpedFrom
     ? ` · Bumped from ${block.bumpedFrom === dayKey(new Date()) ? 'today' : dayLabel(block.bumpedFrom, false)}` : ' · Bumped'));
   if (block.missedFrom) tile.append(element('span', 'missed',
@@ -2055,7 +2062,7 @@ function renderDay(key,{ blocks, bumped }, load, from, until, ghosts) {
   for (const ghost of ghosts) {
     const { block } = ghost;
     const tile = plannerButton('', () => acceptGhost(ghost), 'tile ghost');
-    tile.append(element('span', 'tile-title', block.text));
+    tile.append(element('span', 'tile-title', tileTitle(block.text)));
     tile.title = `Tap to schedule\n${block.text}`;
     tile.style.setProperty('--tile-colour', blockColour(block));
     timeTile(tile, block.start, block.until, from);
@@ -2420,7 +2427,7 @@ function renderDropChoices() {
         selectDay(target.date);
         const column = $('week').querySelector(`[data-day="${target.date}"]`);
         const placed = [...column.querySelectorAll('.tile[data-start]')].find(tile =>
-          Number(tile.dataset.start) === planMinutes(target.at) && tile.querySelector('.tile-title')?.textContent === source.block.text);
+          Number(tile.dataset.start) === planMinutes(target.at) && tile.querySelector('.tile-title')?.textContent === tileTitle(source.block.text));
         placed?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
       };
       panel.append(plannerButton(label, choose));
@@ -2500,7 +2507,7 @@ function movePreview(target) {
   landing.classList.add('drag-live');
   landing.classList.toggle('fit-blocked', !fit);
   landing.querySelector('.tile-title').textContent = !fit ? 'Needs more room'
-    : fit.duration < fit.original ? `${fit.duration} of ${fit.original} min · ${source.block.text}` : source.block.text;
+    : fit.duration < fit.original ? `${fit.duration} of ${fit.original} min · ${tileTitle(source.block.text)}` : tileTitle(source.block.text);
   timeline.append(landing);
   drag.landing = landing;
   const tileFor = (id) => timeline.querySelector(`.tile.timed[data-id="${CSS.escape(id)}"]:not(.ghost)`);
