@@ -88,7 +88,17 @@ button:disabled { opacity: .55; cursor: default; }
 .tray-box[data-tray] { flex: 1; cursor: pointer; }
 .tray h3 { font-size: 1.2rem; color: #245776; }
 .someday summary { font-weight: bold; cursor: pointer; }
-.tray-tile { margin-top: .35rem; }
+.tray-tile { margin-top: .35rem; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 .3rem; }
+.tray-tile .tile-title { flex: 1; }
+.tray-tile .split-prompt { flex-basis: 100%; }
+.tile-check {
+  flex: none; display: inline-grid; place-items: center; width: 1.15rem; height: 1.15rem;
+  border: 1.5px solid #172e4359; border-radius: 50%; font-size: .7rem; color: transparent;
+  cursor: pointer; align-self: center;
+}
+.tile-check:hover { color: var(--ink); background: #ffffff99; }
+/* A bigger target for fingers. */
+@media (pointer: coarse) { .tile-check { width: 1.5rem; height: 1.5rem; } }
 .day {
   grid-row: span 4; display: grid; grid-template-rows: subgrid; gap: 0; min-width: 0;
   background: white; border: 1px solid var(--line); border-inline-end: 0;

@@ -551,6 +551,20 @@ function deleteBlock(source) {
   markEdited();
 }
 
+// The ✓ on a To Do tile ticks its Todo off, the same as Done in the editor.
+function tickTrayTile(tile) {
+  const source = blockSource(tile);
+  if (!source?.block) return;
+  if (source.copy) {
+    removeNote(source.entry.id, 'done');
+    return;
+  }
+  removeNote(source.block.todoId, 'done');
+  plan.tray = plan.tray.filter((block) => block.id !== source.block.id);
+  plan.trayDirty = true;
+  markEdited();
+}
+
 function fillOptions(select, items, value) {
   select.replaceChildren(...items.map(([id, label]) => new Option(label, id)));
   select.value = value;
@@ -1769,6 +1783,12 @@ function renderTray() {
   const todos = entriesFor('Todo');
   const old = new Set(todos.filter((entry) => now - Date.parse(entry.createdAt) >= 5 * 86400000).map((entry) => entry.id));
   const splitPrompt = (tile) => tile.append(element('span', 'split-prompt', '✂ Split into a first step'));
+  // A tile can't hold a real button, so the tick is a span the board's click handler picks up.
+  const check = (tile) => {
+    const tick = element('span', 'tile-check', '✓');
+    tick.title = 'Done';
+    tile.prepend(tick);
+  };
   for (const [category, section] of [['Todo', tray], [BACK_BURNER, someday]]) {
     const entries = entriesFor(category).filter((entry) => !parked.has(entry.id) && !placed.has(entry.id));
     if (!entries.length && (category !== 'Todo' || !plan.tray.length)) {
@@ -1783,6 +1803,7 @@ function renderTray() {
       tile.style.setProperty('--tile-colour', blockColour({ text }));
       Object.assign(tile.dataset, { id: entry.id, source: category });
       if (category === 'Todo' && old.has(entry.id)) splitPrompt(tile);
+      check(tile);
       section.append(tile);
     }
   }
@@ -1791,6 +1812,7 @@ function renderTray() {
     tile.classList.add('tray-tile');
     tile.dataset.source = 'parked';
     if (old.has(block.todoId)) splitPrompt(tile);
+    check(tile);
     tray.append(tile);
   }
   $('tray').replaceChildren(tray, someday);
@@ -2574,7 +2596,7 @@ function daySwipeUp(event) {
 
 function startDrag(event) {
   lastPointerType = event.pointerType;
-  if (event.target.closest('.fit-opening')) return;
+  if (event.target.closest('.fit-opening, .tile-check')) return;
   if (event.button !== 0 || activeDrag) return;
   const edgeTile = tileBottomEdgeAt(event);
   if (edgeTile) {
@@ -2969,6 +2991,10 @@ function startPlanner() {
       return;
     }
     const tile = event.target.closest('.tile[data-id]');
+    if (tile && event.target.closest('.tile-check')) {
+      tickTrayTile(tile);
+      return;
+    }
     if (!tile || tile.dataset.dragged || event.detail > 1) return;
     const open = () => {
       const source = blockSource(tile);
