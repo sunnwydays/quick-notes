@@ -4,6 +4,18 @@
   <meta charset="utf-8">
   <!-- resizes-content: when the keyboard opens, the page shrinks to fit above it -->
   <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content">
+  <script>
+    // Phones that report a wider CSS screen than a Pixel (the Boox is ~500px) draw everything small; pin them to 412px.
+    (() => {
+      const meta = document.querySelector('meta[name=viewport]'), base = meta.content;
+      const fit = () => {
+        const narrow = Math.min(screen.width, screen.height), portrait = screen.height > screen.width;
+        meta.content = portrait && narrow > 430 && narrow < 600 ? base.replace('width=device-width, initial-scale=1', 'width=412') : base;
+      };
+      fit();
+      addEventListener('orientationchange', fit);
+    })();
+  </script>
   <meta name="theme-color" content="#ffffff">
   <title>Dash</title>
   <link rel="manifest" href="manifest.json">
