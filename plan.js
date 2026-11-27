@@ -3095,7 +3095,20 @@ function startPlanner() {
     flushAutosave(false);
     if (plan && isPlannerDirty()) event.preventDefault();
   });
-  document.addEventListener('visibilitychange', () => { if (document.hidden) flushAutosave(false); });
+  // Coming back to a phone tab after a while lands on now, as if the planner had just opened.
+  let hiddenAt = 0;
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      hiddenAt = Date.now();
+      flushAutosave(false);
+      return;
+    }
+    showNow();
+    const today = dayKey(new Date());
+    if (Date.now() - hiddenAt < 5 * 60000 || !plan?.keys.includes(today)) return;
+    if (selectedDay !== today) selectDay(today);
+    else scrollToNow();
+  });
   window.addEventListener('popstate', (event) => showPlannerScreen(event.state));
   showPlannerScreen(history.state);
   refreshView();
