@@ -57,6 +57,7 @@ Open the **calendar icon** in Dash's home header. Drag a Todo onto a day's **Unt
 - On a phone or Boox (under 700px wide) the planner shows the tray beside one day; an empty To Do shrinks to a strip. Switch days with the tabs or by swiping sideways on the day (past Monday or Sunday goes to the next week), or drop a block on a tab to move it to that day. Tap the open day's tab for its Template and Woke at menu. Normal swipes scroll; hold a block for about a third of a second (it lifts and the phone buzzes) to drag or resize it. Tap **Goals** to show the goal chips.
 - The planner saves itself a second after each change, writing changed days as normal Schedule notes (no save button). Log in on both devices to see the plan on your phone or Boox.
 - Items added in the planner (**+**, a To do shelf, or drawing on a timeline) are also added to Todo, unless their kind is Free, Buffer, Meal or Routine; an existing Todo with the same text is linked instead.
+- The circle on an item in the week's To Do or a day's To do marks it done: it leaves the planner, and so does its Todo. **Undo** brings both back.
 - When adding a timed item, the gray **Buffer** link next to Cancel saves that time as a Buffer in one tap.
 
 #### Rescheduling a block

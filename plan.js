@@ -317,7 +317,8 @@ $('plan-undo-btn').onclick = () => {
   dropChoices = null;
   const before = undoStack.pop();
   if (!before) return;
-  Object.assign(plan, structuredClone(before));
+  const { ticked, ...state } = before;
+  Object.assign(plan, structuredClone(state));
   // The snapshot's dirty flags predate the last save, so mark everything for the autosave to compare.
   for (const key of plan.keys) {
     plan.dirtyDays.add(key);
@@ -325,6 +326,7 @@ $('plan-undo-btn').onclick = () => {
   }
   plan.trayDirty = true;
   plan.goalsDirty = true;
+  if (ticked) untickNote(ticked);
   planSnap = null;
   renderPlanner();
   queueAutosave();
@@ -524,6 +526,30 @@ function removeNote(id, how) {
   renderPlanner();
 }
 
+// The server treats a delete as final, so undoing a tick brings the note back as a
+// copy with a new id and points every block at it. The old row is tagged 'undone'.
+function untickNote(id) {
+  const old = data.entries.find((entry) => entry.id === id);
+  if (!old?.deletedAt) return;
+  const copy = { ...old, id: newId(), updatedAt: new Date().toISOString(), deletedAt: null, deletedHow: null, dirty: true };
+  touch(old, { deletedHow: 'undone' });
+  data.entries.push(copy);
+  repointBlocks(id, copy.id);
+  persist();
+  sync();
+}
+
+function repointBlocks(from, to) {
+  const repoint = (block) => block.todoId === from ? { ...block, todoId: to } : block;
+  for (const [key, day] of Object.entries(plan.days)) {
+    if (!day.blocks.some((block) => block.todoId === from)) continue;
+    plan.days[key] = { ...day, blocks: day.blocks.map(repoint) };
+    plan.dirtyDays.add(key);
+  }
+  plan.tray = plan.tray.map(repoint);
+  plan.trayDirty = true;
+}
+
 function liveTodo(id) {
   return id ? data.entries.find((entry) => entry.id === id && !entry.deletedAt) ?? null : null;
 }
@@ -537,13 +563,7 @@ function renameTodo(id, text) {
   const copy = { ...old, id: newId(), text: `${BULLET}${text}`, updatedAt: now, deletedAt: null, deletedHow: null, dirty: true };
   touch(old, { deletedAt: now, deletedHow: 'replaced' });
   data.entries.push(copy);
-  for (const [key, day] of Object.entries(plan.days)) {
-    if (!day.blocks.some((block) => block.todoId === id)) continue;
-    plan.days[key] = { ...day, blocks: day.blocks.map((block) => block.todoId === id ? { ...block, todoId: copy.id } : block) };
-    plan.dirtyDays.add(key);
-  }
-  plan.tray = plan.tray.map((block) => block.todoId === id ? { ...block, todoId: copy.id } : block);
-  plan.trayDirty = true;
+  repointBlocks(id, copy.id);
   persist();
   sync();
   renderPlanner();
@@ -563,18 +583,28 @@ function deleteBlock(source) {
   markEdited();
 }
 
+// A tile can't hold a real button, so the tick is a span the board's click handler picks up.
+function addTick(tile) {
+  const tick = element('span', 'tile-check', '✓');
+  tick.title = 'Done';
+  tile.classList.add('checkable');
+  tile.prepend(tick);
+}
+
 // The ✓ on a To Do tile ticks its Todo off, the same as Done in the editor.
-function tickTrayTile(tile) {
+function tickTile(tile) {
   const source = blockSource(tile);
   if (!source?.block) return;
-  if (source.copy) {
-    removeNote(source.entry.id, 'done');
-    return;
+  const note = liveTodo(source.copy ? source.entry.id : source.block.todoId)?.id;
+  removeNote(note, 'done');
+  if (source.date) removeFromDay(source.date, source.block.id);
+  else if (!source.copy) {
+    plan.tray = plan.tray.filter((block) => block.id !== source.block.id);
+    plan.trayDirty = true;
   }
-  removeNote(source.block.todoId, 'done');
-  plan.tray = plan.tray.filter((block) => block.id !== source.block.id);
-  plan.trayDirty = true;
   markEdited();
+  // Lets Undo bring the note back along with the tile.
+  if (note && undoStack.length) undoStack.at(-1).ticked = note;
 }
 
 function fillOptions(select, items, value) {
@@ -1830,12 +1860,6 @@ function renderTray() {
   const todos = entriesFor('Todo');
   const old = new Set(todos.filter((entry) => now - Date.parse(entry.createdAt) >= 5 * 86400000).map((entry) => entry.id));
   const splitPrompt = (tile) => tile.append(element('span', 'split-prompt', '✂ Split into a first step'));
-  // A tile can't hold a real button, so the tick is a span the board's click handler picks up.
-  const check = (tile) => {
-    const tick = element('span', 'tile-check', '✓');
-    tick.title = 'Done';
-    tile.prepend(tick);
-  };
   for (const [category, section] of [['Todo', tray], [BACK_BURNER, someday]]) {
     const entries = entriesFor(category).filter((entry) => !parked.has(entry.id) && !placed.has(entry.id));
     if (!entries.length && (category !== 'Todo' || !plan.tray.length)) {
@@ -1850,7 +1874,7 @@ function renderTray() {
       tile.style.setProperty('--tile-colour', blockColour({ text }));
       Object.assign(tile.dataset, { id: entry.id, source: category });
       if (category === 'Todo' && old.has(entry.id)) splitPrompt(tile);
-      check(tile);
+      addTick(tile);
       section.append(tile);
     }
   }
@@ -1859,7 +1883,7 @@ function renderTray() {
     tile.classList.add('tray-tile');
     tile.dataset.source = 'parked';
     if (old.has(block.todoId)) splitPrompt(tile);
-    check(tile);
+    addTick(tile);
     tray.append(tile);
   }
   $('tray').replaceChildren(tray, someday);
@@ -1984,6 +2008,7 @@ function renderDay(key,{ blocks, bumped }, load, from, until, ghosts) {
     if (!block.bumped) tile.append(element('span', 'bumped', ' · Bumped'));
     shelf.append(tile);
   }
+  for (const tile of shelf.querySelectorAll('.tile')) addTick(tile);
   const timeline = element('div', 'timeline');
   const wake = dayWake(day);
   timeline.dataset.from = from;
@@ -2587,6 +2612,13 @@ function tileBottomEdgeAt(event) {
     const box = inside.getBoundingClientRect();
     return event.clientY >= box.bottom - Math.min(14, box.height / 3) ? inside : null;
   }
+  // The block under the pointer wins: only its own edge resizes, so a neighbour's
+  // edge zone can't swallow a tiny block. Neighbour edges only count in empty space.
+  const over = event.target.closest('.tile.timed[data-id]');
+  if (over) {
+    const box = over.getBoundingClientRect();
+    return event.clientY >= box.bottom - Math.min(8, box.height / 3) ? over : null;
+  }
   const timeline = event.target.closest('.timeline');
   if (!timeline) return null;
   let best = null;
@@ -2612,13 +2644,6 @@ const HOLD_SLOP = 8;
 
 function holdToDrag(drag, tile) {
   drag.pending = true;
-  // The block under the pointer wins: only its own edge resizes, so a neighbour's
-  // edge zone can't swallow a tiny block. Neighbour edges only count in empty space.
-  const over = event.target.closest('.tile.timed[data-id]');
-  if (over) {
-    const box = over.getBoundingClientRect();
-    return event.clientY >= box.bottom - Math.min(8, box.height / 3) ? over : null;
-  }
   drag.liftTile = tile;
   drag.holdTimer = setTimeout(() => {
     drag.pending = false;
@@ -3087,7 +3112,7 @@ function startPlanner() {
     }
     const tile = event.target.closest('.tile[data-id]');
     if (tile && event.target.closest('.tile-check')) {
-      tickTrayTile(tile);
+      tickTile(tile);
       return;
     }
     if (!tile || tile.dataset.dragged || event.detail > 1) return;

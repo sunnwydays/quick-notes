@@ -99,6 +99,9 @@ button:disabled { opacity: .55; cursor: default; }
 /* Taller lines so the two-line clamp doesn't clip descenders like g and y. */
 .tray-tile .tile-title { flex: 1 1 0; min-width: 0; line-height: 1.25; }
 .tray-tile .split-prompt { flex-basis: 100%; }
+/* A day's To do tile keeps the tick beside its title and length. */
+.shelf .tile.checkable { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 .3rem; }
+.shelf .checkable .tile-title { flex: 1 1 0; min-width: 0; line-height: 1.25; }
 .tile-check {
   flex: none; display: inline-grid; place-items: center; width: .85rem; height: .85rem;
   border: 1.5px solid #172e4359; border-radius: 50%; font-size: .55rem; color: transparent;
