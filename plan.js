@@ -2205,19 +2205,22 @@ function refreshView() {
   if (!activeDrag) renderPlanner();
 }
 
-// The delete zone covers everything above the day tabs: none of it takes a drop.
+// The Incomplete and Delete zones cover everything above the day tabs: none of it takes a drop.
 function showDragTrash() {
   const top = document.querySelector('.masthead').getBoundingClientRect();
   const bottom = document.querySelector('.week-overview').getBoundingClientRect();
-  Object.assign($('drag-trash').style, { left: `${top.left - 3}px`, top: `${Math.max(0, top.top - 3)}px`,
+  Object.assign($('drag-zones').style, { left: `${top.left - 3}px`, top: `${Math.max(0, top.top - 3)}px`,
     width: `${top.width + 6}px`, height: `${Math.max(top.bottom, bottom.bottom) - Math.max(0, top.top - 3) + 3}px` });
-  $('drag-trash').hidden = false;
+  $('drag-zones').hidden = false;
 }
 
 function plannerDropTarget(event, source) {
   const under = document.elementFromPoint(event.clientX, event.clientY);
   const trash = under?.closest('#drag-trash');
   if (trash) return { trash: true, indicator: trash };
+  // Incomplete unschedules a planned block back into the To do tray.
+  const incomplete = under?.closest('#drag-incomplete');
+  if (incomplete) return source.date ? { indicator: incomplete } : null;
   const tab = under?.closest('[data-tab-day]');
   // Drops never unpin: a pinned block keeps its pin (and, on another day, its time).
   if (tab) return { date: tab.dataset.tabDay, indicator: tab };
@@ -2778,7 +2781,7 @@ function endDrag(event) {
   const target = moved && event.type === 'pointerup' ? activeDrag.target : null;
   showDropTarget(null);
   activeDrag = null;
-  $('drag-trash').hidden = true;
+  $('drag-zones').hidden = true;
   preview?.remove();
   tile.classList.remove('dragging', 'drag-hidden');
   if (moved || armed) {
