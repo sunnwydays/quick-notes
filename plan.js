@@ -2212,8 +2212,18 @@ function refreshView() {
   if (!activeDrag) renderPlanner();
 }
 
-// The Incomplete and Delete zones cover everything above the day tabs: none of it takes a drop.
+// The To do, Missed and Delete zones cover everything above the day tabs: none of it takes a drop.
 function showDragTrash() {
+  // On a phone they stack over the whole left column instead, closer to the thumb.
+  const side = matchMedia('(max-width: 700px)').matches;
+  $('drag-zones').classList.toggle('side', side);
+  if (side) {
+    const r = $('tray').getBoundingClientRect();
+    const top = Math.max(0, r.top), bottom = Math.min(innerHeight, r.bottom);
+    Object.assign($('drag-zones').style, { left: `${r.left}px`, top: `${top}px`, width: `${r.width}px`, height: `${bottom - top}px` });
+    $('drag-zones').hidden = false;
+    return;
+  }
   const top = document.querySelector('.masthead').getBoundingClientRect();
   const bottom = document.querySelector('.week-overview').getBoundingClientRect();
   Object.assign($('drag-zones').style, { left: `${top.left - 3}px`, top: `${Math.max(0, top.top - 3)}px`,
