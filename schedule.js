@@ -284,8 +284,9 @@ function scheduleOn(key) {
 // if there are several. Otherwise the latest slot already gone by counts, with
 // past set, since it's taken as done; moving that block later brings it back.
 // A day edited in Dash since the planner saved it only counts blocks whose text
-// is still in it.
-function scheduledTodos() {
+// is still in it. skipWeek leaves out one week's saved plan, for the planner,
+// which goes by its own unsaved copy of the week it shows.
+function scheduledTodos(skipWeek = null) {
   const now = new Date();
   const today = dayKey(now);
   const tomorrow = dayKey(addDays(now, 1));
@@ -293,7 +294,8 @@ function scheduledTodos() {
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
   const ahead = new Map();
   const gone = new Map();
-  for (const { value } of plannerNotes(PLAN_WEEK).values()) {
+  for (const [week, { value }] of plannerNotes(PLAN_WEEK)) {
+    if (week === skipWeek) continue;
     for (const [key, day] of Object.entries(value.days || {})) {
       if (!Array.isArray(day?.blocks) || !day.blocks.some((block) => block.todoId)) continue;
       const schedule = scheduleOn(key);

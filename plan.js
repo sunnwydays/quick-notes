@@ -1885,8 +1885,9 @@ function renderTray() {
   const someday = element('details', 'panel tray-box someday');
   someday.open = $('tray').querySelector('.someday')?.open ?? false;
   someday.append(element('summary', '', 'Back burner'));
-  // Anything already on a day leaves the tray, so it can't be dragged in twice.
-  const placed = new Set(Object.values(plan.days).flatMap((day) => day.blocks.map((block) => block.todoId)));
+  // Anything already on a day, this week or another, leaves the tray, so it can't be dragged in twice.
+  const placed = new Set([...Object.values(plan.days).flatMap((day) => day.blocks.map((block) => block.todoId)),
+    ...scheduledTodos(plan.key).keys()]);
   const parked = new Set(plan.tray.map((block) => block.todoId));
   const now = Date.now();
   const todos = entriesFor('Todo');
@@ -2196,7 +2197,9 @@ function renderPlanner() {
   const until = Math.ceil(Math.max(DEFAULT_TIMELINE_END, Math.max(...wakes) + 1, ...all.map((b) => b.until)) / 60) * 60;
   const goals = plannerGoals();
   const parked = new Set(plan.tray.map((block) => block.todoId));
-  const todos = entriesFor('Todo').filter((entry) => !parked.has(entry.id)).map((entry) => trayTodo(entry, goals));
+  const elsewhere = scheduledTodos(plan.key);
+  const todos = entriesFor('Todo').filter((entry) => !parked.has(entry.id) && !elsewhere.has(entry.id))
+    .map((entry) => trayTodo(entry, goals));
   const now = new Date();
   const today = dayKey(now);
   const earliest = Object.fromEntries(plan.keys.map((key) => [key,
