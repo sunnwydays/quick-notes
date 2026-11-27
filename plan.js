@@ -15,13 +15,13 @@ const TEMPLATES = {
       ['07:00', 45, 'Wake + breakfast + routine'], ['07:45', 30, 'Walk outside'],
       ['11:30', 50, 'Lunch + dishes + read', 'meal'], ['12:20', 25, 'Free', 'free'],
       ['14:10', 60, 'Afternoon cardio', 'exercise'], ['15:10', 45, 'Buffer', 'buffer'],
-      ['17:00', 50, 'Dinner + dishes', 'meal'], ['21:30', 15, 'Review'], WIND_DOWN,
+      ['17:00', 50, 'Dinner + dishes', 'meal'], WIND_DOWN,
     ],
   },
   'Exam / interview': {
     wake: '07:00', startOffset: 0, deepCap: 4, event: true, noNewAfter: 16 * 60,
     hint: 'Light recall only. Allow 30 minutes to get there and settle.',
-    anchors: [['12:20', 25, 'Free', 'free'], ['21:30', 15, 'Review'], WIND_DOWN],
+    anchors: [['12:20', 25, 'Free', 'free'], WIND_DOWN],
   },
   'Recovery / social': {
     wake: '09:00', startOffset: 0, deepCap: 2, workCap: 2, noGhosts: true,
@@ -32,8 +32,8 @@ const TEMPLATES = {
   },
   'Welding Sunday': {
     wake: '07:00', startOffset: 0, deepCap: 1, workCap: 1, workStart: 17 * 60,
-    hint: 'Welding from 09:00 to 17:00, then an evening review.',
-    anchors: [['09:00', 480, 'Welding', '', 0, true], ['21:30', 15, 'Review'], WIND_DOWN],
+    hint: 'Welding from 09:00 to 17:00.',
+    anchors: [['09:00', 480, 'Welding', '', 0, true], WIND_DOWN],
   },
   'Game day': {
     wake: '07:00', startOffset: 0, deepCap: 4, event: true, workBeforeEvent: true,
@@ -1529,73 +1529,6 @@ function carryNextAcrossWeeks(days, notes) {
   return changed;
 }
 
-function refreshReviewStatus() {
-  const now = new Date();
-  $('day-review').hidden = now.getHours() * 60 + now.getMinutes() < REVIEW_START;
-}
-
-function refreshReviewRows() {
-  if (!$('review-editor').open) return;
-  const key = $('review-form').dataset.day;
-  const blocks = new Map(layoutDay(plan.days[key]).blocks.map((block) => [block.id, block]));
-  for (const row of $('review-list').children) {
-    const block = blocks.get(row.dataset.id);
-    if (!block) continue;
-    const line = element('div', 'block');
-    const body = element('div', 'block-body');
-    body.append(element('time', '', timeRange(block.start, block.until)),
-      element('p', '', block.done ? `${block.text} (done = ${block.done})` : block.text));
-    line.append(body);
-    row.firstElementChild.replaceWith(line);
-  }
-}
-
-function openDayReview() {
-  const key = dayKey(new Date());
-  if (!plan.days[key]) changePlannerWeek(weekMonday(keyDate(key)));
-  if (!plan.days[key]) return;
-  $('review-form').dataset.day = key;
-  $('review-title').textContent = `Review · ${dayLabel(key)}`;
-  const blocks = layoutDay(plan.days[key]).blocks;
-  const rows = blocks.map((block) => {
-    const row = element('div', 'review-row');
-    row.dataset.id = block.id;
-    row.append(element('div'));
-    if (blockKind(block) === 'project' && block.goal) {
-      const label = element('label', '', 'NEXT');
-      const input = element('input');
-      input.value = block.next ?? '';
-      input.placeholder = 'First step for the next block';
-      label.append(input);
-      row.append(label);
-    }
-    return row;
-  });
-  $('review-list').replaceChildren(...rows);
-  $('review-empty').hidden = Boolean(rows.length);
-  $('review-editor').showModal();
-  refreshReviewRows();
-}
-
-function applyDayReview(event) {
-  event.preventDefault();
-  const key = event.target.dataset.day;
-  const fields = new Map([...$('review-list').children].flatMap((row) => {
-    const input = row.querySelector('input');
-    return input ? [[row.dataset.id, input.value.trim()]] : [];
-  }));
-  const day = plan.days[key];
-  if (day.blocks.some((block) => fields.has(block.id) && fields.get(block.id) !== (block.next ?? ''))) {
-    plan.days[key] = { ...day, blocks: day.blocks.map((block) => fields.has(block.id)
-      ? { ...block, next: fields.get(block.id),
-        nextApplied: fields.get(block.id) === block.next ? block.nextApplied : undefined } : block) };
-    plan.dirtyDays.add(key);
-    plan.scheduleDirty.add(key);
-    markEdited();
-  }
-  $('review-editor').close();
-}
-
 function urgentTodos() {
   const copies = new Set(Object.values(plan.days).flatMap((day) => day.blocks.map((block) => block.todoId)));
   return entriesFor('Todo').filter((entry) => !copies.has(entry.id) && /^now:\s*\S/i.test(bare(entry.text)));
@@ -2189,8 +2122,6 @@ function renderPlanner() {
   const layouts = plan.keys.map((key) => layoutDay(plan.days[key]));
   const loads = layouts.map((layout, i) => dayLoad(plan.days[plan.keys[i]], layout.blocks));
   renderGoals(layouts, loads);
-  refreshReviewStatus();
-  refreshReviewRows();
   const all = layouts.flatMap((layout) => layout.blocks);
   const wakes = plan.keys.map((key) => dayWake(plan.days[key]));
   const from = Math.floor(Math.min(PLAN_START, ...wakes, ...all.map((b) => b.start)) / 60) * 60;
@@ -3005,9 +2936,6 @@ function startPlanner() {
   $('now-form').addEventListener('submit', applyPopup);
   $('now-form').elements.todo.addEventListener('change', fillPopupFields);
   $('now-cancel').addEventListener('click', () => $('now-editor').close());
-  $('day-review').addEventListener('click', openDayReview);
-  $('review-form').addEventListener('submit', applyDayReview);
-  $('review-cancel').addEventListener('click', () => $('review-editor').close());
   $('block-form').addEventListener('submit', applyBlockEditor);
   for (const input of document.querySelectorAll('input[data-scrub]')) initScrub(input);
   $('block-form').addEventListener('change', updateEditorFields);
@@ -3158,17 +3086,7 @@ function startPlanner() {
   showPlannerScreen(history.state);
   refreshView();
   scrollToNow();
-  const url = new URL(location.href);
-  if (url.searchParams.get('review') === '1') {
-    url.searchParams.delete('review');
-    history.replaceState(history.state, '', url);
-    openDayReview();
-  }
-  setInterval(() => {
-    refreshReviewStatus();
-    showNow();
-  }, 30000);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshReviewStatus(); });
+  setInterval(showNow, 30000);
   showStatus();
   sync();
   navigator.storage?.persist?.();

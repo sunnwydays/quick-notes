@@ -222,7 +222,7 @@ button:disabled { opacity: .55; cursor: default; }
   padding-left: .55rem;
 }
 .tile-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
-.tile-time, .gutter-label, .hour-label, .review-row time {
+.tile-time, .gutter-label, .hour-label {
   font-family: Arial, sans-serif; font-variant-numeric: tabular-nums;
 }
 .tile-time { display: block; font-size: .7rem; color: #394854; }
@@ -246,10 +246,6 @@ button:disabled { opacity: .55; cursor: default; }
 .tile.ghost:hover { background: var(--tile-colour, #edf4fa); }
 .tile.ghost .tile-title::before { content: '+ '; font-weight: bold; }
 .split-prompt { display: block; margin-top: .25rem; font-size: .78rem; color: #70410f; }
-.review-row { padding: .65rem 0; border-bottom: 1px solid var(--line); }
-.review-row .block { display: flex; justify-content: space-between; align-items: center; gap: .75rem; }
-.review-row time { font-size: .82rem; color: var(--muted); }
-.review-row label { margin-top: .45rem; }
 .timed-label { flex: 1; width: 100%; min-height: min(100%, 1.06rem); container-type: size; }
 .timed-label .tile-time { margin-top: .12rem; line-height: .85rem; }
 .timed-label .tile-title {

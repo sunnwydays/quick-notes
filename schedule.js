@@ -18,7 +18,6 @@ const TO_TIME = new RegExp(String.raw`^\s*(?:-|–|—|to)\s*` + TIME, 'i');
 // "17:00 dinner, 17:45 chess" is two blocks: a comma or semicolon followed by a time starts a new one.
 const NEXT_BLOCK = /[,;]\s+(?=\d{1,2}(?::[0-5]\d|\s*[ap]\.?\s?m\b|[ap]\b))/i;
 const DAY_END = 24 * 60;
-const REVIEW_START = 21 * 60 + 30;
 
 // A line without its "- " bullet.
 function bare(line) {

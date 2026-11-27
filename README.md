@@ -51,7 +51,7 @@ Open the **calendar icon** in Dash's home header. Drag a Todo onto a day's **Unt
 - Deleting, shrinking, or renaming a block leaves the surrounding schedule in place. A pin stays attached when you drag its block to another time or day. Clear **Pin** in the editor to release it. For timeline drops, see [Rescheduling a block](#rescheduling-a-block).
 - Dashed outlines with a **+** are suggestions. The planner checks the day's shelf first, then the week tray. It stays below 75% load and respects goal budgets. Click a ghost to schedule it. Old Todos prompt you to split off a first step, and days with at least ten parked AI tutor ideas show a drift badge.
 - **Fit in now** fits an interruption into today. Up to 15 minutes uses a gap, free time, or a buffer. Longer interruptions restack the day and return bumped blocks to the tray.
-- **Review today** lists the day's blocks. Apply **NEXT** on a project block to carry the text into the next timed block for that goal.
+- A project block's **Next** (under **More** in the editor) renames that goal's next upcoming block.
 - On a phone or Boox (under 700px wide) the planner shows the tray beside one day; an empty To Do shrinks to a strip. Switch days with the tabs or by swiping sideways on the day (past Monday or Sunday goes to the next week), or drop a block on a tab to move it to that day. Tap the open day's tab for its Template and Woke at menu. Normal swipes scroll; hold a block for about a third of a second (it lifts and the phone buzzes) to drag or resize it. Tap **Goals** to show the goal chips.
 - The planner saves itself a second after each change, writing changed days as normal Schedule notes (no save button). Log in on both devices to see the plan on your phone or Boox.
 - Items added in the planner (**+**, a To do shelf, or drawing on a timeline) are also added to Todo, unless their kind is Free, Buffer, Meal or Routine; an existing Todo with the same text is linked instead.
@@ -105,7 +105,7 @@ Plain HTML, CSS and JS: no framework, no build step. The JS files are plain `<sc
 | `entries.js` | Notes screen. |
 | `transfer.js` | Transfer pads (hidden categories `Transfer 1`–`3`). |
 | `schedule.js` | Schedule parsing and the home schedule column. |
-| `plan.html`, `plan.css`, `plan.js` | Week planner, tray, templates, budgets, and review. |
+| `plan.html`, `plan.css`, `plan.js` | Week planner, tray, templates and budgets. |
 | `plan-engine.js` | Timing and restacking shared by the planner and Schedule. |
 | `export.js` | Export and Copy all. |
 | `sync.js` | Supabase sync. |

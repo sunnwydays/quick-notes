@@ -17,3 +17,7 @@ Every save of a day's schedule added a new note, and **All saved** on the Schedu
 A block could be marked **Skipped** (the Skip button on the Schedule screen, holding a line in the home glance, or **Skipped** in the planner's block editor) or **Ran over** (hold the Skip button, the **Ran over…** button, or the planner editor's **Ran over…**). Ran over asked for the real end time and an optional reason, then restacked the rest of the day from that time. Finished blocks with no mark counted as done. The planner's Review today showed each block's mark, and Claude read them at the evening review.
 
 Marks were rows in Supabase's `qn_block_marks` table (`day`, `block_start`, `block_text`, `status` of done/skipped/over/cleared, `marked_at`, `ended_at`, `reason`), insert-only, with the newest per day and start time winning. Dash no longer reads or syncs them and drops its local copy. The table and its old rows are still in Supabase (`schema.sql`). Days saved with a ran-over end time (`actualUntil`) still lay out with it.
+
+## Review today (removed 2026-11-27)
+
+From 21:30 the planner showed a **Review today** button (and Dash's Schedule screen linked to it via `plan.html?review=1`). It listed today's timed blocks with their marks and a NEXT box on each project block; **Apply NEXT** saved those boxes. The built-in Weekday, Exam / interview and Welding Sunday templates also put a 15-minute `Review` block at 21:30. The evening review is now just writing in Journal. A block's Next is still in the block editor under **More**.
