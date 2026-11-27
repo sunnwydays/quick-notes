@@ -1783,6 +1783,77 @@ function applyRestack(event) {
   markEdited();
 }
 
+// Paste: a schedule written as text, one line per block, replaces the days it names
+// (today when it has no day heading). `Fixed:` and named commitments are pinned.
+function pastedDay(text, previous) {
+  const day = pinScheduleCommitments(dayFromSchedule({ id: newId(), text }), null);
+  return keepDayTimes({ ...day, wake: previous?.wake ?? day.wake }, day.blocks, layoutDay(day).blocks);
+}
+
+function openPaste() {
+  $('paste-form').elements.text.value = '';
+  $('paste-error').hidden = true;
+  $('paste-editor').showModal();
+}
+
+function applyPaste(event) {
+  event.preventDefault();
+  const text = cleanText(event.target.elements.text.value);
+  const createdAt = new Date().toISOString();
+  const parts = splitDays(text).map((part) => ({ key: scheduleDay({ text: part, createdAt }), text: part }))
+    .filter(({ text: part }) => parseSchedule(part).blocks.length);
+  if (!parts.length) {
+    $('paste-error').textContent = 'No blocks found. Start each line with a time, like 9:00-11:30 Foosball.';
+    $('paste-error').hidden = false;
+    return;
+  }
+  const byKey = new Map(parts.map((part) => [part.key, part.text]));
+  const keys = [...byKey.keys()].sort();
+  if (!confirm(`Replace the plan for ${keys.map((key) => dayLabel(key)).join(', ')}?`)) return;
+  // Days in another week go straight into that week's saved plan and its Schedule notes.
+  reload();
+  const notes = [];
+  const weeks = new Map();
+  for (const key of keys) {
+    if (plan.keys.includes(key)) continue;
+    const week = weekKey(weekMonday(keyDate(key)));
+    if (!weeks.has(week)) weeks.set(week, { saved: plannerNote(PLAN_WEEK, week), days: {}, sources: {} });
+    const target = weeks.get(week);
+    const day = target.days[key] = pastedDay(byKey.get(key), target.saved?.value.days?.[key]);
+    const previous = scheduleOn(key);
+    const note = plannerEntry(SCHEDULE, scheduleText(key, day), previous);
+    notes.push(note);
+    target.sources[key] = note.id;
+  }
+  for (const [week, { saved, days, sources }] of weeks) {
+    const value = saved?.value ?? {};
+    const next = { ...value, days: { ...value.days, ...days }, sources: { ...value.sources, ...sources } };
+    notes.push(plannerEntry(PLAN_WEEK, JSON.stringify({ key: week, value: next }), saved?.entry));
+  }
+  if (notes.length) {
+    data.entries.push(...notes);
+    try {
+      persist();
+    } catch {
+      reload();
+      $('paste-error').textContent = 'Could not save. Device storage is full or unavailable.';
+      $('paste-error').hidden = false;
+      return;
+    }
+    sync();
+  }
+  $('paste-editor').close();
+  const shown = keys.filter((key) => plan.keys.includes(key));
+  if (!shown.length) {
+    changePlannerWeek(weekMonday(keyDate(keys[0])));
+    return;
+  }
+  // Selecting the day redraws, which takes the Undo snapshot, so it goes first.
+  selectDay(shown[0]);
+  for (const key of shown) storeDay(key, pastedDay(byKey.get(key), plan.days[key]));
+  markEdited();
+}
+
 // A three-digit course number in a block's name (`Study 345`, `ECE311 lab`, `ece345 assignment`).
 function courseOf(block) {
   return /\b(?:[a-z]{3})?(\d{3})\b/i.exec(block.text ?? '')?.[1] ?? null;
@@ -2969,6 +3040,9 @@ function startPlanner() {
   $('week-today').addEventListener('click', () => changePlannerWeek(homeMonday()));
   $('plan-now').addEventListener('click', () => openPopup());
   $('week-routine').addEventListener('click', openRoutineEditor);
+  $('plan-paste').addEventListener('click', openPaste);
+  $('paste-form').addEventListener('submit', applyPaste);
+  $('paste-cancel').addEventListener('click', () => $('paste-editor').close());
   $('routine-form').addEventListener('submit', applyRoutineEditor);
   $('routine-cancel').addEventListener('click', () => $('routine-editor').close());
   $('now-form').addEventListener('submit', applyPopup);

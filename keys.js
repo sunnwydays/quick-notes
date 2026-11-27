@@ -62,12 +62,6 @@ function shortcut(key) {
     else if (note && key === 'r' && replaces(current.cat)) note.querySelector('[aria-label="Replace"]').click();
     else if (note && key === 'b' && note.dataset.moveTo) moveEntry(note.dataset.id);
     else return false;
-  } else if (view === 'schedule') {
-    if (key === 'e') return press('schedule-edit-btn') || press('schedule-new-btn');
-    if (key === 'a' || key === 'n') return press('schedule-new-btn');
-    if (key === 's') return press('schedule-past-btn');
-    if (key === 'arrowleft' || key === 'arrowright') return press(key === 'arrowleft' ? 'day-prev' : 'day-next');
-    return false;
   } else return false;
   return true;
 }

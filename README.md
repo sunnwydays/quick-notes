@@ -29,7 +29,7 @@ Live: https://dash-notes.vercel.app
 
 **Projects:** ☰ → **New project**. To remove one, open it and tap **Remove project** (deletes its notes).
 
-**Schedule:** shows today's plan with the current block highlighted, gaps as "Free until 15:00", and finished blocks folded. Write one by holding Schedule or tapping **New**/**Edit**, one block per line:
+**Schedule:** tapping Schedule (or today's schedule on home) opens the Week planner. Schedules are still saved as notes in the Schedule category, one per day. To write one as text, hold Schedule or tap **Paste** in the planner, one block per line:
 
 ```
 Sun (full day)
@@ -40,11 +40,9 @@ No new material after that, early night
 ```
 
 - A block starts with a time or range (`9:00`, `9am`, `10:30 to 12`, or bare `10`/`830` if it follows the block above). Without am/pm, a time earlier than the last one counts as afternoon. Lines without a time are notes under the block above; a comma then a time starts another block.
-- A line starting with a day (`Sun`, `Tomorrow`, `Tue 27 Oct`) starts that day's schedule, so a multi-day paste saves one note per day.
-- Each save adds a version; the newest per day is shown, and unchanged saves are skipped. **All saved** lists every version. ‹ › or swiping steps through days.
-- Blocks that haven't ended show a **Skip** button, which marks them **Skipped**. Tap a skipped block's icon to clear the mark. Finished unmarked blocks count as done. Hold the button to mark **Ran over**: a small dialog asks for the end time (it starts at the later of now and the block's end) and an optional reason. Marks go to `qn_block_marks`.
-- Use **Woke at…** to restack after a late start. **Ran over…** acts on the current or most recently started block. You can also hold a specific block's Skip button or mark. Entering an end time in today's Schedule saves the mark and retimes the rest of the day. Fixed commitments keep their time. Type `Fixed:` at the start of a block title in a handwritten Schedule to preserve its time.
-- At 21:30, **Review today** opens the day review in the planner.
+- A line starting with a day (`Sun`, `Tomorrow`, `Tue 27 Oct`) starts that day's schedule, so a multi-day paste fills one day each. Without a heading it's today.
+- **Paste** replaces each named day in the planner, after asking. Undo reverses it for days in the open week. Start a title with `Fixed:` to pin it at its time; meals, wake, sleep, exams and games are pinned too.
+- Removed features are listed in [docs/removed-features.md](docs/removed-features.md).
 
 ### Week planner
 
@@ -96,7 +94,7 @@ Plain HTML, CSS and JS: no framework, no build step. The JS files are plain `<sc
 
 | File | What it does |
 | --- | --- |
-| `index.html` | The seven screens as `<section>`s (one shown at a time), plus Help's text. |
+| `index.html` | The six screens as `<section>`s (one shown at a time), plus Help's text. |
 | `data.js` | Constants, saved data (`data`) and helpers. |
 | `views.js` | Screen switching, history/back, Undo banner, reload after deploy. |
 | `gestures.js` | Hold-and-release, double-tap and hold-to-go-back. |
@@ -106,7 +104,7 @@ Plain HTML, CSS and JS: no framework, no build step. The JS files are plain `<sc
 | `search.js` | Search. |
 | `entries.js` | Notes screen. |
 | `transfer.js` | Transfer pads (hidden categories `Transfer 1`–`3`). |
-| `schedule.js` | Schedule parsing, versioning, restack actions, block marks, and the home schedule column. |
+| `schedule.js` | Schedule parsing, block marks, and the home schedule column. |
 | `plan.html`, `plan.css`, `plan.js` | Week planner, tray, templates, budgets, and review. |
 | `plan-engine.js` | Timing and restacking shared by the planner and Schedule. |
 | `export.js` | Export and Copy all. |

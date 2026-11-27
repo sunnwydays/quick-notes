@@ -88,9 +88,9 @@ function onHoldRelease(btn, action, ms = HOLD_TO_WRITE_MS) {
   });
 }
 
-// The notes and schedule screens, where these back gestures work.
+// The notes screen, where these back gestures work.
 function onListScreen() {
-  return typeof current !== 'undefined' && Boolean(current) && (current.view === 'entries' || current.view === 'schedule');
+  return typeof current !== 'undefined' && Boolean(current) && current.view === 'entries';
 }
 
 // Double-tapping anywhere on the notes screen goes back, except on a button,
@@ -103,7 +103,7 @@ document.addEventListener('dblclick', (e) => {
 
 // Holding blank space on the notes screen goes back too. Holding a note, the
 // title or a button is left alone, so text can still be selected as usual.
-const NOT_BLANK = 'button, .entry, .block, h1, h2, .empty, .free, .schedule-note, #undo-bar';
+const NOT_BLANK = 'button, .entry, h1, h2, .empty, #undo-bar';
 let blankTimer = null;
 
 document.addEventListener('pointerdown', (e) => {
@@ -153,27 +153,3 @@ function onSwipe(el, action) {
   });
   el.addEventListener('touchcancel', reset);
 }
-
-// Swiping sideways on the schedule steps through the days, the same as the ‹ ›
-// arrows: left for the next day, right for the one before. Touch events rather
-// than pointer ones, since the browser can cancel the pointer partway.
-const SWIPE_PX = 60;
-let swipeStart = null;
-
-document.addEventListener('touchstart', (e) => {
-  swipeStart = current && current.view === 'schedule' && e.touches.length === 1
-    ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
-}, { passive: true });
-document.addEventListener('touchmove', (e) => {
-  // A finger on the move isn't holding blank space.
-  if (swipeStart && Math.abs(e.touches[0].clientX - swipeStart.x) > 10) clearTimeout(blankTimer);
-}, { passive: true });
-document.addEventListener('touchend', (e) => {
-  if (!swipeStart || !current || current.view !== 'schedule') return;
-  const dx = e.changedTouches[0].clientX - swipeStart.x;
-  const dy = e.changedTouches[0].clientY - swipeStart.y;
-  swipeStart = null;
-  if (Math.abs(dx) < SWIPE_PX || Math.abs(dx) < 2 * Math.abs(dy)) return;
-  const btn = $(dx < 0 ? 'day-next' : 'day-prev');
-  if (btn.dataset.day) btn.click();
-});

@@ -43,9 +43,6 @@ function render(state) {
   } else if (state.view === 'entries') {
     renderEntries(state.cat, true);
     show('entries');
-  } else if (state.view === 'schedule') {
-    renderSchedule(state, true);
-    show('schedule');
   } else if (state.view === 'transfer') {
     if (state.pad !== undefined) padIndex = state.pad;
     renderTransfer();
@@ -63,7 +60,6 @@ function render(state) {
 function refreshView() {
   if (!current) renderHome();
   else if (current.view === 'entries') renderEntries(current.cat);
-  else if (current.view === 'schedule') renderSchedule(current);
   else if (current.view === 'edit') renderRecent(current.cat);
   else if (current.view === 'transfer') renderTransfer();
 }
@@ -81,14 +77,7 @@ window.addEventListener('popstate', (e) => {
     // Saved notes that were already there: say so on the screen we go back to.
     if (skippedMessage() && !pendingUndo) pendingUndo = [skippedMessage()];
   }
-  let state = e.state;
-  // Back on the schedule screen after saving one: show the day it was saved for.
-  if (savedDay && state && state.view === 'schedule') {
-    state = { view: 'schedule', date: savedDay === dayKey(new Date()) ? null : savedDay };
-    history.replaceState(state, '');
-  }
-  savedDay = null;
-  render(state);
+  render(e.state);
   // Discard leaves the editor through history.back(), so its Undo can only be
   // shown once the home screen has rendered.
   if (pendingUndo) {

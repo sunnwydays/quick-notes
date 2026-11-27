@@ -201,7 +201,7 @@ button.todo-line.primary .todo-age { color: #fff; }
 /* How old the oldest to-do is, as "9d". */
 .todo-age { flex: none; font-family: Atkinson, system-ui, sans-serif; font-size: 14px; font-weight: 700; color: #555; }
 /* A schedule block on one line: its start time, then its first line. The one on now
-   is black, like on the schedule screen, and the one before it grey. */
+   is black and the one before it grey. */
 .glance-block, .glance-free { display: flex; align-items: baseline; gap: 6px; margin: 0; padding: 0 4px; border-radius: 6px; line-height: 1.4; }
 .glance-block time { flex: none; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .glance-text { flex: 1; min-width: 0; font-family: Literata, Georgia, serif; font-size: 19px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -221,42 +221,9 @@ button.glance-block.now.primary { background: #fff; color: #000; outline: 2px so
   text-align: left; font-weight: 700; background: #000; color: #fff;
 }
 
-/* Schedule: the day with arrows to the days either side, then one block per line with
-   its time above it. The block on now is the one solid black thing on the screen;
-   finished ones are grey and folded behind the See/Hide row. */
-/* Sideways swipes change the day (gestures.js), so the browser only gets vertical scrolling. */
-#schedule { touch-action: pan-y pinch-zoom; }
-/* Equal side columns keep the day centred when one arrow is hidden. */
-.day-nav { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 8px; margin-bottom: 8px; }
-.day-nav h2 { margin: 0; font-size: 22px; text-align: center; }
-#day-prev { justify-self: start; }
-#day-next { justify-self: end; }
-.day-nav button { min-height: 44px; padding: 4px 8px; font-size: 16px; white-space: nowrap; }
-.schedule-note { margin: 0 0 8px; font-style: italic; white-space: pre-wrap; overflow-wrap: anywhere; }
-.block { display: flex; align-items: center; gap: 12px; padding: 8px; border-bottom: 2px solid #000; }
-.block-body { flex: 1; min-width: 0; }
-.block time, .block-now { display: block; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.block p { margin: 0; font-family: Literata, Georgia, serif; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
-.block.now { background: #000; color: #fff; border-radius: 12px; }
-.block.done { color: #555; }
-/* Ticked blocks (schedule.js): the label and the box say which, so it never rests on grey alone. Done is struck
-   through, skipped is italic. On the black block the text stays white, since grey wouldn't show. */
-.block-mark { display: block; font-size: 15px; overflow-wrap: anywhere; }
-.block.marked-done p, .glance-block.marked-done .glance-text,
-.block.marked-over p, .glance-block.marked-over .glance-text { text-decoration: line-through; text-decoration-thickness: 2px; }
-.block.marked-skipped p, .glance-block.marked-skipped .glance-text { font-style: italic; }
-.block.marked-done:not(.now), .block.marked-over:not(.now), .block.marked-skipped:not(.now) { color: #555; }
-.block .mark-btn { display: flex; align-items: center; justify-content: center; flex: none; width: 44px; height: 44px; min-height: 0; padding: 0; }
-.block.now .mark-btn { color: #fff; }
-/* Unmarked, not yet over: a word instead of an empty box, since a tap skips it. */
-.block .mark-btn.skip-btn { font-size: 16px; }
-/* Held long enough to mark it ran over (gestures.js onHoldRelease). */
-.block .mark-btn.primary { background: #000; color: #fff; }
-.block.now .mark-btn.primary { background: #fff; color: #000; }
-.free { margin: 8px 0; padding: 8px; border: 2px dashed #000; border-radius: 12px; font-weight: 700; }
-.fold { display: flex; justify-content: space-between; gap: 8px; }
-.fold button { min-height: 44px; padding: 4px 12px; font-size: 16px; }
-.next-day { width: 100%; margin-top: 8px; }
+/* Marked blocks on the home glance (schedule.js). Done is struck through, skipped is italic. */
+.glance-block.marked-done .glance-text, .glance-block.marked-over .glance-text { text-decoration: line-through; text-decoration-thickness: 2px; }
+.glance-block.marked-skipped .glance-text { font-style: italic; }
 
 /* Kept on the far left, away from Copy all and Show times. */
 #remove-project-btn { margin-right: auto; }
@@ -338,7 +305,7 @@ input {
    The editor's bar (title, Discard, Save) is styled the same so the title and buttons don't move when Add is
    tapped; it sits below the text box, just above the keyboard. */
 @media (max-width: 600px) {
-  #home, #login, #entries, #schedule, #help {
+  #home, #login, #entries, #help {
     display: flex; flex-direction: column;
     min-height: 100vh; min-height: 100dvh;
   }
@@ -349,20 +316,20 @@ input {
   #home.searching { justify-content: flex-start; }
   /* The gap under the bar is its own padding, not the page's, so it sits at the
      same height whether the page is short or long enough to scroll behind it. */
-  section:where(#entries, #schedule, #help, #editor, #transfer) { padding-bottom: 0; }
+  section:where(#entries, #help, #editor, #transfer) { padding-bottom: 0; }
   /* Pinned to the visible screen rather than sized with dvh, which can stay at the
      keyboard-up height after the keyboard closes and leave a gap under the bar (and
      the fixed Undo banner then sits over the text). */
   #editor, #transfer { position: fixed; inset: 0; height: auto; }
-  #entries .bar, #schedule .bar, #help .bar, #editor .bar, #transfer .bar {
+  #entries .bar, #help .bar, #editor .bar, #transfer .bar {
     order: 1; position: sticky; bottom: 0; margin: auto 0 0; padding: 12px 0 16px;
     background: #fff;
   }
-  /* A thin line between the notes and the title, on the read pages only. */
-  #entries .bar, #schedule .bar { border-top: 2px solid #000; }
+  /* A thin line between the notes and the title, on the notes page only. */
+  #entries .bar { border-top: 2px solid #000; }
   /* The bar stays at the bottom and the Undo banner shows just above it. The list
      gets room under it instead, so its last note can scroll clear of the banner. */
-  body:has(#undo-bar:not([hidden])) > :is(#entries, #schedule, #help, #editor, #transfer) { padding-bottom: 0; }
-  body:has(#undo-bar:not([hidden])) :is(#entries-list, #schedule-list) { padding-bottom: 76px; }
-  body:has(:is(#entries, #schedule, #editor, #transfer):not([hidden])) #undo-bar { bottom: 94px; }
+  body:has(#undo-bar:not([hidden])) > :is(#entries, #help, #editor, #transfer) { padding-bottom: 0; }
+  body:has(#undo-bar:not([hidden])) #entries-list { padding-bottom: 76px; }
+  body:has(:is(#entries, #editor, #transfer):not([hidden])) #undo-bar { bottom: 94px; }
 }

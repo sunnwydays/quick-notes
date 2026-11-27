@@ -110,8 +110,6 @@ function saveNotes() {
       dirty: true,
     });
   });
-  // For a multi-day paste, the first day.
-  if (current.cat === SCHEDULE && notes.length) savedDay = scheduleDay(data.entries[data.entries.length - notes.length]);
   persist();
   return skipped.length < notes.length || !notes.length;
 }

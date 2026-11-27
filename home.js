@@ -17,10 +17,14 @@ function categoryTile(cat) {
   return btn;
 }
 
-// Back burner lives on the Working on screen.
+// Back burner lives on the Working on screen, and Schedule is the week planner.
 function openCategory(cat) {
+  if (cat === SCHEDULE) {
+    location.href = 'plan.html';
+    return;
+  }
   if (cat === BACK_BURNER) cat = 'Working on';
-  go(cat === SCHEDULE ? { view: 'schedule', date: null } : { view: 'entries', cat });
+  go({ view: 'entries', cat });
 }
 
 // Projects go in their own zigzag on top. The eight built-ins are the petals of a

@@ -2,7 +2,7 @@
 // A schedule is an ordinary note in the Schedule category, kept exactly as it was
 // pasted or typed. Its times are read from the text each time it's shown, so the
 // original stays as written. Changing a plan saves a new note: the newest one for
-// a day is the one shown, and every version stays under All saved.
+// a day is the one used. The week planner (plan.html) is where schedules are shown.
 
 const WEEKDAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 const SCHEDULE_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -19,14 +19,6 @@ const TO_TIME = new RegExp(String.raw`^\s*(?:-|–|—|to)\s*` + TIME, 'i');
 const NEXT_BLOCK = /[,;]\s+(?=\d{1,2}(?::[0-5]\d|\s*[ap]\.?\s?m\b|[ap]\b))/i;
 const DAY_END = 24 * 60;
 const REVIEW_START = 21 * 60 + 30;
-const DONE_PAGE = 3; // finished blocks shown per tap of "See more"
-
-let doneShown = 0; // finished blocks unfolded on today's schedule
-let scheduleTimer = 0;
-let scheduleRows = new Map();
-// The day a schedule was just saved for, so going back to the schedule screen
-// shows that day: a plan headed "Sun" and saved on Saturday is tomorrow's.
-let savedDay = null;
 
 // A line without its "- " bullet.
 function bare(line) {
@@ -267,7 +259,7 @@ function scheduleText(key, day) {
 }
 
 // A typed Schedule has no pin metadata. Recognize named commitments and the
-// explicit Fixed: prefix when restacking it directly from Dash.
+// explicit Fixed: prefix when it's pasted into the planner.
 function pinScheduleCommitments(day, previous) {
   const fixedTitle = /^(?:fixed\s*:|breakfast\b|lunch\b|dinner\b|wake\b|walk outside\b|afternoon cardio\b|screens? off\b|wind[- ]down\b|sleep\b|bedtime\b|review$|welding\b|game\b|foosball\b|(?:exam|interview)(?!\s+(?:prep|practice|review)\b)\b)/i;
   const known = previous ? layoutDay(previous).blocks.filter((block) => block.pinned || block.tier === 'fixed') : [];
@@ -280,73 +272,6 @@ function pinScheduleCommitments(day, previous) {
       return { ...block, pinned: blockKey(block.importedStart), tier: prior?.tier ?? 'fixed' };
     }),
   };
-}
-
-function restackSavedSchedule(key, expectedId, { wake, over, fields }) {
-  reload();
-  const entry = scheduleOn(key);
-  if (!entry || entry.id !== expectedId) {
-    refreshView();
-    alert('The schedule changed. Open the action again to use the latest version.');
-    return;
-  }
-  const week = weekKey(weekMonday(keyDate(key)));
-  const saved = plannerNote(PLAN_WEEK, week);
-  const value = saved?.value ?? {};
-  const previous = value.days?.[key];
-  const currentPlan = value.sources?.[key] === entry.id && Array.isArray(previous?.blocks);
-  const day = currentPlan && !previous.imported ? previous : pinScheduleCommitments(
-    currentPlan ? previous : dayFromSchedule(entry), currentPlan ? null : previous);
-  let restacked;
-  if (over) {
-    const timed = layoutDay(day).blocks.find((block) => block.start === over.start);
-    const result = timed && applyOverrun(day, timed.id, planMinutes(fields.endedAt));
-    if (!result) {
-      alert('Choose an end time after the block started.');
-      return;
-    }
-    restacked = restackBeforeScreensOff(result.day);
-  } else {
-    restacked = applyWake(day, wake);
-  }
-  const { bumped } = layoutDay(restacked);
-  const bumpedIds = new Set(bumped.map((block) => block.id));
-  restacked.blocks = restacked.blocks.map((block) => bumpedIds.has(block.id)
-    ? { ...untimedBlock(block), bumped: true } : block);
-  restacked.pinLayout.bumped = [];
-  const text = scheduleText(key, restacked);
-  const next = changesSchedule(text) ? plannerEntry(SCHEDULE, text, entry) : entry;
-  const version = { ...value, days: { ...value.days, [key]: restacked }, sources: { ...value.sources, [key]: next.id } };
-  if (next !== entry) data.entries.push(next);
-  data.entries.push(plannerEntry(PLAN_WEEK, JSON.stringify({ key: week, value: version }), saved?.entry));
-  if (over) data.marks.push(makeBlockMark(key, over, fields));
-  try {
-    persist();
-  } catch {
-    reload();
-    alert('Could not save the restacked schedule. Device storage is full or unavailable.');
-    return;
-  }
-  refreshView();
-  const status = $('schedule-restack-status');
-  status.dataset.day = key;
-  status.hidden = false;
-  status.textContent = bumped.length ? `Moved to To do · ${bumped.map((block) => block.text).join(', ')}` : 'Schedule restacked.';
-  sync();
-}
-
-function wakeSchedule(key, entry) {
-  const week = weekKey(weekMonday(keyDate(key)));
-  const day = plannerNote(PLAN_WEEK, week)?.value.days?.[key];
-  const answer = prompt('Woke at…', day?.wake ?? '07:00');
-  if (answer == null) return;
-  const time = answer.trim();
-  const parsed = readTime(`${time} wake`);
-  if (!parsed || parsed.length !== time.length || minutes(parsed) >= DAY_END) {
-    alert('Enter a time such as 09:15.');
-    return;
-  }
-  restackSavedSchedule(key, entry.id, { wake: blockKey(minutes(parsed)) });
 }
 
 // The newest schedule for a day, or undefined.
@@ -575,158 +500,12 @@ function blockRow(b, state, mark, day, scheduleId = null) {
   return div;
 }
 
-// Finished blocks are folded into one row. Each tap shows a few more, the most
-// recent first; Hide folds them all again.
-function foldRow(hidden, total) {
-  const row = document.createElement('div');
-  row.className = 'fold';
-  if (hidden) {
-    const more = document.createElement('button');
-    more.className = 'quiet';
-    more.textContent = hidden === total ? `See ${hidden} done` : `See ${hidden} more`;
-    more.addEventListener('click', () => {
-      doneShown += DONE_PAGE;
-      renderSchedule(current);
-    });
-    row.append(more);
-  }
-  if (hidden < total) {
-    const hide = document.createElement('button');
-    hide.className = 'quiet';
-    hide.textContent = 'Hide done';
-    hide.addEventListener('click', () => {
-      doneShown = 0;
-      renderSchedule(current);
-    });
-    row.append(hide);
-  }
-  return row;
-}
-
-// The day arrows step through the days that have a schedule, plus today.
-function setDayButton(btn, key, text) {
-  btn.style.visibility = key ? '' : 'hidden';
-  btn.dataset.day = key || '';
-  btn.textContent = key ? text(dayLabel(key, false)) : '';
-}
-
-// state.date is the day shown, or null for today (which then follows midnight).
-// fresh = just opened, so finished blocks start folded.
-function renderSchedule(state, fresh = false) {
-  clearTimeout(scheduleTimer);
-  if (fresh) doneShown = 0;
-  const now = new Date();
-  const today = dayKey(now);
-  const key = state.date || today;
-  const entry = scheduleOn(key);
-  const isToday = key === today;
-
-  setLabel($('schedule-title'), SCHEDULE);
-  const days = [...new Set([...entriesFor(SCHEDULE).map(scheduleDay), today, key])].sort();
-  const at = days.indexOf(key);
-  setDayButton($('day-prev'), days[at - 1], (d) => `‹ ${d}`);
-  setDayButton($('day-next'), days[at + 1], (d) => `${d} ›`);
-  $('schedule-day').textContent = isToday ? 'Today' : dayLabel(key);
-  // A past day's schedule can only be read: saving it again would make it today's.
-  $('schedule-edit-btn').hidden = !entry || key < today;
-  $('schedule-new-btn').hidden = key < today;
-
-  const box = $('schedule-list');
-  const rows = new Map();
-  function addRow(parts, create) {
-    const id = JSON.stringify([key, ...parts]);
-    rows.set(id, scheduleRows.get(id) ?? create());
-  }
-  const plan = entry ? parseSchedule(entry.text) : { head: null, intro: [], blocks: [] };
-  const nowMin = now.getHours() * 60 + now.getMinutes();
-  $('schedule-review').hidden = !isToday || nowMin < REVIEW_START;
-  const wake = $('schedule-wake');
-  const over = $('schedule-over');
-  const recent = isToday ? plan.blocks.findLast((block) => block.start <= nowMin) : null;
-  $('schedule-restack').hidden = !entry || key < today || !plan.blocks.length;
-  wake.onclick = entry ? () => wakeSchedule(key, entry) : null;
-  over.hidden = !recent;
-  over.onclick = recent ? () => markOver(key, recent, entry.id) : null;
-  const status = $('schedule-restack-status');
-  status.hidden = status.dataset.day !== key;
-
-  if (!entry) {
-    const how = ' Tap New, then paste one or type a line per block, like "9:00-11:30 Foosball".';
-    const message = isToday ? `No schedule for today.${how}` : key < today ? 'No schedule for this day.' : `No schedule for this day.${how}`;
-    addRow(['empty', message], () => textLine('empty', message));
-    // Point at a schedule saved for a later day, in case it was meant for today.
-    const next = days[at + 1];
-    if (next) {
-      addRow(['next-day', next], () => {
-        const btn = document.createElement('button');
-        btn.className = 'next-day';
-        btn.textContent = `See ${dayLabel(next)} ›`;
-        btn.addEventListener('click', () => $('day-next').click());
-        return btn;
-      });
-    }
-  } else {
-    const notes = plan.head ? [plan.head, ...plan.intro] : plan.intro;
-    notes.forEach((line, i) => addRow(['note', i, line], () => textLine('schedule-note', line)));
-    // Only today's schedule follows the clock; other days are shown as written.
-    const done = isToday ? plan.blocks.filter((b) => b.until <= nowMin) : [];
-    const nowBlock = isToday ? plan.blocks.find((b) => b.start <= nowMin && nowMin < b.until) : null;
-    const nextBlock = isToday && !nowBlock ? plan.blocks.find((b) => b.start > nowMin) : null;
-    const hidden = done.length - Math.min(doneShown, done.length);
-    if (done.length) addRow(['fold', hidden, done.length], () => foldRow(hidden, done.length));
-    const marks = marksOn(key);
-    const markDay = key <= today ? key : null;
-    for (const b of plan.blocks) {
-      const d = done.indexOf(b);
-      if (d >= 0 && d < hidden) continue;
-      if (b === nextBlock) addRow(['free', b.start], () => textLine('free', `Free until ${clock(b.start)}`));
-      const phase = d >= 0 ? 'done' : b === nowBlock ? 'now' : '';
-      const mark = marks.get(blockKey(b.start));
-      addRow(['block', entry.id, b, phase, markDay, key < today, mark?.status, mark?.endedAt, mark?.reason],
-        () => blockRow(b, phase, mark, markDay, entry.id));
-    }
-    if (isToday && plan.blocks.length && !nowBlock && !nextBlock) {
-      addRow(['finished'], () => textLine('empty', 'Done for today.'));
-    }
-  }
-
-  // Keep unchanged rows attached so the browser can anchor the scroll to them.
-  // Remove old rows first so a deleted row never makes us move one we're keeping.
-  for (const [id, row] of scheduleRows) {
-    if (!rows.has(id)) row.remove();
-  }
-  let index = 0;
-  for (const row of rows.values()) {
-    const at = box.children[index++];
-    if (row !== at) box.insertBefore(row, at ?? null);
-  }
-  scheduleRows = rows;
-
-  // Redraw when the next block starts or ends (or at midnight), not every
-  // minute: each redraw flashes an e-ink screen.
-  if (isToday) {
-    const marks = plan.blocks.flatMap((b) => [b.start, b.until]).filter((m) => m > nowMin);
-    const next = Math.min(DAY_END, ...marks, nowMin < REVIEW_START ? REVIEW_START : DAY_END);
-    const ms = (next - nowMin) * 60000 - now.getSeconds() * 1000 - now.getMilliseconds() + 1000;
-    scheduleTimer = setTimeout(() => {
-      if (current && current.view === 'schedule') renderSchedule(current);
-    }, ms);
-  }
-}
-
-// Timers stall while the app is in the background, so catch up on return.
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden || !$('home-schedule')) return;
-  if (!current) renderHomeSchedule();
-  else if (current.view === 'schedule') renderSchedule(current);
-});
-
 // ---------- on the home screen ----------
 // Beside the to-dos: today's block on now, with the one before it and as many of
 // the ones after as there are lines for (glanceLines, home.js). Between blocks,
 // "Free until 15:00" takes the place of the one on now. Hidden when there's
-// no schedule for today. Like the schedule screen, it only redraws when a block
-// starts or ends.
+// no schedule for today. It only redraws when a block starts or ends: each
+// redraw flashes an e-ink screen.
 let homeScheduleTimer = 0;
 
 // Each line is a button so it can be held to skip the block (and unskip it),
@@ -780,45 +559,13 @@ function renderHomeSchedule() {
   }, ms);
 }
 
+// Timers stall while the app is in the background, so catch up on return.
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && $('home-schedule') && !current) renderHomeSchedule();
+});
+
 $('home-schedule')?.addEventListener('click', (e) => {
   const held = e.target.closest('.glance-block');
   if (held && held.held) return; // the click that ends a hold
-  go({ view: 'schedule', date: null });
+  location.href = 'plan.html';
 });
-
-for (const id of ['day-prev', 'day-next']) {
-  $(id)?.addEventListener('click', () => {
-    const day = $(id).dataset.day;
-    const state = { view: 'schedule', date: day === dayKey(new Date()) ? null : day };
-    history.replaceState(state, '');
-    render(state);
-  });
-}
-
-// Both are called straight from the tap, so the keyboard comes up. Edit adds a
-// blank line at the end, ready for another block.
-$('schedule-edit-btn')?.addEventListener('click', () => {
-  const key = current.date || dayKey(new Date());
-  openEditor(SCHEDULE, `${editText(scheduleOn(key), key)}\n`);
-});
-
-// The first day from `key` on that has no schedule yet. A weekday heading only
-// reaches 6 days ahead, so if the whole week is planned it stays on `key`.
-function freeDay(key) {
-  const today = keyDate(dayKey(new Date()));
-  for (let d = keyDate(key); d <= addDays(today, 6); d = addDays(d, 1)) {
-    if (!scheduleOn(dayKey(d))) return dayKey(d);
-  }
-  return key;
-}
-
-// A blank schedule for the first unplanned day from the one on screen: today's
-// has no heading, and a later day's starts with its weekday so it's saved for that day.
-$('schedule-new-btn')?.addEventListener('click', () => {
-  const today = dayKey(new Date());
-  const key = freeDay(current.date || today);
-  const head = key !== today ? `${keyDate(key).toLocaleDateString('en-US', { weekday: 'short' })}\n` : '';
-  openEditor(SCHEDULE, head);
-});
-
-$('schedule-past-btn')?.addEventListener('click', () => go({ view: 'entries', cat: SCHEDULE }));

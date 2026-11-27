@@ -16,6 +16,7 @@
         <h1>Week planner</h1>
       </div>
       <div class="actions">
+        <button id="plan-paste" class="quiet" type="button" title="Paste a schedule written as text">Paste</button>
         <button id="week-routine" class="quiet" type="button" title="Pick a template for each day this week">Routine</button>
         <button id="day-review" type="button" hidden>Review today</button>
         <button id="plan-now" class="primary" type="button">Fit in now</button>
@@ -196,6 +197,18 @@
       <div class="actions">
         <button class="primary">Apply</button>
         <button id="goal-cancel" type="button">Cancel</button>
+      </div>
+    </form>
+  </dialog>
+  <dialog id="paste-editor" aria-labelledby="paste-title">
+    <form id="paste-form">
+      <h2 id="paste-title">Paste schedule</h2>
+      <p class="muted">One line per block, like <i>9:00-11:30 Foosball</i>. A heading like <i>Mon</i> starts that day; without one it's today. Start a title with <i>Fixed:</i> to pin it.</p>
+      <textarea name="text" rows="10" required aria-label="Schedule text"></textarea>
+      <p id="paste-error" class="warning" role="alert" hidden></p>
+      <div class="actions">
+        <button type="submit" class="primary">Replace days</button>
+        <button id="paste-cancel" type="button">Cancel</button>
       </div>
     </form>
   </dialog>
