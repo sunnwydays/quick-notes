@@ -877,7 +877,10 @@ function applyBlockEditor(event) {
   const timeChanged = onTimeline && (fresh || dayChanged || time !== editedBlock.start);
   const relocated = dayChanged || timeChanged && !fresh;
   const day = plan.days[date];
-  const size = typed.duration ?? Number(fields.size.value);
+  // Renaming to end in a new length sets it too; otherwise the dial decides.
+  const renamed = fresh ? null : splitLength(text)?.minutes;
+  const retimed = renamed && renamed !== splitLength(original.text)?.minutes ? renamed : null;
+  const size = typed.duration ?? retimed ?? Number(fields.size.value);
   const resized = size !== (original.duration ?? original.size);
   // Done and deadline are no longer edited here, so existing values carry over untouched.
   const changes = {
