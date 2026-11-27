@@ -2612,6 +2612,13 @@ const HOLD_SLOP = 8;
 
 function holdToDrag(drag, tile) {
   drag.pending = true;
+  // The block under the pointer wins: only its own edge resizes, so a neighbour's
+  // edge zone can't swallow a tiny block. Neighbour edges only count in empty space.
+  const over = event.target.closest('.tile.timed[data-id]');
+  if (over) {
+    const box = over.getBoundingClientRect();
+    return event.clientY >= box.bottom - Math.min(8, box.height / 3) ? over : null;
+  }
   drag.liftTile = tile;
   drag.holdTimer = setTimeout(() => {
     drag.pending = false;
