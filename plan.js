@@ -2237,8 +2237,8 @@ function plannerDropTarget(event, source) {
     return plan.days[next] ? { date: next, shelf: true, missedFrom, indicator: missed } : { missedFrom, indicator: missed };
   }
   const tab = under?.closest('[data-tab-day]');
-  // Drops never unpin: a pinned block keeps its pin (and, on another day, its time).
-  if (tab) return { date: tab.dataset.tabDay, indicator: tab };
+  // A day tab stands in for the day header the phone hides, so it also files the block in that day's To do.
+  if (tab) return { date: tab.dataset.tabDay, shelf: true, indicator: tab };
   const inside = (el) => {
     const r = el.getBoundingClientRect();
     return event.clientX >= r.left && event.clientX <= r.right && event.clientY >= r.top && event.clientY <= r.bottom;
