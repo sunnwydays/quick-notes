@@ -69,6 +69,7 @@ button:disabled { opacity: .55; cursor: default; }
 #week-stats { font-size: .82rem; }
 #week-stats span:not(:empty) + span:not(:empty)::before { content: ' · '; }
 .goal-chip .meter { grid-column: 1 / -1; }
+.goal-courses { grid-column: 1 / -1; font-size: .78rem; color: var(--muted); }
 .goal-chip.over-budget { border-bottom-color: #ab5545; }
 /* The tray sits beside the scrolling days, not inside them, so it never moves while they scroll. */
 .board {

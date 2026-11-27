@@ -1748,10 +1748,41 @@ function applyRestack(event) {
   markEdited();
 }
 
+// A three-digit course number in a block's name (`Study 345`, `ECE311 lab`, `ece345 assignment`).
+function courseOf(block) {
+  return /\b(?:[a-z]{3})?(\d{3})\b/i.exec(block.text ?? '')?.[1] ?? null;
+}
+
+// Hours placed per course this week. Courses that only sit in To do still show, at 0h,
+// so a neglected one stands out.
+function courseHours(blocks) {
+  const hours = new Map();
+  for (const block of [...plan.tray, ...Object.values(plan.days).flatMap((day) => day.blocks)]) {
+    const course = courseOf(block);
+    if (course) hours.set(course, 0);
+  }
+  for (const block of blocks) {
+    const course = courseOf(block);
+    if (course) hours.set(course, hours.get(course) + Math.max(0, block.until - block.start));
+  }
+  return [...hours].sort(([a], [b]) => a.localeCompare(b));
+}
+
 function renderGoals(layouts, loads) {
   const blocks = layouts.flatMap((layout) => layout.blocks);
-  const items = plannerGoals().map((entry) => {
-    const minutes = goalMinutes(blocks, entry.id);
+  const goals = plannerGoals();
+  // Course work all counts toward one goal: the one most of it is filed under.
+  const courseMinutes = new Map();
+  for (const block of blocks) {
+    if (courseOf(block) && block.goal) courseMinutes.set(block.goal, (courseMinutes.get(block.goal) ?? 0) + block.until - block.start);
+  }
+  const courseGoal = goals.find((entry) => entry.id === [...courseMinutes].sort((a, b) => b[1] - a[1])[0]?.[0])
+    ?? goals.find((entry) => /exam|course|stud/i.test(entry.text));
+  const courses = courseGoal ? courseHours(blocks) : [];
+  const items = goals.map((entry) => {
+    // Course blocks filed under another goal count toward the course goal instead.
+    const minutes = blocks.filter((block) => courseGoal && courseOf(block) ? entry === courseGoal : block.goal === entry.id)
+      .reduce((sum, block) => sum + Math.max(0, block.until - block.start), 0);
     const budget = goalHours(entry);
     const chip = plannerButton('', () => openGoalEditor(entry), 'goal-chip');
     const colour = goalColour(entry.id);
@@ -1760,6 +1791,9 @@ function renderGoals(layouts, loads) {
     if (budget != null || minutes) chip.append(element('span', 'goal-hours', budget == null
       ? hoursText(minutes) : `${hoursText(minutes)} / ${budget}h`));
     if (budget != null) chip.append(meter(budget ? minutes / (budget * 60) : Number(minutes > 0), 'Goal progress'));
+    if (entry === courseGoal && courses.length) {
+      chip.append(element('span', 'goal-courses', courses.map(([course, minutes]) => `${course} ${hoursText(minutes)}`).join(' · ')));
+    }
     chip.classList.toggle('over-budget', budget != null && minutes > budget * 60);
     return chip;
   });
