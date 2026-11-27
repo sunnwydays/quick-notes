@@ -358,7 +358,7 @@ dialog input:not([type="checkbox"]), dialog select, #block-form textarea, #login
   background: white;
 }
 #block-form textarea { width: 100%; overflow-wrap: anywhere; resize: none; }
-#paste-form textarea { width: min(80vw, 32rem); min-height: 12rem; border: 1px solid #a8c6d5; border-radius: 7px; padding: .4rem; font: inherit; }
+#paste-form textarea { box-sizing: border-box; width: 100%; resize: vertical; min-height: 12rem; border: 1px solid #a8c6d5; border-radius: 7px; padding: .4rem; font: inherit; }
 .scrub {
   --shift: 0px;
   position: relative; display: flex; align-items: center; justify-content: center; gap: .2rem;
