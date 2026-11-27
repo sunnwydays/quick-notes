@@ -100,11 +100,12 @@ button:disabled { opacity: .55; cursor: default; }
 .tile-check {
   flex: none; display: inline-grid; place-items: center; width: .85rem; height: .85rem;
   border: 1.5px solid #172e4359; border-radius: 50%; font-size: .55rem; color: transparent;
-  cursor: pointer; align-self: center;
+  cursor: pointer; align-self: center; position: relative;
 }
+/* An invisible pad around the circle so it's easy to hit without drawing it bigger. */
+.tile-check::before { content: ''; position: absolute; inset: -.45rem; }
 .tile-check:hover { color: var(--ink); background: #ffffff99; }
-/* A bigger target for fingers. */
-@media (pointer: coarse) { .tile-check { width: 1rem; height: 1rem; } }
+@media (pointer: coarse) { .tile-check { width: 1rem; height: 1rem; } .tile-check::before { inset: -.7rem; } }
 .day {
   grid-row: span 4; display: grid; grid-template-rows: subgrid; gap: 0; min-width: 0;
   background: white; border: 1px solid var(--line); border-inline-end: 0;
