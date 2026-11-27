@@ -95,6 +95,7 @@ button:disabled { opacity: .55; cursor: default; }
 .tray h3 { font-size: 1.2rem; color: #245776; }
 .someday summary { font-weight: bold; cursor: pointer; }
 .tray-tile { margin-top: .35rem; }
+.tray-count { display: none; }
 /* Doubled class so it beats the plain .tile display: block further down. */
 .tile.tray-tile { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 .3rem; }
 /* Zero basis so a long title wraps beside the tick instead of dropping below it. */
@@ -478,7 +479,13 @@ label.choice:has(input:checked) { border-color: #5b8aa6; background: #eef6fb; }
   .day-tab[aria-pressed="true"] .day-tab-date { color: #fff; }
   .day-tab.drop-target { outline: 2px dashed #387fa6; outline-offset: 1px; }
   .board { grid-template-columns: minmax(0, 36fr) minmax(0, 64fr); gap: .35rem; }
-  .board.tray-empty:not(:has(.someday[open])) { grid-template-columns: 4.8rem minmax(0, 1fr); }
+  .board:is(.tray-empty, .tray-shut):not(:has(.someday[open])) { grid-template-columns: 4.8rem minmax(0, 1fr); }
+  .board.tray-shut:not(:has(.someday[open])) .tray-box[data-tray] .tray-tile { display: none; }
+  .board.tray-shut .tray-count {
+    display: grid; place-items: center; width: fit-content; min-width: 1.6rem; margin: .3rem 0; padding: .05rem .4rem;
+    border-radius: 999px; background: #245776; color: #fff; font-size: .85rem; font-weight: bold;
+  }
+  .board:not(.tray-shut, .tray-empty) .tray-box[data-tray] h3::after { content: ' ‹'; color: var(--muted); }
   .board.tray-empty .tray-box[data-tray] > p.muted { display: none; }
   .board-scroll { overflow: hidden; }
   #week { height: 100%; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }

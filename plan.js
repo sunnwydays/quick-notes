@@ -52,6 +52,8 @@ let restacking;
 let selectedDay;
 let dropChoices = null;
 let goalsOpen = false;
+// On a phone the To Do tray sits as a narrow strip until tapped open.
+let trayOpen = false;
 let lastPointerType;
 let mealConnectorObserver;
 const mealLineStops = new WeakMap();
@@ -1811,9 +1813,18 @@ function renderTray() {
   const addItem = () => openBlockEditor({ fresh: true, block: planBlock(newId(), '') }, {});
   const add = plannerButton('+', addItem, 'day-add');
   add.setAttribute('aria-label', 'Add an item to To Do');
-  tray.append(element('h3', '', 'To Do'), add);
+  const count = element('span', 'tray-count');
+  tray.append(element('h3', '', 'To Do'), count, add);
   tray.addEventListener('click', (event) => {
-    if (!event.target.closest('button, summary')) addItem();
+    if (event.target.closest('button, summary')) return;
+    // A phone strip with items opens on a tap, and tapping the heading shuts it again.
+    const shut = document.querySelector('.board').classList.contains('tray-shut');
+    if (matchMedia('(max-width: 700px)').matches && (shut || trayOpen && event.target.closest('h3'))) {
+      trayOpen = shut;
+      renderTray();
+      return;
+    }
+    addItem();
   });
   const someday = element('details', 'panel tray-box someday');
   someday.open = $('tray').querySelector('.someday')?.open ?? false;
@@ -1853,8 +1864,12 @@ function renderTray() {
     tray.append(tile);
   }
   $('tray').replaceChildren(tray, someday);
-  // On a phone an empty To Do shrinks to a strip so the day gets the width.
-  document.querySelector('.board').classList.toggle('tray-empty', !tray.querySelector('.tile'));
+  // On a phone To Do is a strip showing its count, so the day gets the width.
+  const items = tray.querySelectorAll('.tile').length;
+  count.textContent = items || '';
+  const board = document.querySelector('.board');
+  board.classList.toggle('tray-empty', !items);
+  board.classList.toggle('tray-shut', !!items && !trayOpen);
 }
 
 function lengthLabel(minutes) {
@@ -2870,6 +2885,11 @@ function endDrag(event) {
   const copy = target?.copy ?? ((event.shiftKey || event.ctrlKey) && !source.copy);
   const error = target && moveBlock(source, target, target.missedFrom ? { missedFrom: target.missedFrom } : {}, { copy });
   if (!error && target?.indicator?.matches('[data-tab-day]')) selectDay(target.date);
+  // Once something is dragged out of the open tray onto a day, the tray steps back out of the way.
+  if (!error && trayOpen && target?.date && (source.copy || source.parked)) {
+    trayOpen = false;
+    renderTray();
+  }
   if (error) {
     tile.classList.add('invalid-drop');
     tile.addEventListener('animationend', () => tile.classList.remove('invalid-drop'), { once: true });
