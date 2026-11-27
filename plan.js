@@ -2213,8 +2213,14 @@ function plannerDropTarget(event, source) {
   if (!slot) {
     return source.date && under?.closest('#planner') ? { indicator: $('tray').querySelector('[data-tray]') } : null;
   }
-  const date = slot.closest('[data-day]').dataset.day;
+  const column = slot.closest('[data-day]');
+  const date = column.dataset.day;
   const tile = under.closest('.tile[data-id]');
+  // A block dragged onto another day's timeline lands in that day's To do, so it can be
+  // carried over without scrolling up to the shelf.
+  if (source.date && date !== source.date && slot.matches('.timeline')) {
+    return { date, shelf: true, indicator: column };
+  }
   if (slot.matches('[data-shelf]')) {
     if (tile && date === source.date && tile.dataset.id === source.block.id) return null;
     return { date, shelf: true, before: tile?.dataset.id, indicator: slot };

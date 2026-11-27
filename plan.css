@@ -316,7 +316,7 @@ button:disabled { opacity: .55; cursor: default; }
 .tile.drag-live { z-index: 10; pointer-events: none; outline: 2px solid #387fa6; outline-offset: -2px; transition: none; }
 .tile.drag-shifted { transition: top 120ms ease-out; }
 .tile.drag-hidden { visibility: hidden; }
-.tray.drop-target, .tray-box.drop-target, .shelf.drop-target { outline: 2px dashed #387fa6; outline-offset: -3px; }
+.tray.drop-target, .tray-box.drop-target, .shelf.drop-target, .day.drop-target { outline: 2px dashed #387fa6; outline-offset: -3px; }
 .tile.drop-target { border-top: 3px dashed #387fa6; }
 .timeline.drop-line::after {
   content: ''; position: absolute; z-index: 11; inset-inline: .1rem; height: 3px; border-radius: 2px;
