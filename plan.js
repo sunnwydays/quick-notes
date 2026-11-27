@@ -2192,12 +2192,26 @@ function showNow() {
       for (const stop of stops) stop.classList.toggle('past', past);
     }
   }
+  showUpNext(today, minute);
   const line = $('week').querySelector('.day.today .now-line');
   if (!line) return;
   const timeline = line.parentElement;
   const at = minute - Number(timeline.dataset.from);
   line.hidden = at < 0 || minute > Number(timeline.dataset.until);
   line.style.setProperty('--minute', at);
+}
+
+// A line under the week bar naming today's next block, so a glance doesn't need a scroll.
+function showUpNext(today, minute) {
+  const next = [...$('week').querySelectorAll(`.tile.timed[data-date="${today}"]`)]
+    .filter((tile) => Number(tile.dataset.start) > minute)
+    .sort((a, b) => a.dataset.start - b.dataset.start)[0];
+  const line = $('up-next');
+  line.hidden = !next;
+  if (!next) return;
+  const start = Number(next.dataset.start);
+  line.replaceChildren('Next: ', element('b', '', next.querySelector('.tile-title').textContent),
+    ` at ${clock12(start)} (in ${lengthLabel(start - minute)})`);
 }
 
 function selectDay(key) {
