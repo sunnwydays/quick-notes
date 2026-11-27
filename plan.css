@@ -485,7 +485,11 @@ label.choice:has(input:checked) { border-color: #5b8aa6; background: #eef6fb; }
     display: grid; place-items: center; width: fit-content; min-width: 1.6rem; margin: .3rem 0; padding: .05rem .4rem;
     border-radius: 999px; background: #245776; color: #fff; font-size: .85rem; font-weight: bold;
   }
-  .board:not(.tray-shut, .tray-empty) .tray-box[data-tray] h3::after { content: ' ‹'; color: var(--muted); }
+  /* The whole heading row is the close target, with a big chevron at its end. */
+  .board:not(.tray-shut, .tray-empty) .tray-box[data-tray] h3 {
+    display: flex; align-items: center; justify-content: space-between; min-height: 2.75rem; margin: -.4rem -.4rem 0; padding-inline: .4rem;
+  }
+  .board:not(.tray-shut, .tray-empty) .tray-box[data-tray] h3::after { content: '‹'; font-size: 1.6rem; line-height: 1; color: var(--muted); padding-inline: .3rem; }
   .board.tray-empty .tray-box[data-tray] > p.muted { display: none; }
   .board-scroll { overflow: hidden; }
   #week { height: 100%; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
