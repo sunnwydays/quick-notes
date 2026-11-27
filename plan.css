@@ -43,6 +43,8 @@ button:disabled { opacity: .55; cursor: default; }
   height: 100dvh; padding: .4rem clamp(.4rem, 1vw, 1rem) max(.3rem, env(safe-area-inset-bottom));
 }
 .masthead, .actions { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+#block-buffer { margin-inline-start: auto; color: #777; font-weight: 600; text-decoration: underline dotted; text-underline-offset: 3px; }
+#block-buffer:hover { color: #333; }
 .masthead { justify-content: space-between; margin-bottom: .25rem; gap: .2rem .6rem; }
 .planner-title { display: flex; align-items: baseline; gap: .55rem; }
 .planner-title h1 { font-size: clamp(1rem, 2vw, 1.35rem); }
@@ -88,7 +90,9 @@ button:disabled { opacity: .55; cursor: default; }
 .tray-box[data-tray] { flex: 1; cursor: pointer; }
 .tray h3 { font-size: 1.2rem; color: #245776; }
 .someday summary { font-weight: bold; cursor: pointer; }
-.tray-tile { margin-top: .35rem; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 .3rem; }
+.tray-tile { margin-top: .35rem; }
+/* Doubled class so it beats the plain .tile display: block further down. */
+.tile.tray-tile { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 .3rem; }
 /* Zero basis so a long title wraps beside the tick instead of dropping below it. */
 .tray-tile .tile-title { flex: 1 1 0; min-width: 0; }
 .tray-tile .split-prompt { flex-basis: 100%; }
