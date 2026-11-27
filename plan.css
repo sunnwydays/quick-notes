@@ -89,16 +89,17 @@ button:disabled { opacity: .55; cursor: default; }
 .tray h3 { font-size: 1.2rem; color: #245776; }
 .someday summary { font-weight: bold; cursor: pointer; }
 .tray-tile { margin-top: .35rem; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 .3rem; }
-.tray-tile .tile-title { flex: 1; }
+/* Zero basis so a long title wraps beside the tick instead of dropping below it. */
+.tray-tile .tile-title { flex: 1 1 0; min-width: 0; }
 .tray-tile .split-prompt { flex-basis: 100%; }
 .tile-check {
-  flex: none; display: inline-grid; place-items: center; width: 1.15rem; height: 1.15rem;
-  border: 1.5px solid #172e4359; border-radius: 50%; font-size: .7rem; color: transparent;
+  flex: none; display: inline-grid; place-items: center; width: .85rem; height: .85rem;
+  border: 1.5px solid #172e4359; border-radius: 50%; font-size: .55rem; color: transparent;
   cursor: pointer; align-self: center;
 }
 .tile-check:hover { color: var(--ink); background: #ffffff99; }
 /* A bigger target for fingers. */
-@media (pointer: coarse) { .tile-check { width: 1.5rem; height: 1.5rem; } }
+@media (pointer: coarse) { .tile-check { width: 1rem; height: 1rem; } }
 .day {
   grid-row: span 4; display: grid; grid-template-rows: subgrid; gap: 0; min-width: 0;
   background: white; border: 1px solid var(--line); border-inline-end: 0;
