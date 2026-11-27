@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { reorderTimelineDrop, snapTimelineDrop, timelineDropPlace, arrangeTimelineDrop, resizeWindow, fitResize, resizeDayBlock, fitTimelineDrop, fullOpening, foldTail, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, insertPopup, layoutDay, restackBeforeScreensOff, suggestGhosts, toggleBlockPin, dropStaleFixed, parseQuickAdd, fitTemplateAnchors, blockKind } from '../plan-engine.js';
+import { reorderTimelineDrop, snapTimelineDrop, timelineDropPlace, arrangeTimelineDrop, resizeWindow, fitResize, resizeDayBlock, fitTimelineDrop, fullOpening, foldTail, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, insertPopup, layoutDay, restackBeforeScreensOff, suggestGhosts, toggleBlockPin, dropStaleFixed, parseQuickAdd, fitTemplateAnchors, blockKind, stickyGoalColours } from '../plan-engine.js';
 
 const block = (id, size, fields = {}) => ({ id, size, tier: 'medium', ...fields });
 const times = ({ blocks }) => blocks.map(({ id, start, until }) => [id, start, until]);
@@ -526,4 +526,16 @@ test('dropping inside a packed run reorders it without moving anything outside',
   assert.deepEqual(fit.timed.map(({ id, start, until }) => [id, start, until]),
     [['lab1', 648, 683], ['lunch', 683, 733], ['lab2', 733, 768], ['upload', 878, 923]]);
   assert.equal(reorderTimelineDrop([...stack.slice(0, 3), at(block('upload', 45), 900, 945)], study, { after: 'upload' }), null);
+});
+
+test('goal colours stay put when goals are ticked off', () => {
+  const goal = (id, createdAt, deletedAt = null) => ({ id, createdAt, deletedAt });
+  const palette = ['a', 'b', 'c'];
+  const live = [goal('one', '2026-01-01'), goal('two', '2026-01-02'), goal('three', '2026-01-03')];
+  const before = stickyGoalColours(live, palette);
+  const after = stickyGoalColours([{ ...live[0], deletedAt: '2026-02-01' }, live[1], live[2]], palette);
+  assert.deepEqual([...after], [...before]);
+  // A goal added after one is done reuses its colour.
+  const next = stickyGoalColours([goal('one', '2026-01-01', '2026-02-01'), live[1], live[2], goal('four', '2026-03-01')], palette);
+  assert.equal(next.get('four'), 'a');
 });

@@ -264,8 +264,18 @@ function goalColour(goal) {
   const saved = plan.budgets[goal]?.colour;
   if (PLAN_COLOURS.includes(saved)) return saved;
   if (LEGACY_COLOURS[saved]) return LEGACY_COLOURS[saved];
-  const index = plannerGoals().findIndex((entry) => entry.id === goal);
-  return index < 0 ? '' : PLAN_COLOURS[index % PLAN_COLOURS.length];
+  return autoGoalColours().get(goal) ?? '';
+}
+
+// Recomputed only when entries are added; a later tick-off can't change any goal's colour.
+let goalColourCache = null;
+function autoGoalColours() {
+  const entries = data.entries;
+  if (goalColourCache?.entries !== entries || goalColourCache.length !== entries.length) {
+    const goals = entries.filter((entry) => entry.category === 'Working on');
+    goalColourCache = { entries, length: entries.length, colours: stickyGoalColours(goals, PLAN_COLOURS) };
+  }
+  return goalColourCache.colours;
 }
 
 function goalHours(entry) {

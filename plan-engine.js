@@ -814,7 +814,23 @@ function parseQuickAdd(input) {
   return { text: cleaned, ...start != null ? { start } : {}, ...duration != null ? { duration } : {} };
 }
 
+// Each goal keeps the colour it got when it was added: the first palette colour
+// no goal on the list at that moment had. Done goals (deleted entries) still
+// count for goals added while they were live, so ticking goals off never
+// recolours the others, and a done goal's old blocks keep its colour.
+function stickyGoalColours(goals, palette) {
+  const sorted = goals.slice().sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id));
+  const colours = new Map();
+  sorted.forEach((goal, i) => {
+    const taken = new Set(sorted.slice(0, i)
+      .filter((older) => !older.deletedAt || older.deletedAt > goal.createdAt)
+      .map((older) => colours.get(older.id)));
+    colours.set(goal.id, palette.find((colour) => !taken.has(colour)) ?? palette[i % palette.length]);
+  });
+  return colours;
+}
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { reorderTimelineDrop, snapTimelineDrop, timelineDropPlace, timelineDropStart, arrangeTimelineDrop, resizeWindow, fitResize, resizeDayBlock, fitTimelineDrop, fullOpening, foldTail, dropStaleFixed, layoutDay, applyOverrun, applyWake, dayLoad, placeInDay, lockShownTimes, toggleBlockPin, suggestGhosts,
-    insertPopup, restackBeforeScreensOff, parseQuickAdd, fitTemplateAnchors, blockKind };
+    insertPopup, restackBeforeScreensOff, parseQuickAdd, fitTemplateAnchors, blockKind, stickyGoalColours };
 }
