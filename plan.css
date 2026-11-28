@@ -249,9 +249,13 @@ button:disabled { opacity: .55; cursor: default; }
 .tile.ghost:hover { background: var(--tile-colour, #edf4fa); }
 .tile.ghost .tile-title::before { content: '+ '; font-weight: bold; }
 .split-prompt { display: block; margin-top: .25rem; font-size: .78rem; color: #70410f; }
-.timed-label { flex: 1; width: 100%; min-height: min(100%, 1.06rem); container-type: size; }
-.timed-label .tile-time { margin-top: .12rem; line-height: .85rem; }
+.timed-label {
+  flex: 1; width: 100%; min-height: min(100%, 1.06rem); container-type: size;
+  display: flex; flex-wrap: wrap; align-items: baseline; align-content: flex-start;
+}
+.timed-label .tile-time { flex: 1 0 100%; margin-top: .12rem; line-height: .85rem; }
 .timed-label .tile-title {
+  flex: 1 0 100%; min-width: 0;
   margin-top: .15rem; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
 }
 @container (min-height: 3.25rem) {
@@ -263,17 +267,15 @@ button:disabled { opacity: .55; cursor: default; }
 }
 @container (height < 1.85rem) {
   /* Too short for a second line: the time sits on the right of the title instead. */
-  .timed-label .tile-title { padding-right: 4.5rem; }
+  .timed-label .tile-title { flex: 1 1 0; }
   .timed-label .tile-half { display: none; }
   .timed-label .tile-time {
-    position: absolute; inset-block: 0; right: .45rem; display: flex; align-items: center;
-    margin: 0; color: var(--muted); white-space: nowrap;
+    flex: none; margin: 0 .45rem 0 .35rem; color: var(--muted); white-space: nowrap;
   }
 }
 /* Narrow week columns have no room beside the title, so the time stays hidden there. */
 @container (height < 1.85rem) and (width < 11rem) {
-  .timed-label .tile-title { padding-right: 0; }
-  .timed-label .tile-time { clip-path: inset(50%); }
+  .timed-label .tile-time { position: absolute; clip-path: inset(50%); }
 }
 @container (height < 1rem) {
   .timed-label .tile-title { font-size: .68rem; line-height: .65rem; }
