@@ -71,6 +71,6 @@ document.addEventListener('keydown', (e) => {
   const ctrl = e.ctrlKey || e.metaKey;
   const key = e.key.toLowerCase();
   // The only shortcut with Ctrl is Ctrl+Z, so the browser's own Ctrl shortcuts still work.
-  if (ctrl && key !== 'z') return;
+  if (ctrl && (key !== 'z' || e.shiftKey)) return;
   if (shortcut(ctrl ? 'ctrl+z' : key)) e.preventDefault();
 });

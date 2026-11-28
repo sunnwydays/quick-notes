@@ -288,9 +288,11 @@ function isPlannerDirty() {
 }
 
 // Planner Undo: renderPlanner snapshots the state it drew, so the snapshot taken
-// before an edit is what Undo restores. Undo pops a stack, newest edit first.
+// before an edit is what Undo restores. Undo pops a stack, newest edit first,
+// and Redo (keyboard only) walks back up until the next edit.
 let planSnap = null;
 const undoStack = [];
+const redoStack = [];
 
 function snapshotPlan() {
   const { days, tray, budgets, dirtyDays, scheduleDirty, trayDirty, goalsDirty } = plan;
@@ -299,6 +301,7 @@ function snapshotPlan() {
 
 function hidePlanUndo() {
   undoStack.length = 0;
+  redoStack.length = 0;
   $('plan-undo-btn').disabled = true;
 }
 
@@ -308,16 +311,19 @@ function markEdited() {
   renderPlanner();
   queueAutosave();
   if (!before) return;
+  redoStack.length = 0;
   undoStack.push(before);
   if (undoStack.length > 50) undoStack.shift();
   $('plan-undo-btn').disabled = false;
 }
 
-$('plan-undo-btn').onclick = () => {
+// Restores the newest snapshot on one stack and puts the current state on the other.
+function stepHistory(from, to) {
   dropChoices = null;
-  const before = undoStack.pop();
-  if (!before) return;
-  const { ticked, ...state } = before;
+  const next = from.pop();
+  if (!next) return;
+  const { ticked, retick, ...state } = next;
+  const current = snapshotPlan();
   Object.assign(plan, structuredClone(state));
   // The snapshot's dirty flags predate the last save, so mark everything for the autosave to compare.
   for (const key of plan.keys) {
@@ -326,20 +332,33 @@ $('plan-undo-btn').onclick = () => {
   }
   plan.trayDirty = true;
   plan.goalsDirty = true;
-  if (ticked) untickNote(ticked);
+  // Stepping over a tick brings its note back, or ticks it off again.
+  if (ticked) current.retick = untickNote(ticked);
+  if (retick) {
+    removeNote(retick, 'done');
+    current.ticked = retick;
+  }
+  to.push(current);
   planSnap = null;
   renderPlanner();
   queueAutosave();
   $('plan-undo-btn').disabled = !undoStack.length;
-};
+}
 
-// Ctrl/Cmd+Z undoes like the button, except while typing (that keeps the field's own undo).
+$('plan-undo-btn').onclick = () => stepHistory(undoStack, redoStack);
+
+// Ctrl/Cmd+Z undoes like the button; Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y redoes. Not while
+// typing (that keeps the field's own undo and redo).
 document.addEventListener('keydown', (event) => {
-  if (!(event.ctrlKey || event.metaKey) || event.shiftKey || event.altKey || event.key.toLowerCase() !== 'z') return;
+  if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
+  const key = event.key.toLowerCase();
+  const redo = key === 'y' ? !event.shiftKey : key === 'z' && event.shiftKey;
+  if (!redo && key !== 'z') return;
   if (event.target.matches('textarea, select, input:not([type=checkbox]):not([type=radio])')) return;
-  if ($('block-editor').open || $('plan-undo-btn').disabled) return;
+  if ($('block-editor').open || !(redo ? redoStack : undoStack).length) return;
   event.preventDefault();
-  $('plan-undo-btn').click();
+  if (redo) stepHistory(redoStack, undoStack);
+  else $('plan-undo-btn').click();
 });
 
 function removeFromDay(key, id) {
@@ -537,6 +556,7 @@ function untickNote(id) {
   repointBlocks(id, copy.id);
   persist();
   sync();
+  return copy.id;
 }
 
 function repointBlocks(from, to) {

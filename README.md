@@ -55,6 +55,7 @@ Open the **calendar icon** in Dash's home header. Drag a Todo onto a day's **Unt
 - The planner saves itself a second after each change, writing changed days as normal Schedule notes (no save button). Log in on both devices to see the plan on your phone or Boox.
 - Items added in the planner (**+**, a To do shelf, or drawing on a timeline) are also added to Todo, unless their kind is Free, Buffer, Meal or Routine; an existing Todo with the same text is linked instead.
 - The circle on an item in the week's To Do or a day's To do marks it done: it leaves the planner, and so does its Todo. **Undo** brings both back.
+- On a computer, Ctrl+Z undoes in the planner and Ctrl+Shift+Z or Ctrl+Y redoes (Cmd on a Mac); there is no Redo button.
 - When adding a timed item, the gray **Buffer** link next to Cancel saves that time as a Buffer in one tap.
 
 #### Rescheduling a block
