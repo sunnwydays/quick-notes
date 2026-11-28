@@ -2217,10 +2217,13 @@ function refreshView() {
 }
 
 // The To do, Missed and Delete zones cover everything above the day tabs: none of it takes a drop.
-function showDragTrash() {
+// On desktop the three sit side by side around the pointer, so a block needn't travel far.
+function showDragTrash(pointerX) {
   // On a phone they stack over the whole left column instead, closer to the thumb.
   const side = matchMedia('(max-width: 700px)').matches;
   $('drag-zones').classList.toggle('side', side);
+  $('drag-zones').style.gridTemplateColumns = '';
+  $('drag-zones').style.paddingInlineStart = '';
   if (side) {
     const r = $('tray').getBoundingClientRect();
     const top = Math.max(0, r.top), bottom = Math.min(innerHeight, r.bottom);
@@ -2232,6 +2235,9 @@ function showDragTrash() {
   const bottom = document.querySelector('.week-overview').getBoundingClientRect();
   Object.assign($('drag-zones').style, { left: `${top.left - 3}px`, top: `${Math.max(0, top.top - 3)}px`,
     width: `${top.width + 6}px`, height: `${Math.max(top.bottom, bottom.bottom) - Math.max(0, top.top - 3) + 3}px` });
+  const width = top.width + 6, zone = Math.min(160, (width - 13) / 3), band = zone * 3 + 13;
+  const start = Math.min(Math.max(0, pointerX - (top.left - 3) - band / 2), width - band);
+  Object.assign($('drag-zones').style, { gridTemplateColumns: `repeat(3, ${zone}px)`, paddingInlineStart: `${start}px` });
   $('drag-zones').hidden = false;
 }
 
@@ -2250,6 +2256,8 @@ function plannerDropTarget(event, source) {
     const missedFrom = source.block.missedFrom ?? source.date;
     return plan.days[next] ? { date: next, shelf: true, missedFrom, indicator: missed } : { missedFrom, indicator: missed };
   }
+  // The rest of the zones' strip is dead space.
+  if (under?.closest('#drag-zones')) return null;
   const tab = under?.closest('[data-tab-day]');
   // A day tab stands in for the day header the phone hides, so it also files the block in that day's To do.
   if (tab) return { date: tab.dataset.tabDay, shelf: true, indicator: tab };
@@ -2749,7 +2757,7 @@ function moveDrag(event) {
     activeDrag.preview = preview;
     activeDrag.tile.classList.add('dragging');
     activeDrag.tile.setPointerCapture(event.pointerId);
-    showDragTrash();
+    showDragTrash(event.clientX);
     requestAnimationFrame(scrollDuringDrag);
   }
   event.preventDefault();
