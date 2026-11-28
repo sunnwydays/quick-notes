@@ -270,7 +270,7 @@ button:disabled { opacity: .55; cursor: default; }
   .timed-label .tile-title { flex: 1 1 0; }
   .timed-label .tile-half { display: none; }
   .timed-label .tile-time {
-    flex: none; margin: 0 .45rem 0 .35rem; color: var(--muted); white-space: nowrap;
+    flex: none; margin: 0 -.05rem 0 .2rem; color: var(--muted); white-space: nowrap;
   }
 }
 /* Narrow week columns have no room beside the title, so the time stays hidden there. */
