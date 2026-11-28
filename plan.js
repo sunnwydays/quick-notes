@@ -1853,8 +1853,8 @@ function timeTile(tile, start, until, from) {
   tile.style.setProperty('--minute', start - from);
   tile.style.setProperty('--duration', until - start);
   const range = `${clock12(start)}–${clock12(until)}`;
-  const time = element('time', 'tile-time', clock12(start));
-  time.append(element('span', 'tile-end', `–${clock12(until)}`));
+  const time = element('time', 'tile-time');
+  fillTileTime(time, start, until);
   const label = element('span', 'timed-label');
   label.append(tile.firstElementChild, time);
   tile.prepend(label);
@@ -2414,9 +2414,19 @@ function showDropTarget(target) {
 
 function setTileTime(tile, start, until) {
   const time = tile.querySelector('.tile-time');
-  if (!time) return;
-  time.firstChild.textContent = clock12(start);
-  time.querySelector('.tile-end').textContent = `–${clock12(until)}`;
+  if (time) fillTileTime(time, start, until);
+}
+
+// The AM/PM sits in its own span so short tiles can drop it to save room.
+function clockParts(minute) {
+  const [clock, half] = clock12(minute).split(' ');
+  return [clock, element('span', 'tile-half', ` ${half}`)];
+}
+
+function fillTileTime(time, start, until) {
+  const end = element('span', 'tile-end', '–');
+  end.append(...clockParts(until));
+  time.replaceChildren(...clockParts(start), end);
 }
 
 // A small copy of the block follows the pointer the whole drag. Over a timeline the day

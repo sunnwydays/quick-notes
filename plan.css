@@ -263,14 +263,15 @@ button:disabled { opacity: .55; cursor: default; }
 }
 @container (height < 1.85rem) {
   /* Too short for a second line: the time sits on the right of the title instead. */
-  .timed-label .tile-title { padding-right: 6.5rem; }
+  .timed-label .tile-title { padding-right: 4.5rem; }
+  .timed-label .tile-half { display: none; }
   .timed-label .tile-time {
     position: absolute; inset-block: 0; right: .45rem; display: flex; align-items: center;
     margin: 0; color: var(--muted); white-space: nowrap;
   }
 }
 /* Narrow week columns have no room beside the title, so the time stays hidden there. */
-@container (height < 1.85rem) and (width < 13rem) {
+@container (height < 1.85rem) and (width < 11rem) {
   .timed-label .tile-title { padding-right: 0; }
   .timed-label .tile-time { clip-path: inset(50%); }
 }
